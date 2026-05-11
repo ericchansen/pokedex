@@ -764,77 +764,455 @@
           "zebstrika",
           "smeargle",
           "milcery",
-          "alcremie-vanilla-cream-strawberry",
-          "alcremie-vanilla-cream-berry",
-          "alcremie-vanilla-cream-love",
-          "alcremie-vanilla-cream-star",
-          "alcremie-vanilla-cream-clover",
-          "alcremie-vanilla-cream-flower",
-          "alcremie-vanilla-cream-ribbon",
-          "alcremie-ruby-cream-strawberry",
-          "alcremie-ruby-cream-berry",
-          "alcremie-ruby-cream-love",
-          "alcremie-ruby-cream-star",
-          "alcremie-ruby-cream-clover",
-          "alcremie-ruby-cream-flower",
-          "alcremie-ruby-cream-ribbon",
-          "alcremie-matcha-cream-strawberry",
-          "alcremie-matcha-cream-berry",
-          "alcremie-matcha-cream-love",
-          "alcremie-matcha-cream-star",
-          "alcremie-matcha-cream-clover",
-          "alcremie-matcha-cream-flower",
-          "alcremie-matcha-cream-ribbon",
-          "alcremie-mint-cream-strawberry",
-          "alcremie-mint-cream-berry"
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Berry"
+            }
+          }
         ]
       },
       {
         "pokemon": [
-          "alcremie-mint-cream-love",
-          "alcremie-mint-cream-star",
-          "alcremie-mint-cream-clover",
-          "alcremie-mint-cream-flower",
-          "alcremie-mint-cream-ribbon",
-          "alcremie-lemon-cream-strawberry",
-          "alcremie-lemon-cream-berry",
-          "alcremie-lemon-cream-love",
-          "alcremie-lemon-cream-star",
-          "alcremie-lemon-cream-clover",
-          "alcremie-lemon-cream-flower",
-          "alcremie-lemon-cream-ribbon",
-          "alcremie-salted-cream-strawberry",
-          "alcremie-salted-cream-berry",
-          "alcremie-salted-cream-love",
-          "alcremie-salted-cream-star",
-          "alcremie-salted-cream-clover",
-          "alcremie-salted-cream-flower",
-          "alcremie-salted-cream-ribbon",
-          "alcremie-ruby-swirl-strawberry",
-          "alcremie-ruby-swirl-berry",
-          "alcremie-ruby-swirl-love",
-          "alcremie-ruby-swirl-star",
-          "alcremie-ruby-swirl-clover",
-          "alcremie-ruby-swirl-flower",
-          "alcremie-ruby-swirl-ribbon",
-          "alcremie-caramel-swirl-strawberry",
-          "alcremie-caramel-swirl-berry",
-          "alcremie-caramel-swirl-love",
-          "alcremie-caramel-swirl-star"
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Star"
+            }
+          }
         ]
       },
       {
         "pokemon": [
-          "alcremie-caramel-swirl-clover",
-          "alcremie-caramel-swirl-flower",
-          "alcremie-caramel-swirl-ribbon",
-          "alcremie-rainbow-swirl-strawberry",
-          "alcremie-rainbow-swirl-berry",
-          "alcremie-rainbow-swirl-love",
-          "alcremie-rainbow-swirl-star",
-          "alcremie-rainbow-swirl-clover",
-          "alcremie-rainbow-swirl-flower",
-          "alcremie-rainbow-swirl-ribbon",
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Ribbon"
+            }
+          },
           "trapinch",
           "vibrava",
           "flygon",
@@ -3795,76 +4173,448 @@
       {
         "pokemon": [
           "polteageist-antique",
-          "alcremie-vanilla-cream-berry",
-          "alcremie-vanilla-cream-love",
-          "alcremie-vanilla-cream-star",
-          "alcremie-vanilla-cream-clover",
-          "alcremie-vanilla-cream-flower",
-          "alcremie-vanilla-cream-ribbon",
-          "alcremie-ruby-cream-strawberry",
-          "alcremie-ruby-cream-berry",
-          "alcremie-ruby-cream-love",
-          "alcremie-ruby-cream-star",
-          "alcremie-ruby-cream-clover",
-          "alcremie-ruby-cream-flower",
-          "alcremie-ruby-cream-ribbon",
-          "alcremie-matcha-cream-strawberry",
-          "alcremie-matcha-cream-berry",
-          "alcremie-matcha-cream-love",
-          "alcremie-matcha-cream-star",
-          "alcremie-matcha-cream-clover",
-          "alcremie-matcha-cream-flower",
-          "alcremie-matcha-cream-ribbon",
-          "alcremie-mint-cream-strawberry",
-          "alcremie-mint-cream-berry",
-          "alcremie-mint-cream-love",
-          "alcremie-mint-cream-star",
-          "alcremie-mint-cream-clover",
-          "alcremie-mint-cream-flower",
-          "alcremie-mint-cream-ribbon",
-          "alcremie-lemon-cream-strawberry",
-          "alcremie-lemon-cream-berry"
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Berry"
+            }
+          }
         ]
       },
       {
         "pokemon": [
-          "alcremie-lemon-cream-love",
-          "alcremie-lemon-cream-star",
-          "alcremie-lemon-cream-clover",
-          "alcremie-lemon-cream-flower",
-          "alcremie-lemon-cream-ribbon",
-          "alcremie-salted-cream-strawberry",
-          "alcremie-salted-cream-berry",
-          "alcremie-salted-cream-love",
-          "alcremie-salted-cream-star",
-          "alcremie-salted-cream-clover",
-          "alcremie-salted-cream-flower",
-          "alcremie-salted-cream-ribbon",
-          "alcremie-ruby-swirl-strawberry",
-          "alcremie-ruby-swirl-berry",
-          "alcremie-ruby-swirl-love",
-          "alcremie-ruby-swirl-star",
-          "alcremie-ruby-swirl-clover",
-          "alcremie-ruby-swirl-flower",
-          "alcremie-ruby-swirl-ribbon",
-          "alcremie-caramel-swirl-strawberry",
-          "alcremie-caramel-swirl-berry",
-          "alcremie-caramel-swirl-love",
-          "alcremie-caramel-swirl-star",
-          "alcremie-caramel-swirl-clover",
-          "alcremie-caramel-swirl-flower",
-          "alcremie-caramel-swirl-ribbon",
-          "alcremie-rainbow-swirl-strawberry",
-          "alcremie-rainbow-swirl-berry",
-          "alcremie-rainbow-swirl-love",
-          "alcremie-rainbow-swirl-star"
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Star"
+            }
+          }
         ]
       },
       {
         "pokemon": [
-          "alcremie-rainbow-swirl-clover",
-          "alcremie-rainbow-swirl-flower",
-          "alcremie-rainbow-swirl-ribbon",
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Ribbon"
+            }
+          },
           "indeedee-f",
           "zacian-crowned",
           "zamazenta-crowned",
@@ -4765,77 +5515,455 @@
           "grimmsnarl",
           "perrserker",
           "milcery",
-          "alcremie-vanilla-cream-strawberry",
-          "alcremie-vanilla-cream-berry",
-          "alcremie-vanilla-cream-love",
-          "alcremie-vanilla-cream-star",
-          "alcremie-vanilla-cream-clover",
-          "alcremie-vanilla-cream-flower",
-          "alcremie-vanilla-cream-ribbon",
-          "alcremie-ruby-cream-strawberry",
-          "alcremie-ruby-cream-berry",
-          "alcremie-ruby-cream-love",
-          "alcremie-ruby-cream-star",
-          "alcremie-ruby-cream-clover",
-          "alcremie-ruby-cream-flower",
-          "alcremie-ruby-cream-ribbon",
-          "alcremie-matcha-cream-strawberry",
-          "alcremie-matcha-cream-berry",
-          "alcremie-matcha-cream-love",
-          "alcremie-matcha-cream-star",
-          "alcremie-matcha-cream-clover"
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Vanilla Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Clover"
+            }
+          }
         ]
       },
       {
         "pokemon": [
-          "alcremie-matcha-cream-flower",
-          "alcremie-matcha-cream-ribbon",
-          "alcremie-mint-cream-strawberry",
-          "alcremie-mint-cream-berry",
-          "alcremie-mint-cream-love",
-          "alcremie-mint-cream-star",
-          "alcremie-mint-cream-clover",
-          "alcremie-mint-cream-flower",
-          "alcremie-mint-cream-ribbon",
-          "alcremie-lemon-cream-strawberry",
-          "alcremie-lemon-cream-berry",
-          "alcremie-lemon-cream-love",
-          "alcremie-lemon-cream-star",
-          "alcremie-lemon-cream-clover",
-          "alcremie-lemon-cream-flower",
-          "alcremie-lemon-cream-ribbon",
-          "alcremie-salted-cream-strawberry",
-          "alcremie-salted-cream-berry",
-          "alcremie-salted-cream-love",
-          "alcremie-salted-cream-star",
-          "alcremie-salted-cream-clover",
-          "alcremie-salted-cream-flower",
-          "alcremie-salted-cream-ribbon",
-          "alcremie-ruby-swirl-strawberry",
-          "alcremie-ruby-swirl-berry",
-          "alcremie-ruby-swirl-love",
-          "alcremie-ruby-swirl-star",
-          "alcremie-ruby-swirl-clover",
-          "alcremie-ruby-swirl-flower",
-          "alcremie-ruby-swirl-ribbon"
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Matcha Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Mint Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Lemon Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Salted Cream",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Ruby Swirl",
+              "sweet": "Ribbon"
+            }
+          }
         ]
       },
       {
         "pokemon": [
-          "alcremie-caramel-swirl-strawberry",
-          "alcremie-caramel-swirl-berry",
-          "alcremie-caramel-swirl-love",
-          "alcremie-caramel-swirl-star",
-          "alcremie-caramel-swirl-clover",
-          "alcremie-caramel-swirl-flower",
-          "alcremie-caramel-swirl-ribbon",
-          "alcremie-rainbow-swirl-strawberry",
-          "alcremie-rainbow-swirl-berry",
-          "alcremie-rainbow-swirl-love",
-          "alcremie-rainbow-swirl-star",
-          "alcremie-rainbow-swirl-clover",
-          "alcremie-rainbow-swirl-flower",
-          "alcremie-rainbow-swirl-ribbon",
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Caramel Swirl",
+              "sweet": "Ribbon"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Strawberry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Berry"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Love"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Star"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Clover"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Flower"
+            }
+          },
+          {
+            "species": "Alcremie",
+            "requires": {
+              "cream": "Rainbow Swirl",
+              "sweet": "Ribbon"
+            }
+          },
           "falinks",
           "pincurchin",
           "snom",
@@ -5041,4 +6169,3 @@
     "fullId": "sv-fully-sorted"
   }
 }
-
