@@ -1,0 +1,72 @@
+{
+  "cases": [
+    {
+      "name": "venusaur-classic",
+      "build": {
+        "species": "Venusaur",
+        "form": null,
+        "item": "Black Sludge",
+        "ability": "Overgrow",
+        "nature": "Bold",
+        "moves": ["Energy Ball", "Leech Seed", "Protect", "Sludge Bomb"],
+        "evs": {
+          "classic": {
+            "hp": 252,
+            "def": 252,
+            "spd": 4
+          }
+        }
+      },
+      "egg_moves": ["Leaf Storm", "Sleep Powder"],
+      "expectedHash": "35bd3479a626c68476dc54ab30c0f12d4a0e191c"
+    },
+    {
+      "name": "garchomp-dual-system",
+      "build": {
+        "species": "Garchomp",
+        "form": null,
+        "item": "Choice Scarf",
+        "ability": "Rough Skin",
+        "nature": "Jolly",
+        "moves": ["Earthquake", "Dragon Claw", "Iron Head", "Protect"],
+        "evs": {
+          "classic": {
+            "atk": 252,
+            "spd": 4,
+            "spe": 252
+          },
+          "classic_ivs": {
+            "atk": null
+          },
+          "champions": {
+            "hp": 12,
+            "atk": 32,
+            "spe": 22
+          }
+        }
+      },
+      "egg_moves": [],
+      "expectedHash": "97ceba1f6676d3fd329922f42c9c3a2ab1845579"
+    },
+    {
+      "name": "rotom-wash-sorted-egg-moves",
+      "build": {
+        "species": "Rotom",
+        "form": "Wash",
+        "item": "Sitrus Berry",
+        "ability": "Levitate",
+        "nature": "Calm",
+        "moves": ["Hydro Pump", "Thunderbolt", "Will-O-Wisp", "Protect"],
+        "evs": {
+          "classic": {
+            "hp": 252,
+            "def": 188,
+            "spd": 68
+          }
+        }
+      },
+      "egg_moves": ["Pain Split", "Nasty Plot"],
+      "expectedHash": "bbba26bb048bf336d6b331f7e2a54f3bc53ee1a7"
+    }
+  ]
+}

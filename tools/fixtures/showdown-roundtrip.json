@@ -1,0 +1,138 @@
+{
+  "cases": [
+    {
+      "name": "classic-ball-tera-unknown-iv",
+      "target": "classic",
+      "member": {
+        "species": "Garchomp",
+        "item": "Choice Scarf",
+        "ball": "Level",
+        "ability": "Rough Skin",
+        "nature": "Jolly",
+        "tera_type": "Steel",
+        "level": 50,
+        "moves": ["Earthquake", "Dragon Claw", "Iron Head", "Protect"],
+        "ev_system": "classic",
+        "evs": {
+          "classic": {
+            "atk": 252,
+            "spd": 4,
+            "spe": 252
+          },
+          "classic_ivs": {
+            "atk": null
+          }
+        }
+      },
+      "expectedText": "Garchomp @ Choice Scarf\nBall: Level Ball\nAbility: Rough Skin\nLevel: 50\nTera Type: Steel\nJolly Nature\nEVs: 252 Atk / 4 SpD / 252 Spe\nIVs: ? Atk\n- Earthquake\n- Dragon Claw\n- Iron Head\n- Protect",
+      "expectedParsed": {
+        "species": "Garchomp",
+        "item": "Choice Scarf",
+        "ability": "Rough Skin",
+        "nature": "Jolly",
+        "teraType": "Steel",
+        "level": 50,
+        "ball": "Level",
+        "nickname": "",
+        "evs": {
+          "atk": 252,
+          "spd": 4,
+          "spe": 252
+        },
+        "ivs": {
+          "atk": null
+        },
+        "moves": ["Earthquake", "Dragon Claw", "Iron Head", "Protect"]
+      }
+    },
+    {
+      "name": "classic-nickname-ball-zero-iv",
+      "target": "classic",
+      "member": {
+        "species": "Pikachu",
+        "nickname": "Sparky",
+        "item": "Light Ball",
+        "ball": "Fast",
+        "ability": "Lightning Rod",
+        "nature": "Jolly",
+        "tera_type": "Electric",
+        "level": 50,
+        "moves": ["Volt Tackle", "Fake Out", "Nuzzle", "Protect"],
+        "ev_system": "classic",
+        "evs": {
+          "classic": {
+            "hp": 4,
+            "atk": 252,
+            "spe": 252
+          },
+          "classic_ivs": {
+            "atk": 0
+          }
+        }
+      },
+      "expectedText": "Sparky (Pikachu) @ Light Ball\nBall: Fast Ball\nAbility: Lightning Rod\nLevel: 50\nTera Type: Electric\nJolly Nature\nEVs: 4 HP / 252 Atk / 252 Spe\nIVs: 0 Atk\n- Volt Tackle\n- Fake Out\n- Nuzzle\n- Protect",
+      "expectedParsed": {
+        "species": "Pikachu",
+        "nickname": "Sparky",
+        "item": "Light Ball",
+        "ability": "Lightning Rod",
+        "nature": "Jolly",
+        "teraType": "Electric",
+        "level": 50,
+        "ball": "Fast",
+        "evs": {
+          "hp": 4,
+          "atk": 252,
+          "spe": 252
+        },
+        "ivs": {
+          "atk": 0
+        },
+        "moves": ["Volt Tackle", "Fake Out", "Nuzzle", "Protect"]
+      }
+    },
+    {
+      "name": "champions-omits-tera-and-ivs",
+      "target": "champions",
+      "member": {
+        "species": "Incineroar",
+        "item": "Safety Goggles",
+        "ball": "Sport",
+        "ability": "Intimidate",
+        "nature": "Careful",
+        "tera_type": "Grass",
+        "level": 50,
+        "moves": ["Parting Shot", "Fake Out", "Throat Chop", "Protect"],
+        "ev_system": "champions",
+        "evs": {
+          "champions": {
+            "hp": 31,
+            "atk": 1,
+            "def": 10,
+            "spd": 23,
+            "spe": 1
+          }
+        }
+      },
+      "expectedText": "Incineroar @ Safety Goggles\nBall: Sport Ball\nAbility: Intimidate\nLevel: 50\nCareful Nature\nEVs: 31 HP / 1 Atk / 10 Def / 23 SpD / 1 Spe\n- Parting Shot\n- Fake Out\n- Throat Chop\n- Protect",
+      "expectedParsed": {
+        "species": "Incineroar",
+        "item": "Safety Goggles",
+        "ability": "Intimidate",
+        "nature": "Careful",
+        "teraType": "",
+        "level": 50,
+        "ball": "Sport",
+        "evs": {
+          "hp": 31,
+          "atk": 1,
+          "def": 10,
+          "spd": 23,
+          "spe": 1
+        },
+        "ivs": {},
+        "moves": ["Parting Shot", "Fake Out", "Throat Chop", "Protect"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "private": true,
+  "scripts": {
+    "lint": "npm run lint:js && npm run lint:css",
+    "lint:js": "eslint site/js/",
+    "lint:css": "stylelint site/css/**/*.css",
+    "lint:py": "uvx ruff check .",
+    "visual:indicators": "node tools/capture_indicator_visuals.mjs --out=.scratch/indicator-visuals",
+    "validate:phase1-contracts": "node tools/validate_phase1_contracts.mjs",
+    "validate:phase2-contracts": "node tools/validate_phase2_contracts.mjs",
+    "validate:phase3-contracts": "node tools/validate_phase3_contracts.mjs",
+    "validate:phase4-contracts": "python tools/validate_contracts.py && node tools/validate_phase4_contracts.mjs && node tools/validate_browser_surface_contracts.mjs",
+    "validate:phase5-contracts": "python tools/validate_data_schema.py && node tools/validate_phase5_contracts.mjs"
+  },
+  "devDependencies": {
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "playwright": "^1.59.1",
+    "pngjs": "^7.0.0",
+    "stylelint": "^17.11.0",
+    "stylelint-config-standard": "^40.0.0"
+  }
+}

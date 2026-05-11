@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokémon HOME Tracker</title>
+  <link rel="icon" href="https://cdn.jsdelivr.net/npm/pokesprite-images/items/ball/poke.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://raw.githubusercontent.com">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-top">
+      <h1 class="logo">
+        <img src="https://cdn.jsdelivr.net/npm/pokesprite-images/items/ball/poke.png" alt="" class="logo-img" width="30" height="30">
+        Pokémon HOME Tracker
+      </h1>
+      <div class="progress-bar">
+        <span class="progress-text" id="progress-text">0 / 0</span>
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="view-tabs" id="view-tabs">
+        <button class="view-tab is-active" id="tab-boxes" data-view="boxes">Boxes</button>
+        <button class="view-tab" id="tab-inventory" data-view="inventory">Inventory</button>
+        <button class="view-tab" id="tab-builds" data-view="builds">Builds</button>
+        <button class="view-tab" id="tab-teams" data-view="teams">Teams</button>
+        <button class="view-tab" id="tab-settings" data-view="settings">Settings</button>
+      </div>
+      <input type="text" id="search-input" class="search-input" placeholder="Search Pokémon...">
+    </div>
+  </header>
+
+  <main class="main-content" id="main-content">
+    <!-- Router manages content here -->
+  </main>
+
+  <!-- Detail Panel (slide-out sidebar or overlay — FR-1.0a) -->
+  <div class="detail-overlay" id="detail-overlay"></div>
+  <aside class="detail-panel" id="detail-panel">
+    <div class="detail-panel-controls">
+      <button class="detail-layout-toggle" id="detail-layout-toggle" type="button" title="Toggle layout">Overlay</button>
+      <button class="detail-close" id="detail-close" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="detail-content" id="detail-content">
+      <!-- Populated by JS -->
+    </div>
+  </aside>
+
+  <footer class="site-footer">
+    <p>Pokémon HOME Tracker — Data from <a href="https://github.com/smogon/pokemon-showdown" target="_blank">Smogon</a> | Sprites from <a href="https://play.pokemonshowdown.com/sprites/" target="_blank">Pokémon Showdown</a></p>
+  </footer>
+
+  <script src="js/buildFingerprint.js"></script>
+  <script src="js/app-routes.js"></script>
+  <script src="js/runtime-contracts.js"></script>
+  <script src="js/domain-mappers.js"></script>
+  <script src="js/species-resolver.js"></script>
+  <script src="js/data/api-client.js"></script>
+  <script src="js/data/storage-mappers.js"></script>
+  <script src="js/data/reference-data.js"></script>
+  <script src="js/data/repositories.js"></script>
+  <script src="js/data/learnset-service.js"></script>
+  <script src="js/data/preset-service.js"></script>
+  <script src="js/data/species-queries.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/state/app-store.js"></script>
+  <script src="js/state/app-selectors.js"></script>
+  <script src="js/settings-state.js"></script>
+  <script src="js/selection.js"></script>
+  <script src="js/slot-selection.js"></script>
+  <script src="js/team-export.js"></script>
+  <script src="js/ev-convert.js"></script>
+  <script src="js/ui-models.js"></script>
+  <script src="js/ui/widgets/ball-picker.js"></script>
+  <script src="js/ui-shared.js"></script>
+  <script src="js/ui/widgets/form-fields.js"></script>
+  <script src="js/ui/widgets/autocomplete-widget.js"></script>
+  <script src="js/ui/widgets/form-errors.js"></script>
+  <script src="js/ui/widgets/stat-editor-widget.js"></script>
+  <script src="js/ui/widgets/move-editor-widget.js"></script>
+  <script src="js/ui/sections/filter-toolbar.js"></script>
+  <script src="js/ui/surfaces/browser-surface.js"></script>
+  <script src="js/ui/sections/build-summary-section.js"></script>
+  <script src="js/ui/sections/detail-hero-section.js"></script>
+  <script src="js/ui/detail/detail-subject-vm.js"></script>
+  <script src="js/ui/surfaces/detail-viewer-surface.js"></script>
+  <script src="js/ui/surfaces/detail-editor-surface.js"></script>
+  <script src="js/showdown-parser.js"></script>
+  <script src="js/search-state.js"></script>
+  <script src="js/progress-indicator.js"></script>
+  <script src="js/build-ui-helpers.js"></script>
+  <script src="js/export-ui.js"></script>
+  <script src="js/build-editor.js"></script>
+  <script src="js/ui/sections/instance-metadata-section.js"></script>
+  <script src="js/pokemon-viewer.js"></script>
+  <script src="js/team-surfaces.js"></script>
+  <script type="module" src="js/router.js"></script>
+  <script type="module" src="js/views/home.js"></script>
+  <script type="module" src="js/views/inventory.js"></script>
+  <script type="module" src="js/views/teams.js"></script>
+  <script type="module" src="js/views/settings.js"></script>
+  <script defer src="js/selection-bar.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+[project]
+name = "pokemon-champions"
+version = "0.1.0"
+description = "Competitive Pokémon trade pipeline and HOME tracker"
+requires-python = ">=3.10"
+
+[project.scripts]
+generate = "generate:main"
+fetch-pokedex = "fetch_pokedex:main"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "E701"]

@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Node dev-test tooling
+node_modules/
+npm-debug.log*
+
+# Smogon raw TS cache (rebuild with: python convert_smogon_data.py)
+.smogon-cache/
+
+# Generated reference data (rebuild with: python convert_smogon_data.py)
+data/reference/
+
+# Playwright MCP temp files
+.playwright-mcp/
+test-results/
+playwright-report/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+.DS_Store
+
+# Reference images
+site/img/ref-*
+
+# Session screenshots and scratch
+*.png
+*.jpg
+*.jpeg
+*.bak
+tmp/
+.scratch/
+
+# Environment / secrets
+.env
+.env.*
+
+# User data — NEVER let git touch these
+userdata/
+data/builds.json
+data/inventory.json
+data/teams.json
+
+# Local generated/import workspaces
+.api_cache/
+batch/
+Pk9Generator/
+snapshot.txt

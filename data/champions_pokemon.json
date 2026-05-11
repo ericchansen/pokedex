@@ -1,0 +1,3285 @@
+{
+  "meta": {
+    "source": "https://bulbapedia.bulbagarden.net/wiki/List_of_Pok\u00e9mon_in_Pok\u00e9mon_Champions",
+    "version": "1.0.2",
+    "scraped_date": "2025-07-23-fixed",
+    "total_base_entries": 311,
+    "total_mega_entries": 59,
+    "unique_dex_numbers": 283
+  },
+  "pokemon": [
+    {
+      "dex_id": 3,
+      "name": "Venusaur",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 6,
+      "name": "Charizard",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 9,
+      "name": "Blastoise",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 15,
+      "name": "Beedrill",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 18,
+      "name": "Pidgeot",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 24,
+      "name": "Arbok",
+      "form": null,
+      "type1": "Poison",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 25,
+      "name": "Pikachu",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 26,
+      "name": "Raichu",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 26,
+      "name": "Raichu",
+      "form": "Alolan",
+      "type1": "Electric",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 36,
+      "name": "Clefable",
+      "form": null,
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 38,
+      "name": "Ninetales",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 38,
+      "name": "Ninetales",
+      "form": "Alolan",
+      "type1": "Ice",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 45,
+      "name": "Vileplume",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 51,
+      "name": "Dugtrio",
+      "form": null,
+      "type1": "Ground",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 53,
+      "name": "Persian",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 59,
+      "name": "Arcanine",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 59,
+      "name": "Arcanine",
+      "form": "Hisuian",
+      "type1": "Fire",
+      "type2": "Rock",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 62,
+      "name": "Poliwrath",
+      "form": null,
+      "type1": "Water",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 65,
+      "name": "Alakazam",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 68,
+      "name": "Machamp",
+      "form": null,
+      "type1": "Fighting",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 71,
+      "name": "Victreebel",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 73,
+      "name": "Tentacruel",
+      "form": null,
+      "type1": "Water",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 76,
+      "name": "Golem",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 78,
+      "name": "Rapidash",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 80,
+      "name": "Slowbro",
+      "form": null,
+      "type1": "Water",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 80,
+      "name": "Slowbro",
+      "form": "Galarian",
+      "type1": "Poison",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 82,
+      "name": "Magneton",
+      "form": null,
+      "type1": "Electric",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 83,
+      "name": "Farfetchd",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 89,
+      "name": "Muk",
+      "form": null,
+      "type1": "Poison",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 91,
+      "name": "Cloyster",
+      "form": null,
+      "type1": "Water",
+      "type2": "Ice",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 94,
+      "name": "Gengar",
+      "form": null,
+      "type1": "Ghost",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 95,
+      "name": "Onix",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 97,
+      "name": "Hypno",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 99,
+      "name": "Kingler",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 101,
+      "name": "Electrode",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 101,
+      "name": "Electrode",
+      "form": "Hisuian",
+      "type1": "Electric",
+      "type2": "Grass",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 103,
+      "name": "Exeggutor",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 103,
+      "name": "Exeggutor",
+      "form": "Alolan",
+      "type1": "Grass",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 105,
+      "name": "Marowak",
+      "form": null,
+      "type1": "Ground",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 105,
+      "name": "Marowak",
+      "form": "Alolan",
+      "type1": "Fire",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 110,
+      "name": "Weezing",
+      "form": null,
+      "type1": "Poison",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 110,
+      "name": "Weezing",
+      "form": "Galarian",
+      "type1": "Poison",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 112,
+      "name": "Rhydon",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Rock",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 113,
+      "name": "Chansey",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 114,
+      "name": "Tangela",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 115,
+      "name": "Kangaskhan",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 121,
+      "name": "Starmie",
+      "form": null,
+      "type1": "Water",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 122,
+      "name": "Mr. Mime",
+      "form": null,
+      "type1": "Psychic",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 127,
+      "name": "Pinsir",
+      "form": null,
+      "type1": "Bug",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 128,
+      "name": "Tauros",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 128,
+      "name": "Tauros",
+      "form": "Paldean Aqua",
+      "type1": "Fighting",
+      "type2": "Water",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 128,
+      "name": "Tauros",
+      "form": "Paldean Blaze",
+      "type1": "Fighting",
+      "type2": "Fire",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 128,
+      "name": "Tauros",
+      "form": "Paldean Combat",
+      "type1": "Fighting",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 130,
+      "name": "Gyarados",
+      "form": null,
+      "type1": "Water",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 131,
+      "name": "Lapras",
+      "form": null,
+      "type1": "Water",
+      "type2": "Ice",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 132,
+      "name": "Ditto",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 134,
+      "name": "Vaporeon",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 135,
+      "name": "Jolteon",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 136,
+      "name": "Flareon",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 142,
+      "name": "Aerodactyl",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 143,
+      "name": "Snorlax",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 149,
+      "name": "Dragonite",
+      "form": null,
+      "type1": "Dragon",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 154,
+      "name": "Meganium",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 157,
+      "name": "Typhlosion",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 157,
+      "name": "Typhlosion",
+      "form": "Hisuian",
+      "type1": "Fire",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 160,
+      "name": "Feraligatr",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 168,
+      "name": "Ariados",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 169,
+      "name": "Crobat",
+      "form": null,
+      "type1": "Poison",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 171,
+      "name": "Lanturn",
+      "form": null,
+      "type1": "Water",
+      "type2": "Electric",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 181,
+      "name": "Ampharos",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 182,
+      "name": "Bellossom",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 184,
+      "name": "Azumarill",
+      "form": null,
+      "type1": "Water",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 186,
+      "name": "Politoed",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 196,
+      "name": "Espeon",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 197,
+      "name": "Umbreon",
+      "form": null,
+      "type1": "Dark",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 199,
+      "name": "Slowking",
+      "form": null,
+      "type1": "Water",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 199,
+      "name": "Slowking",
+      "form": "Galarian",
+      "type1": "Poison",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 205,
+      "name": "Forretress",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 208,
+      "name": "Steelix",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 210,
+      "name": "Granbull",
+      "form": null,
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 212,
+      "name": "Scizor",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 214,
+      "name": "Heracross",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 215,
+      "name": "Sneasel",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Ice",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 215,
+      "name": "Sneasel",
+      "form": "Hisuian",
+      "type1": "Fighting",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 224,
+      "name": "Octillery",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 227,
+      "name": "Skarmory",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 229,
+      "name": "Houndoom",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Fire",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 230,
+      "name": "Kingdra",
+      "form": null,
+      "type1": "Water",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 232,
+      "name": "Donphan",
+      "form": null,
+      "type1": "Ground",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 237,
+      "name": "Hitmontop",
+      "form": null,
+      "type1": "Fighting",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 241,
+      "name": "Miltank",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 242,
+      "name": "Blissey",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 248,
+      "name": "Tyranitar",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 254,
+      "name": "Sceptile",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 257,
+      "name": "Blaziken",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 260,
+      "name": "Swampert",
+      "form": null,
+      "type1": "Water",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 264,
+      "name": "Linoone",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 264,
+      "name": "Linoone",
+      "form": "Galarian",
+      "type1": "Dark",
+      "type2": "Normal",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 269,
+      "name": "Dustox",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 272,
+      "name": "Ludicolo",
+      "form": null,
+      "type1": "Water",
+      "type2": "Grass",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 275,
+      "name": "Shiftry",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 279,
+      "name": "Pelipper",
+      "form": null,
+      "type1": "Water",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 282,
+      "name": "Gardevoir",
+      "form": null,
+      "type1": "Psychic",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 289,
+      "name": "Slaking",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 291,
+      "name": "Ninjask",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 292,
+      "name": "Shedinja",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 295,
+      "name": "Exploud",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 297,
+      "name": "Hariyama",
+      "form": null,
+      "type1": "Fighting",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 302,
+      "name": "Sableye",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 306,
+      "name": "Aggron",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Rock",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 308,
+      "name": "Medicham",
+      "form": null,
+      "type1": "Fighting",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 310,
+      "name": "Manectric",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 319,
+      "name": "Sharpedo",
+      "form": null,
+      "type1": "Water",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 321,
+      "name": "Wailord",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 323,
+      "name": "Camerupt",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 324,
+      "name": "Torkoal",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 330,
+      "name": "Flygon",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 334,
+      "name": "Altaria",
+      "form": null,
+      "type1": "Dragon",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 340,
+      "name": "Whiscash",
+      "form": null,
+      "type1": "Water",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 342,
+      "name": "Crawdaunt",
+      "form": null,
+      "type1": "Water",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 344,
+      "name": "Claydol",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 346,
+      "name": "Cradily",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Grass",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 348,
+      "name": "Armaldo",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Bug",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 350,
+      "name": "Milotic",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 351,
+      "name": "Castform",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 354,
+      "name": "Banette",
+      "form": null,
+      "type1": "Ghost",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 358,
+      "name": "Chimecho",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 359,
+      "name": "Absol",
+      "form": null,
+      "type1": "Dark",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 362,
+      "name": "Glalie",
+      "form": null,
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 365,
+      "name": "Walrein",
+      "form": null,
+      "type1": "Ice",
+      "type2": "Water",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 373,
+      "name": "Salamence",
+      "form": null,
+      "type1": "Dragon",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 376,
+      "name": "Metagross",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 389,
+      "name": "Torterra",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 392,
+      "name": "Infernape",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 395,
+      "name": "Empoleon",
+      "form": null,
+      "type1": "Water",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 398,
+      "name": "Staraptor",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 405,
+      "name": "Luxray",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 407,
+      "name": "Roserade",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 409,
+      "name": "Rampardos",
+      "form": null,
+      "type1": "Rock",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 411,
+      "name": "Bastiodon",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 416,
+      "name": "Vespiquen",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 423,
+      "name": "Gastrodon",
+      "form": "East Sea",
+      "type1": "Water",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 423,
+      "name": "Gastrodon",
+      "form": "West Sea",
+      "type1": "Water",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 428,
+      "name": "Lopunny",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 429,
+      "name": "Mismagius",
+      "form": null,
+      "type1": "Ghost",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 430,
+      "name": "Honchkrow",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 435,
+      "name": "Skuntank",
+      "form": null,
+      "type1": "Poison",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 437,
+      "name": "Bronzong",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 442,
+      "name": "Spiritomb",
+      "form": null,
+      "type1": "Ghost",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 445,
+      "name": "Garchomp",
+      "form": null,
+      "type1": "Dragon",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 448,
+      "name": "Lucario",
+      "form": null,
+      "type1": "Fighting",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 450,
+      "name": "Hippowdon",
+      "form": null,
+      "type1": "Ground",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 452,
+      "name": "Drapion",
+      "form": null,
+      "type1": "Poison",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 454,
+      "name": "Toxicroak",
+      "form": null,
+      "type1": "Poison",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 460,
+      "name": "Abomasnow",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Ice",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 461,
+      "name": "Weavile",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Ice",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 462,
+      "name": "Magnezone",
+      "form": null,
+      "type1": "Electric",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 463,
+      "name": "Lickilicky",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 464,
+      "name": "Rhyperior",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Rock",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 465,
+      "name": "Tangrowth",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 466,
+      "name": "Electivire",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 467,
+      "name": "Magmortar",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 468,
+      "name": "Togekiss",
+      "form": null,
+      "type1": "Fairy",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 470,
+      "name": "Leafeon",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 471,
+      "name": "Glaceon",
+      "form": null,
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 472,
+      "name": "Gliscor",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 473,
+      "name": "Mamoswine",
+      "form": null,
+      "type1": "Ice",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 474,
+      "name": "Porygon-Z",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 475,
+      "name": "Gallade",
+      "form": null,
+      "type1": "Psychic",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 477,
+      "name": "Dusknoir",
+      "form": null,
+      "type1": "Ghost",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 478,
+      "name": "Froslass",
+      "form": null,
+      "type1": "Ice",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 497,
+      "name": "Serperior",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 500,
+      "name": "Emboar",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 503,
+      "name": "Samurott",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 503,
+      "name": "Samurott",
+      "form": "Hisuian",
+      "type1": "Water",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 505,
+      "name": "Watchog",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 508,
+      "name": "Stoutland",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 510,
+      "name": "Liepard",
+      "form": null,
+      "type1": "Dark",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 512,
+      "name": "Simisage",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 514,
+      "name": "Simisear",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 516,
+      "name": "Simipour",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 518,
+      "name": "Musharna",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 521,
+      "name": "Unfezant",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 523,
+      "name": "Zebstrika",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 526,
+      "name": "Gigalith",
+      "form": null,
+      "type1": "Rock",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 528,
+      "name": "Swoobat",
+      "form": null,
+      "type1": "Psychic",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 530,
+      "name": "Excadrill",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 531,
+      "name": "Audino",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 534,
+      "name": "Conkeldurr",
+      "form": null,
+      "type1": "Fighting",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 537,
+      "name": "Seismitoad",
+      "form": null,
+      "type1": "Water",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 545,
+      "name": "Scolipede",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 547,
+      "name": "Whimsicott",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 549,
+      "name": "Lilligant",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 549,
+      "name": "Lilligant",
+      "form": "Hisuian",
+      "type1": "Grass",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 553,
+      "name": "Krookodile",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 555,
+      "name": "Darmanitan",
+      "form": null,
+      "type1": "Fire",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 555,
+      "name": "Darmanitan",
+      "form": "Galarian",
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 558,
+      "name": "Crustle",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Rock",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 560,
+      "name": "Scrafty",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 563,
+      "name": "Cofagrigus",
+      "form": null,
+      "type1": "Ghost",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 567,
+      "name": "Archeops",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 569,
+      "name": "Garbodor",
+      "form": null,
+      "type1": "Poison",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 571,
+      "name": "Zoroark",
+      "form": null,
+      "type1": "Dark",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 571,
+      "name": "Zoroark",
+      "form": "Hisuian",
+      "type1": "Normal",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 573,
+      "name": "Cinccino",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 579,
+      "name": "Reuniclus",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 581,
+      "name": "Swanna",
+      "form": null,
+      "type1": "Water",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 584,
+      "name": "Vanilluxe",
+      "form": null,
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 587,
+      "name": "Emolga",
+      "form": null,
+      "type1": "Electric",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 589,
+      "name": "Escavalier",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 591,
+      "name": "Amoonguss",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 593,
+      "name": "Jellicent",
+      "form": null,
+      "type1": "Water",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 596,
+      "name": "Galvantula",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Electric",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 598,
+      "name": "Ferrothorn",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 601,
+      "name": "Klinklang",
+      "form": null,
+      "type1": "Steel",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 604,
+      "name": "Eelektross",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 606,
+      "name": "Beheeyem",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 609,
+      "name": "Chandelure",
+      "form": null,
+      "type1": "Ghost",
+      "type2": "Fire",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 612,
+      "name": "Haxorus",
+      "form": null,
+      "type1": "Dragon",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 614,
+      "name": "Beartic",
+      "form": null,
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 615,
+      "name": "Cryogonal",
+      "form": null,
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 618,
+      "name": "Stunfisk",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Electric",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 618,
+      "name": "Stunfisk",
+      "form": "Galarian",
+      "type1": "Ground",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 623,
+      "name": "Golurk",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 635,
+      "name": "Hydreigon",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 637,
+      "name": "Volcarona",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Fire",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 652,
+      "name": "Chesnaught",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 655,
+      "name": "Delphox",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 658,
+      "name": "Greninja",
+      "form": null,
+      "type1": "Water",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 660,
+      "name": "Diggersby",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Ground",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 663,
+      "name": "Talonflame",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 666,
+      "name": "Vivillon",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 670,
+      "name": "Floette",
+      "form": "Eternal Flower",
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "Transfer only"
+    },
+    {
+      "dex_id": 671,
+      "name": "Florges",
+      "form": null,
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 675,
+      "name": "Pangoro",
+      "form": null,
+      "type1": "Fighting",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 676,
+      "name": "Furfrou",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 678,
+      "name": "Meowstic",
+      "form": "Female",
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 678,
+      "name": "Meowstic",
+      "form": "Male",
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 681,
+      "name": "Aegislash",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 683,
+      "name": "Aromatisse",
+      "form": null,
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 685,
+      "name": "Slurpuff",
+      "form": null,
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 693,
+      "name": "Clawitzer",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 695,
+      "name": "Heliolisk",
+      "form": null,
+      "type1": "Electric",
+      "type2": "Normal",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 697,
+      "name": "Tyrantrum",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 699,
+      "name": "Aurorus",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Ice",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 700,
+      "name": "Sylveon",
+      "form": null,
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 701,
+      "name": "Hawlucha",
+      "form": null,
+      "type1": "Fighting",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 702,
+      "name": "Dedenne",
+      "form": null,
+      "type1": "Electric",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 706,
+      "name": "Goodra",
+      "form": null,
+      "type1": "Dragon",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 706,
+      "name": "Goodra",
+      "form": "Hisuian",
+      "type1": "Steel",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 707,
+      "name": "Klefki",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 709,
+      "name": "Trevenant",
+      "form": null,
+      "type1": "Ghost",
+      "type2": "Grass",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 711,
+      "name": "Gourgeist",
+      "form": null,
+      "type1": "Ghost",
+      "type2": "Grass",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 713,
+      "name": "Avalugg",
+      "form": null,
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 713,
+      "name": "Avalugg",
+      "form": "Hisuian",
+      "type1": "Ice",
+      "type2": "Rock",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 715,
+      "name": "Noivern",
+      "form": null,
+      "type1": "Flying",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 724,
+      "name": "Decidueye",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 724,
+      "name": "Decidueye",
+      "form": "Hisuian",
+      "type1": "Grass",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 727,
+      "name": "Incineroar",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 730,
+      "name": "Primarina",
+      "form": null,
+      "type1": "Water",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 733,
+      "name": "Toucannon",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Flying",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 740,
+      "name": "Crabominable",
+      "form": null,
+      "type1": "Fighting",
+      "type2": "Ice",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 745,
+      "name": "Lycanroc",
+      "form": "Dusk",
+      "type1": "Rock",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 745,
+      "name": "Lycanroc",
+      "form": "Midday",
+      "type1": "Rock",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 745,
+      "name": "Lycanroc",
+      "form": "Midnight",
+      "type1": "Rock",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 748,
+      "name": "Toxapex",
+      "form": null,
+      "type1": "Poison",
+      "type2": "Water",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 750,
+      "name": "Mudsdale",
+      "form": null,
+      "type1": "Ground",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 752,
+      "name": "Araquanid",
+      "form": null,
+      "type1": "Water",
+      "type2": "Bug",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 758,
+      "name": "Salazzle",
+      "form": null,
+      "type1": "Poison",
+      "type2": "Fire",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 763,
+      "name": "Tsareena",
+      "form": null,
+      "type1": "Grass",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 765,
+      "name": "Oranguru",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 766,
+      "name": "Passimian",
+      "form": null,
+      "type1": "Fighting",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 778,
+      "name": "Mimikyu",
+      "form": null,
+      "type1": "Ghost",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 780,
+      "name": "Drampa",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 784,
+      "name": "Kommo-o",
+      "form": null,
+      "type1": "Dragon",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 823,
+      "name": "Corviknight",
+      "form": null,
+      "type1": "Flying",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 841,
+      "name": "Flapple",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 842,
+      "name": "Appletun",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 844,
+      "name": "Sandaconda",
+      "form": null,
+      "type1": "Ground",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 855,
+      "name": "Polteageist",
+      "form": null,
+      "type1": "Ghost",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 858,
+      "name": "Hatterene",
+      "form": null,
+      "type1": "Psychic",
+      "type2": "Fairy",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 866,
+      "name": "Mr. Rime",
+      "form": null,
+      "type1": "Ice",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 867,
+      "name": "Runerigus",
+      "form": null,
+      "type1": "Ground",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 869,
+      "name": "Alcremie",
+      "form": null,
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 877,
+      "name": "Morpeko",
+      "form": null,
+      "type1": "Electric",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 887,
+      "name": "Dragapult",
+      "form": null,
+      "type1": "Dragon",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 899,
+      "name": "Wyrdeer",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 900,
+      "name": "Kleavor",
+      "form": null,
+      "type1": "Bug",
+      "type2": "Rock",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 902,
+      "name": "Basculegion",
+      "form": "Female",
+      "type1": "Water",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 902,
+      "name": "Basculegion",
+      "form": "Male",
+      "type1": "Water",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 903,
+      "name": "Sneasler",
+      "form": null,
+      "type1": "Fighting",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 908,
+      "name": "Meowscarada",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Dark",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 911,
+      "name": "Skeledirge",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 914,
+      "name": "Quaquaval",
+      "form": null,
+      "type1": "Water",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 923,
+      "name": "Pawmot",
+      "form": null,
+      "type1": "Electric",
+      "type2": "Fighting",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 925,
+      "name": "Maushold",
+      "form": null,
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 934,
+      "name": "Garganacl",
+      "form": null,
+      "type1": "Rock",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 936,
+      "name": "Armarouge",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 937,
+      "name": "Ceruledge",
+      "form": null,
+      "type1": "Fire",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 939,
+      "name": "Bellibolt",
+      "form": null,
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 952,
+      "name": "Scovillain",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Fire",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 956,
+      "name": "Espathra",
+      "form": null,
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 959,
+      "name": "Tinkaton",
+      "form": null,
+      "type1": "Fairy",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 964,
+      "name": "Palafin",
+      "form": null,
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 968,
+      "name": "Orthworm",
+      "form": null,
+      "type1": "Steel",
+      "type2": null,
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 970,
+      "name": "Glimmora",
+      "form": null,
+      "type1": "Rock",
+      "type2": "Poison",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 981,
+      "name": "Farigiraf",
+      "form": null,
+      "type1": "Normal",
+      "type2": "Psychic",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 983,
+      "name": "Kingambit",
+      "form": null,
+      "type1": "Dark",
+      "type2": "Steel",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 1013,
+      "name": "Sinistcha",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Ghost",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 1018,
+      "name": "Archaludon",
+      "form": null,
+      "type1": "Steel",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    },
+    {
+      "dex_id": 1019,
+      "name": "Hydrapple",
+      "form": null,
+      "type1": "Grass",
+      "type2": "Dragon",
+      "version_added": "1.0.2",
+      "normally_available": "TBD"
+    }
+  ],
+  "megas": [
+    {
+      "dex_id": 3,
+      "name": "Venusaur",
+      "mega_form": "Mega",
+      "type1": "Grass",
+      "type2": "Poison",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 6,
+      "name": "Charizard",
+      "mega_form": "Mega X",
+      "type1": "Fire",
+      "type2": "Dragon",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 6,
+      "name": "Charizard",
+      "mega_form": "Mega Y",
+      "type1": "Fire",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 9,
+      "name": "Blastoise",
+      "mega_form": "Mega",
+      "type1": "Water",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 15,
+      "name": "Beedrill",
+      "mega_form": "Mega",
+      "type1": "Bug",
+      "type2": "Poison",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 18,
+      "name": "Pidgeot",
+      "mega_form": "Mega",
+      "type1": "Normal",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 36,
+      "name": "Clefable",
+      "mega_form": "Mega",
+      "type1": "Fairy",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 65,
+      "name": "Alakazam",
+      "mega_form": "Mega",
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 71,
+      "name": "Victreebel",
+      "mega_form": "Mega",
+      "type1": "Grass",
+      "type2": "Poison",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 80,
+      "name": "Slowbro",
+      "mega_form": "Mega",
+      "type1": "Water",
+      "type2": "Psychic",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 94,
+      "name": "Gengar",
+      "mega_form": "Mega",
+      "type1": "Ghost",
+      "type2": "Poison",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 115,
+      "name": "Kangaskhan",
+      "mega_form": "Mega",
+      "type1": "Normal",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 121,
+      "name": "Starmie",
+      "mega_form": "Mega",
+      "type1": "Water",
+      "type2": "Psychic",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 127,
+      "name": "Pinsir",
+      "mega_form": "Mega",
+      "type1": "Bug",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 130,
+      "name": "Gyarados",
+      "mega_form": "Mega",
+      "type1": "Water",
+      "type2": "Dark",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 142,
+      "name": "Aerodactyl",
+      "mega_form": "Mega",
+      "type1": "Rock",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 149,
+      "name": "Dragonite",
+      "mega_form": "Mega",
+      "type1": "Dragon",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 154,
+      "name": "Meganium",
+      "mega_form": "Mega",
+      "type1": "Grass",
+      "type2": "Fairy",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 160,
+      "name": "Feraligatr",
+      "mega_form": "Mega",
+      "type1": "Water",
+      "type2": "Dragon",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 181,
+      "name": "Ampharos",
+      "mega_form": "Mega",
+      "type1": "Electric",
+      "type2": "Dragon",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 208,
+      "name": "Steelix",
+      "mega_form": "Mega",
+      "type1": "Steel",
+      "type2": "Ground",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 212,
+      "name": "Scizor",
+      "mega_form": "Mega",
+      "type1": "Bug",
+      "type2": "Steel",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 214,
+      "name": "Heracross",
+      "mega_form": "Mega",
+      "type1": "Bug",
+      "type2": "Fighting",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 227,
+      "name": "Skarmory",
+      "mega_form": "Mega",
+      "type1": "Steel",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 229,
+      "name": "Houndoom",
+      "mega_form": "Mega",
+      "type1": "Dark",
+      "type2": "Fire",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 248,
+      "name": "Tyranitar",
+      "mega_form": "Mega",
+      "type1": "Rock",
+      "type2": "Dark",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 282,
+      "name": "Gardevoir",
+      "mega_form": "Mega",
+      "type1": "Psychic",
+      "type2": "Fairy",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 302,
+      "name": "Sableye",
+      "mega_form": "Mega",
+      "type1": "Dark",
+      "type2": "Ghost",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 306,
+      "name": "Aggron",
+      "mega_form": "Mega",
+      "type1": "Steel",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 308,
+      "name": "Medicham",
+      "mega_form": "Mega",
+      "type1": "Fighting",
+      "type2": "Psychic",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 310,
+      "name": "Manectric",
+      "mega_form": "Mega",
+      "type1": "Electric",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 319,
+      "name": "Sharpedo",
+      "mega_form": "Mega",
+      "type1": "Water",
+      "type2": "Dark",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 323,
+      "name": "Camerupt",
+      "mega_form": "Mega",
+      "type1": "Fire",
+      "type2": "Ground",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 334,
+      "name": "Altaria",
+      "mega_form": "Mega",
+      "type1": "Dragon",
+      "type2": "Fairy",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 354,
+      "name": "Banette",
+      "mega_form": "Mega",
+      "type1": "Ghost",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 358,
+      "name": "Chimecho",
+      "mega_form": "Mega",
+      "type1": "Psychic",
+      "type2": "Steel",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 359,
+      "name": "Absol",
+      "mega_form": "Mega",
+      "type1": "Dark",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 362,
+      "name": "Glalie",
+      "mega_form": "Mega",
+      "type1": "Ice",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 428,
+      "name": "Lopunny",
+      "mega_form": "Mega",
+      "type1": "Normal",
+      "type2": "Fighting",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 445,
+      "name": "Garchomp",
+      "mega_form": "Mega",
+      "type1": "Dragon",
+      "type2": "Ground",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 448,
+      "name": "Lucario",
+      "mega_form": "Mega",
+      "type1": "Fighting",
+      "type2": "Steel",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 460,
+      "name": "Abomasnow",
+      "mega_form": "Mega",
+      "type1": "Grass",
+      "type2": "Ice",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 475,
+      "name": "Gallade",
+      "mega_form": "Mega",
+      "type1": "Psychic",
+      "type2": "Fighting",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 478,
+      "name": "Froslass",
+      "mega_form": "Mega",
+      "type1": "Ice",
+      "type2": "Ghost",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 500,
+      "name": "Emboar",
+      "mega_form": "Mega",
+      "type1": "Fire",
+      "type2": "Fighting",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 530,
+      "name": "Excadrill",
+      "mega_form": "Mega",
+      "type1": "Ground",
+      "type2": "Steel",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 531,
+      "name": "Audino",
+      "mega_form": "Mega",
+      "type1": "Normal",
+      "type2": "Fairy",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 609,
+      "name": "Chandelure",
+      "mega_form": "Mega",
+      "type1": "Ghost",
+      "type2": "Fire",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 623,
+      "name": "Golurk",
+      "mega_form": "Mega",
+      "type1": "Ground",
+      "type2": "Ghost",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 652,
+      "name": "Chesnaught",
+      "mega_form": "Mega",
+      "type1": "Grass",
+      "type2": "Fighting",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 655,
+      "name": "Delphox",
+      "mega_form": "Mega",
+      "type1": "Fire",
+      "type2": "Psychic",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 658,
+      "name": "Greninja",
+      "mega_form": "Mega",
+      "type1": "Water",
+      "type2": "Dark",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 670,
+      "name": "Floette",
+      "mega_form": "Mega",
+      "type1": "Fairy",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 678,
+      "name": "Meowstic",
+      "mega_form": "Mega",
+      "type1": "Psychic",
+      "type2": null,
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 701,
+      "name": "Hawlucha",
+      "mega_form": "Mega",
+      "type1": "Fighting",
+      "type2": "Flying",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 740,
+      "name": "Crabominable",
+      "mega_form": "Mega",
+      "type1": "Fighting",
+      "type2": "Ice",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 780,
+      "name": "Drampa",
+      "mega_form": "Mega",
+      "type1": "Normal",
+      "type2": "Dragon",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 952,
+      "name": "Scovillain",
+      "mega_form": "Mega",
+      "type1": "Grass",
+      "type2": "Fire",
+      "version_added": "1.0.2"
+    },
+    {
+      "dex_id": 970,
+      "name": "Glimmora",
+      "mega_form": "Mega",
+      "type1": "Rock",
+      "type2": "Poison",
+      "version_added": "1.0.2"
+    }
+  ]
+}
