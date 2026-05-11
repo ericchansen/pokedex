@@ -961,11 +961,11 @@ const BoxesView = (() => {
         { slug });
       while (spriteFragment.firstChild) slot.appendChild(spriteFragment.firstChild);
 
-      // Tooltip: same rendering as occupied slots — species + metadata suffix.
-      // For ghosts, the "state" is what the template requires/defaults.
+      // Tooltip: species name + metadata suffix.
+      // Ghost mode shows ALL requires (including ability) since it's what's expected.
       const tooltip = document.createElement('span');
       tooltip.className = 'tooltip';
-      tooltip.textContent = name + buildMetadataSuffix(ghostState, slug);
+      tooltip.textContent = name + FormMetadata.buildTooltipSuffix(ghostState, slug, 'ghost');
       slot.appendChild(tooltip);
     }
 

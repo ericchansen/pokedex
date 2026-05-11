@@ -34,7 +34,12 @@ const FormMetadata = (() => {
   const REGISTRY = Object.freeze({
     gender: {
       normalize: (v) => String(v).toUpperCase().charAt(0),
-      tooltip: (v, slug) => v === 'F' && GENDER_SPRITE_SPECIES.has(slug) ? 'Female' : null,
+      tooltip: (v, slug) => {
+        // Only show gender for dimorphic species where it's visually distinguishing
+        if (!GENDER_SPRITE_SPECIES.has(slug)) return null;
+        if (v === 'F' || v === 'Female') return 'Female';
+        return null; // Male is the default for dimorphic — not worth showing
+      },
       sprite: (v, slug) => v === 'F' && GENDER_SPRITE_SPECIES.has(slug) ? [`${slug}-f`] : null,
       placement: (slug) => {
         const locked = typeof DataManager !== 'undefined' ? DataManager.getSpeciesGender(slug) : null;
@@ -53,7 +58,8 @@ const FormMetadata = (() => {
     },
     ability: {
       normalize: (v) => String(v).toLowerCase().replace(/[\s''-]+/g, ''),
-      tooltip: (v) => v ? formatValue(v) : null,
+      // Ability shows in ghost tooltips (what's expected) but not occupied (every mon has one)
+      tooltip: (v, _slug, mode) => (mode === 'ghost' && v) ? formatValue(v) : null,
     },
     cream: {
       normalize: (v) => String(v).toLowerCase().replace(/\s+/g, '-'),
@@ -95,15 +101,17 @@ const FormMetadata = (() => {
     return map;
   }
 
-  /** Build tooltip suffix: " (Gmax, Female, Vanilla Cream)" or "". */
-  function buildTooltipSuffix(state, resolvedSlug) {
+  /** Build tooltip suffix: " (Gmax, Female, Vanilla Cream)" or "".
+   *  @param {string} [mode] — 'ghost' shows all metadata; default hides noise like ability
+   */
+  function buildTooltipSuffix(state, resolvedSlug, mode) {
     if (!state) return '';
     const parts = [];
     for (const [key, def] of Object.entries(REGISTRY)) {
       if (!def.tooltip) continue;
       const val = state[key];
       if (val == null || val === '' || val === false) continue;
-      const label = def.tooltip(val, resolvedSlug);
+      const label = def.tooltip(val, resolvedSlug, mode);
       if (label) parts.push(label);
     }
     return parts.length ? ` (${parts.join(', ')})` : '';
