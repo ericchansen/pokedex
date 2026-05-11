@@ -2439,6 +2439,15 @@ body.viewer-overlay .detail-panel.open {
   box-sizing: border-box;
 }
 
+/* Locked/disabled fields: visually distinct, clearly non-interactive */
+.comp-row--editable select:disabled,
+.comp-row--editable input:disabled,
+.comp-row--editable textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .comp-row--editable input:focus,
 .comp-row--editable select:focus,
 .comp-row--editable textarea:focus {
