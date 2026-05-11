@@ -65,6 +65,11 @@ const DetailSubjectVM = (() => {
       from_go: !!state.from_go,
       genned: state.genned,
       transferred_to_champions: !!state.transferred_to_champions,
+      // Registry-driven metadata (cream/sweet, future dimensions)
+      // Copies any key from FORM_METADATA registry that exists in state.
+      ...(typeof FormMetadata !== 'undefined'
+        ? Object.fromEntries(FormMetadata.KEYS.filter(k => state[k] !== undefined).map(k => [k, state[k]]))
+        : {}),
     };
   }
 

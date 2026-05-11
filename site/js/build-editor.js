@@ -185,6 +185,7 @@ const BuildEditor = (() => {
               <label class="checkbox-label"><input type="checkbox" id="bf-transferred"> 🏆 Champions</label>
             </span>
           </div>
+          <div id="bf-registry-fields"></div>
         </div>
 
         <div class="comp-row comp-row--editable">
@@ -611,6 +612,7 @@ const BuildEditor = (() => {
 
         scheduleEggMoveRefresh();
         syncGenderLock();
+        refreshRegistryFields();
         markDirty();
       },
       formatItem: formatSpeciesItem,
@@ -665,6 +667,38 @@ const BuildEditor = (() => {
     if (build.ev_guesstimate) content.querySelector('#bf-ev-guesstimate').checked = true;
     if (build.genned) content.querySelector('#bf-genned').checked = true;
     if (build.transferred_to_champions) content.querySelector('#bf-transferred').checked = true;
+
+    // ── Registry-driven metadata fields (cream/sweet, future dimensions) ──
+    function refreshRegistryFields() {
+      const container = content.querySelector('#bf-registry-fields');
+      if (!container) return;
+      const slug = getCurrentSpeciesSlug();
+      const controls = (typeof FormMetadata !== 'undefined') ? FormMetadata.getPlacementControls(slug) : [];
+      // Filter out gender (already handled by #bf-gender)
+      const filtered = controls.filter(c => c.key !== 'gender');
+      if (!filtered.length) { container.innerHTML = ''; return; }
+      container.innerHTML = filtered.map(ctrl => {
+        const currentVal = build[ctrl.key] || '';
+        const label = escapeHtml(ctrl.key.charAt(0).toUpperCase() + ctrl.key.slice(1));
+        if (ctrl.type === 'select') {
+          return `<div class="comp-row comp-row--editable">
+            <span class="comp-label">${label}</span>
+            <span class="comp-value">
+              <select id="bf-meta-${ctrl.key}" data-meta-field="${ctrl.key}">
+                <option value="">—</option>
+                ${ctrl.options.map(o => `<option value="${escapeHtml(o)}"${o === currentVal ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}
+              </select>
+            </span>
+          </div>`;
+        }
+        return '';
+      }).join('');
+      // Wire change events → markDirty
+      for (const sel of container.querySelectorAll('[data-meta-field]')) {
+        sel.addEventListener('change', () => markDirty());
+      }
+    }
+    refreshRegistryFields();
 
     // ── Stat editor (sliders, nature labels, recalc, EV conversion) ──
     const { statEditor, natureSelect, recalcAllStats, updateNatureLabels, updateClassicEvTotal, updateChampEvTotal } =
@@ -732,6 +766,16 @@ const BuildEditor = (() => {
       if (data.gigantamax) {
         const gmaxEl = content.querySelector('#bf-gigantamax');
         if (gmaxEl && (!onlyIfEmpty || !gmaxEl.checked)) gmaxEl.checked = true;
+      }
+      // Registry-driven metadata fields (cream/sweet, future dimensions)
+      if (typeof FormMetadata !== 'undefined') {
+        for (const key of FormMetadata.KEYS) {
+          if (key === 'gender' || key === 'gigantamax' || key === 'alpha') continue; // handled above
+          if (data[key]) {
+            const el = content.querySelector(`[data-meta-field="${key}"]`);
+            if (el && (!onlyIfEmpty || !el.value)) el.value = data[key];
+          }
+        }
       }
       if (data.evs && Object.keys(data.evs).length) {
         for (const [key, value] of Object.entries(data.evs)) {
@@ -870,6 +914,11 @@ const BuildEditor = (() => {
         payload.ev_guesstimate = content.querySelector('#bf-ev-guesstimate').checked;
         payload.genned = content.querySelector('#bf-genned').checked;
         payload.transferred_to_champions = content.querySelector('#bf-transferred').checked;
+        // Registry-driven metadata fields (cream/sweet, future dimensions)
+        for (const el of content.querySelectorAll('#bf-registry-fields [data-meta-field]')) {
+          const key = el.dataset.metaField;
+          payload[key] = el.value || null;
+        }
       }
 
       return DomainMappers.createEditableBuildDraft(payload, {
