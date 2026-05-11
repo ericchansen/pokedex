@@ -14,6 +14,10 @@ const DomainMappers = (() => {
     'ivs', 'ev_system', 'ball', 'nickname', 'ot', 'gender', 'shiny',
     'language', 'origin_game', 'notes', 'gigantamax', 'alpha',
     'event_origin', 'genned', 'transferred_to_champions', 'from_go', 'ev_guesstimate',
+    // Form-variant metadata (Alcremie cream/sweet, future cap-style, hat-color, etc.)
+    // Any new metadata key declared in preset JSON `requires` should be added here
+    // so it survives the state ↔ storage roundtrip via createEditableBuildDraft.
+    'cream', 'sweet',
   ]);
   const BOOLEAN_FIELDS = new Set(['shiny', 'gigantamax', 'alpha', 'event_origin', 'genned', 'transferred_to_champions', 'from_go', 'ev_guesstimate']);
 
@@ -229,6 +233,8 @@ const DomainMappers = (() => {
       'tera_type', 'moves', 'ball', 'nickname', 'ot', 'gender', 'shiny',
       'language', 'origin_game', 'notes', 'gigantamax', 'alpha',
       'egg_moves', 'event_origin', 'genned', 'transferred_to_champions', 'from_go', 'ev_guesstimate',
+      // Form-variant metadata — must match additions to FORM_EXTRA_FIELDS
+      'cream', 'sweet',
     ];
 
     for (const field of copyFields) {

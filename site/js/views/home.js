@@ -686,14 +686,28 @@ const BoxesView = (() => {
     if (state.gender === 'F' && GENDER_SPRITE_SPECIES.has(resolved.slug)) {
       prepend.push(`${resolved.slug}-f`);
     }
-    if (state.cream && resolved.slug === 'alcremie') {
-      const creamSlug = state.cream.toLowerCase().replace(/\s+/g, '');
-      prepend.push(`alcremie-${creamSlug}`);
+    // Alcremie cream/sweet sprite candidates — try most-specific first
+    if (resolved.slug === 'alcremie') {
+      const creamSlug = state.cream ? String(state.cream).toLowerCase().replace(/\s+/g, '-') : null;
+      const sweetSlug = state.sweet ? String(state.sweet).toLowerCase().replace(/\s+/g, '-') : null;
+      if (creamSlug && sweetSlug) prepend.push(`alcremie-${creamSlug}-${sweetSlug}`);
+      if (creamSlug) prepend.push(`alcremie-${creamSlug}`);
     }
     if (prepend.length) {
       resolved.spriteCandidates = [...new Set([...prepend, ...base])];
     }
     return resolved;
+  }
+
+  // ── Tooltip formatting for generic requires display ───
+  function formatTooltipKey(key) {
+    // boolean keys → key as label (e.g. "gigantamax" → "Gmax")
+    const labels = { gigantamax: 'Gmax', shiny: 'Shiny', alpha: 'Alpha' };
+    return labels[key] || key.charAt(0).toUpperCase() + key.slice(1);
+  }
+  function formatTooltipValue(value) {
+    // String values → title-cased ("own-tempo" → "Own Tempo", "Vanilla Cream" → "Vanilla Cream")
+    return String(value).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
   // ── Delegated grid event handlers ─────────────────────
@@ -752,10 +766,13 @@ const BoxesView = (() => {
         const slug = resolved.matchedDirect ? resolved.slug : cleanPid;
         placementTarget = { boxId, slotIdx };
 
-        // Build initial state from pre-parsed preset metadata
+        // Build initial state from preset requires + defaults (data-driven, no per-field if's)
         const placementState = {};
-        if (slot.dataset.presetGmax) placementState.gigantamax = true;
-        if (slot.dataset.presetGender) placementState.gender = slot.dataset.presetGender;
+        try {
+          if (slot.dataset.presetDefaults) Object.assign(placementState, JSON.parse(slot.dataset.presetDefaults));
+          if (slot.dataset.presetRequires) Object.assign(placementState, JSON.parse(slot.dataset.presetRequires));
+        } catch (_) { /* corrupted dataset, ignore */ }
+
         // Extract form from preset PID (e.g., "vivillon-icy-snow" → species "vivillon", form info in slug)
         if (resolved.entry?.formeOrder || resolved.entry?.otherFormes) {
           const resolvedForm = resolved.slug;
@@ -914,23 +931,27 @@ const BoxesView = (() => {
     //   • Templated (preset ghost): click → open reference viewer for the expected species.
     //     Right-click / long-press still opens placement so users can actually place a mon.
     //   • Untemplated: click → open placement search (current behaviour preserved).
-    // Store parsed preset info as data attributes for delegated event handlers
+    // Store parsed preset info as data attributes for delegated event handlers.
+    // requires + defaults are serialized as JSON so the click handler can seed
+    // placementState generically — no per-dimension if checks.
     if (presetTarget?.pid) {
       slot.dataset.presetPid = presetTarget.pid;
       slot.dataset.presetSpeciesKey = presetTarget.speciesKey || '';
-      if (presetTarget.gmax) slot.dataset.presetGmax = '1';
-      if (presetTarget.gender) slot.dataset.presetGender = presetTarget.gender;
+      if (presetTarget.requires && Object.keys(presetTarget.requires).length) {
+        slot.dataset.presetRequires = JSON.stringify(presetTarget.requires);
+      }
+      if (presetTarget.defaults && Object.keys(presetTarget.defaults).length) {
+        slot.dataset.presetDefaults = JSON.stringify(presetTarget.defaults);
+      }
     }
 
     if (presetTarget?.pid) {
       const resolved = DataManager.resolveSpecies(presetTarget.speciesKey || presetTarget.pid);
       const slug = resolved.slug || DataManager.normalizePresetSlug(presetTarget.speciesKey || presetTarget.pid);
-      const name = resolved.name || (presetTarget.pid).replace(/-/g, ' ');
+      const name = presetTarget.species || resolved.name || (presetTarget.pid).replace(/-/g, ' ');
 
-      // Ghost sprites use parsed preset dimensions — no re-parsing
-      const ghostState = {};
-      if (presetTarget.gmax) ghostState.gigantamax = true;
-      if (presetTarget.gender) ghostState.gender = presetTarget.gender;
+      // Ghost sprite state: union of requires + defaults (data-driven, no per-field if's)
+      const ghostState = { ...(presetTarget.defaults || {}), ...(presetTarget.requires || {}) };
       applyStatefulSprites(resolved, ghostState);
 
       slot.classList.add('preset-ghost');
@@ -957,14 +978,18 @@ const BoxesView = (() => {
         { slug });
       while (spriteFragment.firstChild) slot.appendChild(spriteFragment.firstChild);
 
-      // Tooltip: show short base name for plain species, full name for forms/gender/ability variants
+      // Tooltip: species name + comma-separated requires (generic, data-driven)
       const baseName = resolved.entry?.baseSpecies || resolved.name || name;
-      const hasFormInfo = resolved.entry?.baseSpecies || resolved.entry?.forme || presetTarget.gender;
+      const hasFormInfo = resolved.entry?.baseSpecies || resolved.entry?.forme || (presetTarget.requires?.gender);
       let tooltipText = hasFormInfo ? name : baseName;
-      if (presetTarget.abilitySlug) {
-        const abilityName = presetTarget.abilitySlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        tooltipText += ` (${abilityName})`;
-      }
+      const requireLabels = Object.entries(presetTarget.requires || {})
+        .filter(([k]) => k !== 'gender' || !hasFormInfo)  // gender already implied by display name
+        .map(([k, v]) => {
+          if (typeof v === 'boolean') return v ? formatTooltipKey(k) : null;
+          return formatTooltipValue(v);
+        })
+        .filter(Boolean);
+      if (requireLabels.length) tooltipText += ` (${requireLabels.join(', ')})`;
       const tooltip = document.createElement('span');
       tooltip.className = 'tooltip';
       tooltip.textContent = tooltipText;

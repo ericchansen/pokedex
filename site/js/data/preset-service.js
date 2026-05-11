@@ -40,33 +40,151 @@ const PresetService = (() => {
   }
 
   /**
-   * Parse a raw preset PID into a structured target object. All PID anatomy
-   * (gender, ability marker, gmax) is resolved exactly once here at load time.
-   * Uses resolve() to distinguish species names ending in -f (nidoran-f) from
-   * gender suffixes (sneasel-hisui-f).
+   * Species whose unsuffixed sprite is conventionally male — used to auto-imply
+   * `defaults.gender = "M"` for unsuffixed preset entries.
+   * This is a LENIENT default: instances with no gender set still match.
    */
-  function parsePid(rawPid, gmaxFlag, resolverCtx) {
-    if (!rawPid) return { pid: null, speciesKey: null, gender: null, abilitySlug: null, gmax: false };
+  const GENDER_SPRITE_SPECIES = (typeof SpeciesResolver !== 'undefined' && SpeciesResolver.GENDER_SPRITE_SPECIES)
+    || new Set();
 
-    // 1. Strip ability marker (double-hyphen)
+  /**
+   * Slug-ify ability marker text: "battle-bond" → "Battle Bond" for storage.
+   * The reverse is handled by NORMALIZERS in matchesPreset.
+   */
+  function abilitySlugToName(slug) {
+    if (!slug) return null;
+    return String(slug)
+      .replace(/-/g, ' ')
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  /**
+   * Build a stable synthetic pid for structured preset entries.
+   * Used to keep `target.pid` truthy throughout the codebase.
+   *   parseSyntheticPid("alcremie", { cream: "Vanilla Cream", sweet: "Strawberry" })
+   *   → "alcremie|cream=Vanilla Cream|sweet=Strawberry"
+   */
+  function syntheticPid(speciesKey, requires) {
+    const parts = [speciesKey || ''];
+    if (requires && typeof requires === 'object') {
+      const keys = Object.keys(requires).sort();
+      for (const k of keys) parts.push(`${k}=${requires[k]}`);
+    }
+    return parts.join('|');
+  }
+
+  /**
+   * Parse a preset entry into a structured PresetTarget. Accepts:
+   *   - Plain string PIDs ("pikachu", "butterfree-f", "rockruff--own-tempo")
+   *   - Legacy gmax objects ({ pid, gmax: true })
+   *   - New structured objects ({ species, speciesKey, requires })
+   *   - null/undefined (empty slot — alignment placeholder)
+   *
+   * Returns a PresetTarget:
+   *   {
+   *     pid: string,        // always truthy unless input is null
+   *     species: string,    // display name for tooltip/sprite
+   *     speciesKey: string, // resolver-friendly slug
+   *     requires: {},       // STRICT match requirements
+   *     defaults: {}        // LENIENT defaults (unset OK)
+   *   }
+   */
+  function parsePid(rawInput, gmaxFlag, resolverCtx) {
+    if (rawInput === null || rawInput === undefined) {
+      return { pid: null, species: null, speciesKey: null, requires: {}, defaults: {} };
+    }
+
+    // ── Structured object input ─────────────────────────────────
+    if (typeof rawInput === 'object') {
+      // Form 1: structured target with requires (preferred new form)
+      //   { species: "Alcremie", requires: { cream: "Vanilla Cream", sweet: "Strawberry" } }
+      if (rawInput.species || rawInput.speciesKey || rawInput.requires) {
+        const requires = { ...(rawInput.requires || {}) };
+        const defaults = { ...(rawInput.defaults || {}) };
+        // Legacy fields → requires (backwards compat in structured form)
+        if (rawInput.gmax) requires.gigantamax = true;
+        if (rawInput.gender) requires.gender = rawInput.gender;
+        const species = rawInput.species
+          || (rawInput.speciesKey ? rawInput.speciesKey.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '');
+        let speciesKey = rawInput.speciesKey || '';
+        if (!speciesKey && species && resolverCtx) {
+          const probe = SpeciesResolver.resolve(species, resolverCtx);
+          speciesKey = probe.slug || species.toLowerCase().replace(/[\s'-]+/g, '');
+        }
+        return {
+          pid: rawInput.pid || syntheticPid(speciesKey || species, requires),
+          species,
+          speciesKey,
+          requires,
+          defaults,
+        };
+      }
+      // Form 2: legacy gmax object — { pid: "venusaur", gmax: true, ... }
+      const rawPid = rawInput.pid || '';
+      const inheritedGmax = !!rawInput.gmax;
+      return parsePid(rawPid, inheritedGmax, resolverCtx);
+    }
+
+    // ── String input — legacy PID format ────────────────────────
+    if (typeof rawInput !== 'string' || !rawInput) {
+      return { pid: null, species: null, speciesKey: null, requires: {}, defaults: {} };
+    }
+
+    const rawPid = rawInput;
+    const requires = {};
+    const defaults = {};
+
+    // 1. Strip ability marker (double-hyphen): "rockruff--own-tempo"
     const abilityIdx = rawPid.indexOf('--');
     const abilitySlug = abilityIdx !== -1 ? rawPid.slice(abilityIdx + 2) : null;
     const withoutAbility = abilityIdx !== -1 ? rawPid.slice(0, abilityIdx) : rawPid;
+    if (abilitySlug) {
+      requires.ability = abilitySlugToName(abilitySlug);
+    }
 
-    // 2. Detect gender suffix -(f|m) — only if the full string is NOT a direct dex entry
-    let gender = null;
+    // 2. Detect gender suffix -(f|m) — only if NOT a direct dex entry
+    //    (nidoran-f is a real species; sneasel-hisui-f is a gender suffix)
     let speciesKey = withoutAbility;
-
-    const genderMatch = withoutAbility.match(/^(.+)-(f|m)$/i);
-    if (genderMatch && resolverCtx) {
-      const probe = SpeciesResolver.resolve(withoutAbility, resolverCtx);
-      if (!probe.matchedDirect) {
-        gender = genderMatch[2].toUpperCase();
-        speciesKey = genderMatch[1];
+    if (resolverCtx) {
+      const genderMatch = withoutAbility.match(/^(.+)-(f|m)$/i);
+      if (genderMatch) {
+        const probe = SpeciesResolver.resolve(withoutAbility, resolverCtx);
+        if (!probe.matchedDirect) {
+          requires.gender = genderMatch[2].toUpperCase();
+          speciesKey = genderMatch[1];
+        }
       }
     }
 
-    return { pid: rawPid, speciesKey, gender, abilitySlug, gmax: !!gmaxFlag };
+    // 3. Gmax flag (from object wrapper or explicit) → strict requirement
+    if (gmaxFlag) requires.gigantamax = true;
+
+    // 4. Auto-imply lenient gender:"M" default for unsuffixed dimorphic species
+    //    Lenient (in defaults, not requires) — instances without gender still match.
+    if (!requires.gender) {
+      const probe = resolverCtx ? SpeciesResolver.resolve(speciesKey, resolverCtx) : null;
+      const baseSlug = probe?.baseEntry?.slug || probe?.slug || speciesKey;
+      if (baseSlug && GENDER_SPRITE_SPECIES.has(baseSlug)) {
+        defaults.gender = 'M';
+      }
+    }
+
+    // 5. Resolve display name from speciesKey
+    let species = speciesKey;
+    if (resolverCtx) {
+      const probe = SpeciesResolver.resolve(speciesKey, resolverCtx);
+      species = probe?.entry?.name || probe?.displayName || speciesKey;
+    }
+
+    return {
+      pid: rawPid,
+      species,
+      speciesKey,
+      requires,
+      defaults,
+    };
   }
 
   async function loadPreset(gameSet, layoutId) {
@@ -81,14 +199,7 @@ const PresetService = (() => {
 
     const boxes = layout.boxes.map((box) => ({
       title: box.title,
-      pokemon: box.pokemon.map((pokemon) => {
-        if (pokemon === null || pokemon === undefined) {
-          return { pid: null, speciesKey: null, gender: null, abilitySlug: null, gmax: false };
-        }
-        const rawPid = typeof pokemon === 'string' ? pokemon : (pokemon.pid || '');
-        const gmaxFlag = typeof pokemon === 'object' ? !!pokemon.gmax : false;
-        return parsePid(rawPid, gmaxFlag, resolverCtx);
-      }),
+      pokemon: box.pokemon.map((entry) => parsePid(entry, false, resolverCtx)),
     }));
 
     activePreset = { gameSet, layoutId, name: layout.name, boxes };

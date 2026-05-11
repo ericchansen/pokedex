@@ -225,29 +225,72 @@ const SpeciesResolver = (() => {
     return resolve(presetSlug, ctx).slug || normalizeHyphenSlug(presetSlug);
   }
 
+  // ── Match value normalizers ───────────────────────────────────────
+  // Per-key normalizers for matchValue. Each takes a raw value and returns
+  // a comparison key. Unknown keys fall through to DEFAULT_NORMALIZE.
+  const DEFAULT_NORMALIZE = (v) => String(v).toLowerCase().trim();
+  const NORMALIZERS = {
+    ability: (v) => String(v).toLowerCase().replace(/[\s'’-]+/g, ''),
+    gender: (v) => String(v).toUpperCase().charAt(0),  // F/Female → F, M/Male → M
+    cream: (v) => String(v).toLowerCase().replace(/\s+/g, '-'),
+    sweet: (v) => String(v).toLowerCase().replace(/\s+/g, '-'),
+  };
+
+  /**
+   * Compare an instance state value against a preset requirement value.
+   * @param {*} actual — instance state[key]
+   * @param {*} expected — preset requires[key] or defaults[key]
+   * @param {string} key — state field name (used for per-key normalizer)
+   * @param {object} opts — { strict: boolean }
+   *   strict=true: missing actual → no match (used for `requires`)
+   *   strict=false: missing actual → match (used for `defaults`)
+   * @returns {boolean}
+   */
+  function matchValue(actual, expected, key, { strict }) {
+    if (typeof expected === 'boolean') return !!actual === expected;
+    if (actual == null || actual === '') return !strict;
+    const norm = NORMALIZERS[key] || DEFAULT_NORMALIZE;
+    return norm(actual) === norm(expected);
+  }
+
   /**
    * Test whether an inventory slot satisfies a preset target.
+   *
+   * The match runs in two phases:
+   *   1. Species check (via resolver) — must be the same Pokémon
+   *   2. Metadata check — pure key-value comparison against `requires` (strict)
+   *      and `defaults` (lenient: missing actual passes).
+   *
+   * Adding a new metadata dimension is a DATA change: declare it in preset JSON
+   * `requires` (and FORM_EXTRA_FIELDS in domain-mappers.js so it survives state
+   * roundtrip). No code change to matchesPreset is needed.
+   *
    * @param {string|object} speciesInput — species_id, display name, or build.species
-   * @param {string|object} presetInput — raw PID string OR parsed PresetTarget { speciesKey, gender, gmax }
+   * @param {string|object} presetInput — raw PID string OR parsed PresetTarget
    * @param {object} ctx — resolver context
-   * @param {object} [instanceState] — slot's state { gender, gigantamax, … }
+   * @param {object} [instanceState] — slot's state { gender, gigantamax, ability, cream, … }
    * @returns {boolean}
    */
   function matchesPreset(speciesInput, presetInput, ctx, instanceState) {
     if (!speciesInput || !presetInput) return false;
 
-    // Normalize presetInput: accept either parsed PresetTarget or raw string
-    let presetSpeciesKey, presetGender, presetGmax, presetAbility;
-    if (typeof presetInput === 'object' && presetInput.speciesKey !== undefined) {
-      presetSpeciesKey = presetInput.speciesKey;
-      presetGender = presetInput.gender || null;
-      presetGmax = !!presetInput.gmax;
-      presetAbility = presetInput.abilitySlug || null;
+    // Normalize presetInput to a structured target with requires/defaults maps.
+    // Legacy string PIDs and legacy { speciesKey, gender, gmax, abilitySlug }
+    // objects are also accepted for backwards compatibility.
+    let presetSpeciesKey;
+    let requires = {};
+    let defaults = {};
+    if (typeof presetInput === 'object') {
+      presetSpeciesKey = presetInput.speciesKey || '';
+      // New structured form
+      if (presetInput.requires) Object.assign(requires, presetInput.requires);
+      if (presetInput.defaults) Object.assign(defaults, presetInput.defaults);
+      // Legacy structured form — fold into requires
+      if (presetInput.gender) requires.gender = presetInput.gender;
+      if (presetInput.gmax) requires.gigantamax = true;
+      if (presetInput.abilitySlug) requires.ability = presetInput.abilitySlug;
     } else {
       presetSpeciesKey = typeof presetInput === 'string' ? presetInput.replace(/--.*$/, '') : String(presetInput);
-      presetGender = null;
-      presetGmax = false;
-      presetAbility = null;
     }
 
     const species = resolve(speciesInput, ctx);
@@ -260,22 +303,14 @@ const SpeciesResolver = (() => {
       || (species.collapsedSlug && species.collapsedSlug === preset.collapsedSlug);
     if (!slugMatch) return false;
 
-    // 2. Gender enforcement (only when preset explicitly requires a gender)
-    if (presetGender && instanceState) {
-      if ((instanceState.gender || null) !== presetGender) return false;
+    // 2. Strict requirements (missing actual = no match)
+    for (const [key, expected] of Object.entries(requires)) {
+      if (!matchValue(instanceState?.[key], expected, key, { strict: true })) return false;
     }
 
-    // 3. Gmax enforcement
-    if (presetGmax && instanceState) {
-      if (!instanceState.gigantamax) return false;
-    }
-
-    // 4. Ability enforcement (e.g., rockruff--own-tempo requires Own Tempo)
-    if (presetAbility && instanceState) {
-      if (!instanceState.ability) return false;
-      const instanceAbilitySlug = String(instanceState.ability).toLowerCase().replace(/[\s'-]+/g, '');
-      const presetAbilitySlug = presetAbility.toLowerCase().replace(/[\s'-]+/g, '');
-      if (instanceAbilitySlug !== presetAbilitySlug) return false;
+    // 3. Lenient defaults (missing actual = OK; explicit non-equal = no match)
+    for (const [key, expected] of Object.entries(defaults)) {
+      if (!matchValue(instanceState?.[key], expected, key, { strict: false })) return false;
     }
 
     return true;
