@@ -110,6 +110,21 @@ const ShowdownParser = (() => {
       result.unparsedLines.push(line);
     }
 
+    // Showdown convention: omitted IVs default to 31 (perfect).
+    // Only fill defaults when at least one IV was explicitly set, OR when
+    // no IVs line appeared at all (implying all perfect).
+    const STAT_KEY_LIST = Object.keys(DomainMappers.STAT_LABELS);
+    const hasAnyIv = Object.keys(result.ivs).length > 0;
+    if (!hasAnyIv) {
+      // No IVs line → all 31
+      for (const k of STAT_KEY_LIST) result.ivs[k] = 31;
+    } else {
+      // Partial IVs line → fill unlisted stats with 31
+      for (const k of STAT_KEY_LIST) {
+        if (result.ivs[k] === undefined) result.ivs[k] = 31;
+      }
+    }
+
     return result;
   }
 
