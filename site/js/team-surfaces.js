@@ -471,6 +471,10 @@ Modest Nature
         tera_type: set.teraType || '',
         level: set.level,
         ball: set.ball || '',
+        nickname: set.nickname || '',
+        gender: set.gender || '',
+        shiny: !!set.shiny,
+        gigantamax: !!set.gigantamax,
       }, detectedEvSystem)).filter((member) => member.species);
 
       const teamName = nameInput.value.trim() || (sets[0].species ? `${sets[0].species} Team` : 'Imported Team');

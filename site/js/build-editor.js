@@ -712,6 +712,27 @@ const BuildEditor = (() => {
       if (data.item && (!onlyIfEmpty || isTextEmpty('#bf-item'))) content.querySelector('#bf-item').value = data.item;
       if (teraType && (!onlyIfEmpty || isTextEmpty('#bf-tera'))) content.querySelector('#bf-tera').value = teraType;
       if (data.ball && (!onlyIfEmpty || !ballPicker.getValue())) ballPicker.setValue(data.ball);
+      // Identity fields from paste: nickname, level, gender, shiny, gigantamax
+      if (data.nickname && (!onlyIfEmpty || isTextEmpty('#bf-nickname'))) {
+        const nickEl = content.querySelector('#bf-nickname');
+        if (nickEl) nickEl.value = data.nickname;
+      }
+      if (data.level && (!onlyIfEmpty || isZeroOrBlank('#bf-level'))) {
+        const levelEl = content.querySelector('#bf-level');
+        if (levelEl) levelEl.value = data.level;
+      }
+      if (data.gender) {
+        const genderEl = content.querySelector('#bf-gender');
+        if (genderEl && (!onlyIfEmpty || !genderEl.value)) genderEl.value = data.gender;
+      }
+      if (data.shiny) {
+        const shinyEl = content.querySelector('#bf-shiny');
+        if (shinyEl && (!onlyIfEmpty || !shinyEl.checked)) shinyEl.checked = true;
+      }
+      if (data.gigantamax) {
+        const gmaxEl = content.querySelector('#bf-gigantamax');
+        if (gmaxEl && (!onlyIfEmpty || !gmaxEl.checked)) gmaxEl.checked = true;
+      }
       if (data.evs && Object.keys(data.evs).length) {
         for (const [key, value] of Object.entries(data.evs)) {
           const shouldPopulate = !onlyIfEmpty || isZeroOrBlank(`#bf-cev-${key}`);

@@ -938,8 +938,14 @@ const BoxesView = (() => {
       slot.dataset.searchText = [name, slug, presetTarget.pid].filter(Boolean).join(' ').toLowerCase();
 
       // Owned-elsewhere: yellow if this species/form exists in inventory but in a different slot.
-      // Use BASE species slug for GENDER_SPRITE_SPECIES lookup (not the collapsed form slug).
-      const candidates = DataManager.getSlotsBySpecies(slug);
+      // When !matchedDirect, slug is a base-species fallback (e.g. "floette" for "floette-yellow").
+      // Use the original form-specific key to avoid false positives — only instances stored with
+      // that exact form will match. Generic instances (form unspecified, stored as base "Floette")
+      // still match base-slug ghost slots correctly because those resolve with matchedDirect=true.
+      const ownedCheckSlug = resolved.matchedDirect
+        ? slug
+        : SpeciesResolver.normalizeHyphenSlug(presetTarget.speciesKey || presetTarget.pid);
+      const candidates = DataManager.getSlotsBySpecies(ownedCheckSlug);
       const baseSlug = resolved.baseEntry?.slug
         || (resolved.entry?.baseSpecies ? SpeciesResolver.normalizeCollapsedSlug(resolved.entry.baseSpecies) : null)
         || slug;

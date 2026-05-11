@@ -45,13 +45,14 @@ const ShowdownParser = (() => {
     const result = {
       species: '', item: '', ability: '', nature: '',
       evs: {}, ivs: {}, moves: [], teraType: '', level: 50,
-      ball: '', nickname: '', unparsedLines: [],
+      ball: '', nickname: '', gender: '', shiny: false,
+      gigantamax: false, unparsedLines: [],
     };
 
     // Line 1: Species @ Item  (or  Nickname (Species) @ Item)
     // If line 1 looks like a field line (Ability:, EVs:, etc.), the species line
     // was omitted — start parsing fields from line 0 instead.
-    const FIELD_LINE = /^(Ability|EVs|IVs|Tera Type|Level|Ball|Shiny|Happiness)\s*:/i;
+    const FIELD_LINE = /^(Ability|Trait|EVs|IVs|Tera Type|Level|Ball|Shiny|Happiness|Gigantamax|Dynamax Level)\s*:/i;
     const NATURE_LINE = /^\w+\s+Nature$/i;
     const MOVE_LINE = /^- /;
     const firstIsField = FIELD_LINE.test(lines[0]) || NATURE_LINE.test(lines[0]) || MOVE_LINE.test(lines[0]);
@@ -68,6 +69,10 @@ const ShowdownParser = (() => {
         speciesPart = firstLine.trim();
       }
 
+      // Gender suffix: strip (M)/(F) BEFORE nickname/species split (matches Smogon behavior)
+      if (speciesPart.endsWith(' (M)')) { result.gender = 'M'; speciesPart = speciesPart.slice(0, -4); }
+      else if (speciesPart.endsWith(' (F)')) { result.gender = 'F'; speciesPart = speciesPart.slice(0, -4); }
+
       // Handle nickname: "Nickname (Species)"
       const nickMatch = speciesPart.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
       if (nickMatch) {
@@ -82,9 +87,13 @@ const ShowdownParser = (() => {
     for (let i = fieldStart; i < lines.length; i++) {
       const line = lines[i];
 
-      // Moves: - Move Name
-      if (line.startsWith('- ')) {
-        result.moves.push(line.slice(2).trim());
+      // Moves: - Move Name (also ~ prefix per Smogon convention)
+      if (line.startsWith('- ') || line.startsWith('~ ')) {
+        let moveName = line.slice(2).trim();
+        // Strip Hidden Power bracket notation: "Hidden Power [Fire]" → "Hidden Power Fire"
+        const hpMatch = moveName.match(/^Hidden Power \[(\w+)\]$/);
+        if (hpMatch) moveName = 'Hidden Power ' + hpMatch[1];
+        result.moves.push(moveName);
         continue;
       }
 
@@ -116,8 +125,12 @@ const ShowdownParser = (() => {
       const ballMatch = line.match(/^Ball:\s*(.+?)(?:\s+Ball)?$/i);
       if (ballMatch) { result.ball = ballMatch[1].trim(); continue; }
 
-      // Shiny: Yes  (ignore but don't mark unparsed)
-      if (/^Shiny:\s*(Yes|No)$/i.test(line)) continue;
+      // Shiny: Yes
+      const shinyMatch = line.match(/^Shiny:\s*(Yes|No)$/i);
+      if (shinyMatch) { result.shiny = shinyMatch[1].toLowerCase() === 'yes'; continue; }
+
+      // Gigantamax: Yes
+      if (/^Gigantamax:\s*Yes$/i.test(line) || line === 'Gigantamax') { result.gigantamax = true; continue; }
 
       result.unparsedLines.push(line);
     }
