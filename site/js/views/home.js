@@ -890,7 +890,12 @@ const BoxesView = (() => {
 
     const tooltip = document.createElement('span');
     tooltip.className = 'tooltip';
-    tooltip.textContent = name + buildMetadataSuffix(state, resolved.slug);
+    // Tooltip shows the template's spec if present, not the instance's full state.
+    // This keeps ghost and occupied tooltips consistent — both show what the template defines.
+    const tooltipState = presetTarget?.requires || presetTarget?.defaults
+      ? { ...(presetTarget.defaults || {}), ...(presetTarget.requires || {}) }
+      : null;
+    tooltip.textContent = name + (tooltipState ? FormMetadata.buildTooltipSuffix(tooltipState, resolved.slug) : '');
     slot.appendChild(tooltip);
 
     // FR-2.4: drag & drop between slots
@@ -961,11 +966,9 @@ const BoxesView = (() => {
         { slug });
       while (spriteFragment.firstChild) slot.appendChild(spriteFragment.firstChild);
 
-      // Tooltip: species name + metadata suffix.
-      // Ghost mode shows ALL requires (including ability) since it's what's expected.
       const tooltip = document.createElement('span');
       tooltip.className = 'tooltip';
-      tooltip.textContent = name + FormMetadata.buildTooltipSuffix(ghostState, slug, 'ghost');
+      tooltip.textContent = name + FormMetadata.buildTooltipSuffix(ghostState, slug);
       slot.appendChild(tooltip);
     }
 

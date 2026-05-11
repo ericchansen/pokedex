@@ -34,11 +34,12 @@ const FormMetadata = (() => {
   const REGISTRY = Object.freeze({
     gender: {
       normalize: (v) => String(v).toUpperCase().charAt(0),
-      tooltip: (v, slug) => {
-        // Only show gender for dimorphic species where it's visually distinguishing
-        if (!GENDER_SPRITE_SPECIES.has(slug)) return null;
-        if (v === 'F' || v === 'Female') return 'Female';
-        return null; // Male is the default for dimorphic — not worth showing
+      tooltip: (v) => {
+        if (!v) return null;
+        const g = String(v).toUpperCase().charAt(0);
+        if (g === 'F') return 'Female';
+        if (g === 'M') return 'Male';
+        return null;
       },
       sprite: (v, slug) => v === 'F' && GENDER_SPRITE_SPECIES.has(slug) ? [`${slug}-f`] : null,
       placement: (slug) => {
@@ -58,8 +59,7 @@ const FormMetadata = (() => {
     },
     ability: {
       normalize: (v) => String(v).toLowerCase().replace(/[\s''-]+/g, ''),
-      // Ability shows in ghost tooltips (what's expected) but not occupied (every mon has one)
-      tooltip: (v, _slug, mode) => (mode === 'ghost' && v) ? formatValue(v) : null,
+      tooltip: (v) => v ? formatValue(v) : null,
     },
     cream: {
       normalize: (v) => String(v).toLowerCase().replace(/\s+/g, '-'),
@@ -101,17 +101,16 @@ const FormMetadata = (() => {
     return map;
   }
 
-  /** Build tooltip suffix: " (Gmax, Female, Vanilla Cream)" or "".
-   *  @param {string} [mode] — 'ghost' shows all metadata; default hides noise like ability
-   */
-  function buildTooltipSuffix(state, resolvedSlug, mode) {
+  /** Build tooltip suffix from metadata. Shows whatever keys are present.
+   *  Pass template requires/defaults for ghost slots. Pass instance state for occupied. */
+  function buildTooltipSuffix(state, resolvedSlug) {
     if (!state) return '';
     const parts = [];
     for (const [key, def] of Object.entries(REGISTRY)) {
       if (!def.tooltip) continue;
       const val = state[key];
       if (val == null || val === '' || val === false) continue;
-      const label = def.tooltip(val, resolvedSlug, mode);
+      const label = def.tooltip(val, resolvedSlug);
       if (label) parts.push(label);
     }
     return parts.length ? ` (${parts.join(', ')})` : '';
