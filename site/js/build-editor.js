@@ -128,16 +128,6 @@ const BuildEditor = (() => {
         <div class="editor-identity-section${isLibrary ? ' hidden' : ''}">
           <h3 class="stat-heading editor-section-heading">Identity &amp; Provenance</h3>
           <div class="comp-row comp-row--editable">
-            <span class="comp-label">Gender</span>
-            <span class="comp-value">
-              <select id="bf-gender">
-                <option value="">Unknown</option>
-                <option value="M">Male ♂</option>
-                <option value="F">Female ♀</option>
-              </select>
-            </span>
-          </div>
-          <div class="comp-row comp-row--editable">
             <span class="comp-label">Level</span>
             <span class="comp-value"><input type="number" id="bf-level" min="1" max="100" placeholder="?"></span>
           </div>
@@ -465,37 +455,6 @@ const BuildEditor = (() => {
       return subject.speciesEntry ? subject.slug : '';
     }
 
-    const genderSelect = content.querySelector('#bf-gender');
-
-    /** Lock or unlock the gender picker based on species gender data. */
-    function syncGenderLock() {
-      const slug = getCurrentSpeciesSlug();
-      const locked = slug ? DataManager.getSpeciesGender(slug) : null;
-      if (locked === 'M' || locked === 'F') {
-        genderSelect.value = locked;
-        genderSelect.disabled = true;
-        genderSelect.title = 'This species is always ' + (locked === 'M' ? 'male' : 'female');
-      } else if (locked === 'N') {
-        // Show em dash for genderless — add temp option if needed
-        let dashOpt = genderSelect.querySelector('option[value="N"]');
-        if (!dashOpt) {
-          dashOpt = document.createElement('option');
-          dashOpt.value = 'N';
-          dashOpt.textContent = '\u2014';
-          genderSelect.appendChild(dashOpt);
-        }
-        genderSelect.value = 'N';
-        genderSelect.disabled = true;
-        genderSelect.title = 'This species is genderless';
-      } else {
-        // Remove genderless option if species is not genderless
-        const dashOpt = genderSelect.querySelector('option[value="N"]');
-        if (dashOpt) dashOpt.remove();
-        genderSelect.disabled = false;
-        genderSelect.title = '';
-      }
-    }
-
     function refreshAbilitySelect(selectedAbility = abilitySelect.value) {
       return syncAbilitySelect(abilitySelect, speciesInput.value.trim(), selectedAbility);
     }
@@ -611,7 +570,6 @@ const BuildEditor = (() => {
         }
 
         scheduleEggMoveRefresh();
-        syncGenderLock();
         refreshRegistryFields();
         markDirty();
       },
@@ -652,8 +610,6 @@ const BuildEditor = (() => {
     const ballDefault = build.ball || (isEdit ? '' : 'Poke');
     const ballPicker = BallPicker.createBallPicker(content.querySelector('#bf-ball'), ballDefault);
 
-    if (build.gender) content.querySelector('#bf-gender').value = build.gender;
-    syncGenderLock();
     if (build.level) content.querySelector('#bf-level').value = build.level;
     if (build.shiny) content.querySelector('#bf-shiny').checked = true;
     if (build.nickname) content.querySelector('#bf-nickname').value = build.nickname;
@@ -668,34 +624,82 @@ const BuildEditor = (() => {
     if (build.genned) content.querySelector('#bf-genned').checked = true;
     if (build.transferred_to_champions) content.querySelector('#bf-transferred').checked = true;
 
-    // ── Registry-driven metadata fields (cream/sweet, future dimensions) ──
+    // ── Registry-driven metadata fields (gender, cream/sweet, future dimensions) ──
+    // Renders editable controls OR locked badges based on FormMetadata.getLock/getPlacementControls.
+    // Replaces the hardcoded syncGenderLock — all lock logic lives in the registry.
     function refreshRegistryFields() {
       const container = content.querySelector('#bf-registry-fields');
       if (!container) return;
       const slug = getCurrentSpeciesSlug();
-      const controls = (typeof FormMetadata !== 'undefined') ? FormMetadata.getPlacementControls(slug) : [];
-      // Filter out gender (already handled by #bf-gender)
-      const filtered = controls.filter(c => c.key !== 'gender');
-      if (!filtered.length) { container.innerHTML = ''; return; }
-      container.innerHTML = filtered.map(ctrl => {
-        const currentVal = build[ctrl.key] || '';
+      if (typeof FormMetadata === 'undefined') return;
+      const locks = FormMetadata.getLock(slug);
+      const controls = FormMetadata.getPlacementControls(slug);
+      // Get current values from the build draft or existing rendered inputs
+      const getValue = (key) => {
+        const existing = container.querySelector(`[data-meta-field="${key}"]`);
+        if (existing) return existing.tagName === 'SELECT' ? existing.value : existing.dataset.value || '';
+        return build[key] || '';
+      };
+
+      let html = '';
+      // Render each control: locked badge OR editable input
+      for (const ctrl of controls) {
+        const lock = locks[ctrl.key];
         const label = escapeHtml(ctrl.key.charAt(0).toUpperCase() + ctrl.key.slice(1));
-        if (ctrl.type === 'select') {
-          return `<div class="comp-row comp-row--editable">
+        if (lock) {
+          // Locked: static display with reason tooltip
+          html += `<div class="comp-row comp-row--editable">
             <span class="comp-label">${label}</span>
             <span class="comp-value">
-              <select id="bf-meta-${ctrl.key}" data-meta-field="${ctrl.key}">
+              <span class="instance-metadata__locked" title="${escapeHtml(lock.reason)}">${escapeHtml(lock.display || lock.value)}</span>
+            </span>
+          </div>`;
+          continue;
+        }
+        const currentVal = getValue(ctrl.key);
+        if (ctrl.type === 'select') {
+          html += `<div class="comp-row comp-row--editable">
+            <span class="comp-label">${label}</span>
+            <span class="comp-value">
+              <select data-meta-field="${ctrl.key}">
                 <option value="">—</option>
                 ${ctrl.options.map(o => `<option value="${escapeHtml(o)}"${o === currentVal ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}
               </select>
             </span>
           </div>`;
+        } else if (ctrl.type === 'toggle') {
+          html += `<div class="comp-row comp-row--editable">
+            <span class="comp-label">${label}</span>
+            <span class="comp-value">
+              <div class="instance-metadata__gender-toggle" data-meta-field="${ctrl.key}" data-value="${escapeHtml(currentVal)}">
+                ${ctrl.options.map((opt, i) => {
+                  const lbl = ctrl.labels ? ctrl.labels[i] : opt;
+                  const active = opt === currentVal ? ' active' : '';
+                  return `<button type="button" class="gender-btn${active}" data-value="${escapeHtml(opt)}">${escapeHtml(lbl)}</button>`;
+                }).join('')}
+              </div>
+            </span>
+          </div>`;
         }
-        return '';
-      }).join('');
-      // Wire change events → markDirty
-      for (const sel of container.querySelectorAll('[data-meta-field]')) {
+      }
+      container.innerHTML = html;
+
+      // Wire events → markDirty
+      for (const sel of container.querySelectorAll('select[data-meta-field]')) {
         sel.addEventListener('change', () => markDirty());
+      }
+      for (const toggle of container.querySelectorAll('.instance-metadata__gender-toggle[data-meta-field]')) {
+        for (const btn of toggle.querySelectorAll('.gender-btn')) {
+          btn.addEventListener('click', () => {
+            const current = toggle.dataset.value || '';
+            const newVal = btn.dataset.value === current ? '' : btn.dataset.value;
+            toggle.dataset.value = newVal;
+            for (const b of toggle.querySelectorAll('.gender-btn')) {
+              b.classList.toggle('active', b.dataset.value === newVal);
+            }
+            markDirty();
+          });
+        }
       }
     }
     refreshRegistryFields();
@@ -710,11 +714,13 @@ const BuildEditor = (() => {
     });
     speciesInput.addEventListener('input', () => {
       refreshAbilitySelect();
+      refreshRegistryFields();
       recalcAllStats();
       scheduleEggMoveRefresh(EGG_MOVE_REFRESH_INPUT_DEBOUNCE_MS);
     });
     speciesInput.addEventListener('blur', () => {
       refreshAbilitySelect();
+      refreshRegistryFields();
       recalcAllStats();
       scheduleEggMoveRefresh();
     });
@@ -723,6 +729,7 @@ const BuildEditor = (() => {
       updateChampEvTotal();
       updateNatureLabels();
       recalcAllStats();
+      refreshRegistryFields();
       scheduleEggMoveRefresh();
     }
 
@@ -746,7 +753,7 @@ const BuildEditor = (() => {
       if (data.item && (!onlyIfEmpty || isTextEmpty('#bf-item'))) content.querySelector('#bf-item').value = data.item;
       if (teraType && (!onlyIfEmpty || isTextEmpty('#bf-tera'))) content.querySelector('#bf-tera').value = teraType;
       if (data.ball && (!onlyIfEmpty || !ballPicker.getValue())) ballPicker.setValue(data.ball);
-      // Identity fields from paste: nickname, level, gender, shiny, gigantamax
+      // Identity fields from paste: nickname, level, shiny, gigantamax
       if (data.nickname && (!onlyIfEmpty || isTextEmpty('#bf-nickname'))) {
         const nickEl = content.querySelector('#bf-nickname');
         if (nickEl) nickEl.value = data.nickname;
@@ -754,10 +761,6 @@ const BuildEditor = (() => {
       if (data.level && (!onlyIfEmpty || isZeroOrBlank('#bf-level'))) {
         const levelEl = content.querySelector('#bf-level');
         if (levelEl) levelEl.value = data.level;
-      }
-      if (data.gender) {
-        const genderEl = content.querySelector('#bf-gender');
-        if (genderEl && (!onlyIfEmpty || !genderEl.value)) genderEl.value = data.gender;
       }
       if (data.shiny) {
         const shinyEl = content.querySelector('#bf-shiny');
@@ -767,13 +770,22 @@ const BuildEditor = (() => {
         const gmaxEl = content.querySelector('#bf-gigantamax');
         if (gmaxEl && (!onlyIfEmpty || !gmaxEl.checked)) gmaxEl.checked = true;
       }
-      // Registry-driven metadata fields (cream/sweet, future dimensions)
+      // Registry-driven metadata fields (gender, cream/sweet, future dimensions)
       if (typeof FormMetadata !== 'undefined') {
         for (const key of FormMetadata.KEYS) {
-          if (key === 'gender' || key === 'gigantamax' || key === 'alpha') continue; // handled above
-          if (data[key]) {
-            const el = content.querySelector(`[data-meta-field="${key}"]`);
-            if (el && (!onlyIfEmpty || !el.value)) el.value = data[key];
+          if (key === 'gigantamax' || key === 'alpha') continue; // handled above
+          if (data[key] == null || data[key] === '') continue;
+          const el = content.querySelector(`#bf-registry-fields [data-meta-field="${key}"]`);
+          if (!el) continue;
+          const currentValue = el.tagName === 'SELECT' ? el.value : el.dataset.value || '';
+          if (onlyIfEmpty && currentValue) continue;
+          if (el.tagName === 'SELECT') {
+            el.value = data[key];
+          } else {
+            el.dataset.value = data[key];
+            for (const btn of el.querySelectorAll('.gender-btn')) {
+              btn.classList.toggle('active', btn.dataset.value === data[key]);
+            }
           }
         }
       }
@@ -899,7 +911,17 @@ const BuildEditor = (() => {
       };
 
       if (!isLibrary) {
-        payload.gender = content.querySelector('#bf-gender').value || null;
+        // Read gender from registry field (toggle or locked)
+        const genderToggle = content.querySelector('#bf-registry-fields [data-meta-field="gender"]');
+        if (genderToggle) {
+          payload.gender = genderToggle.tagName === 'SELECT'
+            ? (genderToggle.value || null)
+            : (genderToggle.dataset.value || null);
+        } else {
+          // Fallback: locked gender from registry
+          const locks = (typeof FormMetadata !== 'undefined') ? FormMetadata.getLock(getCurrentSpeciesSlug()) : {};
+          payload.gender = locks.gender?.value || null;
+        }
         payload.shiny = content.querySelector('#bf-shiny').checked;
         payload.language = content.querySelector('#bf-language').value || null;
         payload.ot = content.querySelector('#bf-ot').value.trim() || null;
@@ -914,10 +936,15 @@ const BuildEditor = (() => {
         payload.ev_guesstimate = content.querySelector('#bf-ev-guesstimate').checked;
         payload.genned = content.querySelector('#bf-genned').checked;
         payload.transferred_to_champions = content.querySelector('#bf-transferred').checked;
-        // Registry-driven metadata fields (cream/sweet, future dimensions)
-        for (const el of content.querySelectorAll('#bf-registry-fields [data-meta-field]')) {
+        // Registry-driven metadata fields (cream/sweet, future dimensions — excludes gender, handled above)
+        for (const el of content.querySelectorAll('#bf-registry-fields select[data-meta-field]')) {
           const key = el.dataset.metaField;
-          payload[key] = el.value || null;
+          if (key !== 'gender') payload[key] = el.value || null;
+        }
+        // Locked field values
+        const locks = (typeof FormMetadata !== 'undefined') ? FormMetadata.getLock(getCurrentSpeciesSlug()) : {};
+        for (const [key, lock] of Object.entries(locks)) {
+          if (key !== 'gender') payload[key] = lock.value;
         }
       }
 

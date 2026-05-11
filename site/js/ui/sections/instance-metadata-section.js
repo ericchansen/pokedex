@@ -33,7 +33,10 @@ const InstanceMetadataSection = (() => {
     const speciesEntry = SpeciesQueries.getPokedexEntry(speciesSlug);
     const forms = SpeciesQueries.getFormsForSpecies(speciesSlug);
     const gmaxEligible = SpeciesQueries.isGmaxEligible(speciesSlug);
-    const genderInfo = speciesEntry?.gender || null;
+    const genderLock = typeof FormMetadata !== 'undefined'
+      ? (FormMetadata.getLock(speciesSlug).gender || null)
+      : null;
+    const genderInfo = genderLock?.value || speciesEntry?.gender || null;
 
     let html = '<div class="instance-metadata" data-box="' + boxId + '" data-slot="' + slotIdx + '">';
     html += '<h4 class="instance-metadata__title">Instance Details</h4>';
@@ -62,7 +65,7 @@ const InstanceMetadataSection = (() => {
       html += '<div class="instance-metadata__field">';
       html += '<label class="instance-metadata__label">Gender</label>';
       if (isLocked) {
-        html += '<span class="instance-metadata__locked">' + escapeHtml(genderInfo === 'M' ? '♂' : '♀') + '</span>';
+        html += '<span class="instance-metadata__locked"' + (genderLock?.reason ? ' title="' + escapeHtml(genderLock.reason) + '"' : '') + '>' + escapeHtml(genderLock?.display || (genderInfo === 'M' ? '♂' : '♀')) + '</span>';
       } else {
         html += '<div class="instance-metadata__gender-toggle" data-field="gender">';
         html += '<button type="button" class="gender-btn' + (currentGender === 'M' ? ' active' : '') + '" data-value="M" title="Male">♂</button>';

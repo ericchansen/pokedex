@@ -42,10 +42,15 @@ const FormMetadata = (() => {
         return null;
       },
       sprite: (v, slug) => v === 'F' && GENDER_SPRITE_SPECIES.has(slug) ? [`${slug}-f`] : null,
+      lock: (slug) => {
+        const g = typeof DataManager !== 'undefined' ? DataManager.getSpeciesGender(slug) : null;
+        if (g === 'M') return { value: 'M', display: '♂', reason: 'This species is always male' };
+        if (g === 'F') return { value: 'F', display: '♀', reason: 'This species is always female' };
+        if (g === 'N') return { value: 'N', display: '—', reason: 'This species is genderless' };
+        return null;
+      },
       placement: (slug) => {
-        const locked = typeof DataManager !== 'undefined' ? DataManager.getSpeciesGender(slug) : null;
-        if (locked) return null;
-        return GENDER_SPRITE_SPECIES.has(slug) ? { type: 'toggle', options: ['M', 'F'], labels: ['♂', '♀'] } : null;
+        return { type: 'toggle', options: ['M', 'F'], labels: ['♂', '♀'] };
       },
     },
     gigantamax: {
@@ -58,7 +63,7 @@ const FormMetadata = (() => {
       tooltip: (v) => v ? 'Alpha' : null,
     },
     ability: {
-      normalize: (v) => String(v).toLowerCase().replace(/[\s''-]+/g, ''),
+      normalize: (v) => String(v).toLowerCase().replace(/[\s'-]+/g, ''),
       tooltip: (v) => v ? formatValue(v) : null,
     },
     cream: {
@@ -147,6 +152,17 @@ const FormMetadata = (() => {
     return controls;
   }
 
+  /** Get locked fields for a species. Returns { key: { value, display, reason } } or empty. */
+  function getLock(slug) {
+    const locks = {};
+    for (const [key, def] of Object.entries(REGISTRY)) {
+      if (!def.lock) continue;
+      const lock = def.lock(slug);
+      if (lock) locks[key] = lock;
+    }
+    return locks;
+  }
+
   return {
     REGISTRY,
     KEYS,
@@ -155,6 +171,7 @@ const FormMetadata = (() => {
     buildTooltipSuffix,
     buildSpriteCandidates,
     getPlacementControls,
+    getLock,
   };
 })();
 
