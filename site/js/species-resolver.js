@@ -271,7 +271,8 @@ const SpeciesResolver = (() => {
     }
 
     // 4. Ability enforcement (e.g., rockruff--own-tempo requires Own Tempo)
-    if (presetAbility && instanceState?.ability) {
+    if (presetAbility && instanceState) {
+      if (!instanceState.ability) return false;
       const instanceAbilitySlug = String(instanceState.ability).toLowerCase().replace(/[\s'-]+/g, '');
       const presetAbilitySlug = presetAbility.toLowerCase().replace(/[\s'-]+/g, '');
       if (instanceAbilitySlug !== presetAbilitySlug) return false;

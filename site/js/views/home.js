@@ -937,43 +937,16 @@ const BoxesView = (() => {
       slot.dataset.speciesId = slug;
       slot.dataset.searchText = [name, slug, presetTarget.pid].filter(Boolean).join(' ').toLowerCase();
 
-      // Owned-elsewhere: yellow if this species/form exists in inventory but in a different slot.
-      // When !matchedDirect, slug is a base-species fallback (e.g. "floette" for "floette-yellow").
-      // Use the original form-specific key to avoid false positives — only instances stored with
-      // that exact form will match. Generic instances (form unspecified, stored as base "Floette")
-      // still match base-slug ghost slots correctly because those resolve with matchedDirect=true.
+      // Owned-elsewhere: yellow if a matching Pokémon exists in inventory but in a different slot.
+      // Uses the same slotMatchesPreset function as occupied-slot matching — one source of truth.
       const ownedCheckSlug = resolved.matchedDirect
         ? slug
         : SpeciesResolver.normalizeHyphenSlug(presetTarget.speciesKey || presetTarget.pid);
       const candidates = DataManager.getSlotsBySpecies(ownedCheckSlug);
-      const baseSlug = resolved.baseEntry?.slug
-        || (resolved.entry?.baseSpecies ? SpeciesResolver.normalizeCollapsedSlug(resolved.entry.baseSpecies) : null)
-        || slug;
-
-      const requiresGender = presetTarget.gender;
-      const requiresGmax = presetTarget.gmax;
-      const requiresAbility = presetTarget.abilitySlug;
-      const impliesMale = !requiresGender && GENDER_SPRITE_SPECIES.has(baseSlug);
-      const needsFiltering = requiresGender || requiresGmax || impliesMale || requiresAbility;
-
-      let ownedCount;
-      if (!needsFiltering) {
-        ownedCount = candidates.length;
-      } else {
-        ownedCount = candidates.filter(pos => {
-          const inv = DataManager.getSlot(pos.box, pos.slot);
-          if (!inv) return false;
-          if (requiresGender && inv.state?.gender !== requiresGender) return false;
-          if (impliesMale && inv.state?.gender === 'F') return false;
-          if (requiresGmax && !inv.state?.gigantamax) return false;
-          if (requiresAbility && inv.state?.ability) {
-            const invAbility = String(inv.state.ability).toLowerCase().replace(/[\s'-]+/g, '');
-            const presetAbility = requiresAbility.toLowerCase().replace(/[\s'-]+/g, '');
-            if (invAbility !== presetAbility) return false;
-          }
-          return true;
-        }).length;
-      }
+      const ownedCount = candidates.filter(pos => {
+        const inv = DataManager.getSlot(pos.box, pos.slot);
+        return inv && DataManager.slotMatchesPreset(inv, presetTarget);
+      }).length;
       if (ownedCount > 0) {
         slot.dataset.preset = 'owned-elsewhere';
       }
