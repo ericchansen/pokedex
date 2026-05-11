@@ -96,6 +96,37 @@ const InstanceMetadataSection = (() => {
       html += '</div>';
     }
 
+    // Registry-driven metadata controls (cream/sweet for Alcremie, future species-specific fields)
+    if (typeof FormMetadata !== 'undefined') {
+      const metaControls = FormMetadata.getPlacementControls(speciesSlug);
+      for (const ctrl of metaControls) {
+        // Skip gender — already handled above with species-aware locking logic
+        if (ctrl.key === 'gender') continue;
+        const currentVal = state[ctrl.key] || '';
+        html += '<div class="instance-metadata__field">';
+        html += '<label class="instance-metadata__label">' + escapeHtml(ctrl.key.charAt(0).toUpperCase() + ctrl.key.slice(1)) + '</label>';
+        if (ctrl.type === 'select') {
+          html += '<select class="instance-metadata__select" data-meta-field="' + escapeHtml(ctrl.key) + '">';
+          html += '<option value="">—</option>';
+          for (const opt of ctrl.options) {
+            const selected = (opt === currentVal) ? ' selected' : '';
+            html += '<option value="' + escapeHtml(opt) + '"' + selected + '>' + escapeHtml(opt) + '</option>';
+          }
+          html += '</select>';
+        } else if (ctrl.type === 'toggle') {
+          html += '<div class="instance-metadata__gender-toggle" data-meta-field="' + escapeHtml(ctrl.key) + '">';
+          for (let i = 0; i < ctrl.options.length; i++) {
+            const opt = ctrl.options[i];
+            const lbl = ctrl.labels ? ctrl.labels[i] : opt;
+            const active = (opt === currentVal) ? ' active' : '';
+            html += '<button type="button" class="gender-btn' + active + '" data-value="' + escapeHtml(opt) + '">' + escapeHtml(lbl) + '</button>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+    }
+
     html += '</div>'; // grid
     html += '</div>'; // instance-metadata
     return html;
@@ -161,6 +192,30 @@ const InstanceMetadataSection = (() => {
         await DataManager.updateSlotIdentityField(boxId, slotIdx, field, cb.checked);
         _dispatchChange(boxId, slotIdx);
       });
+    }
+
+    // Registry-driven metadata selects and toggles
+    for (const select of section.querySelectorAll('[data-meta-field]')) {
+      const field = select.dataset.metaField;
+      if (select.tagName === 'SELECT') {
+        select.addEventListener('change', async () => {
+          await DataManager.updateSlotIdentityField(boxId, slotIdx, field, select.value || null);
+          _dispatchChange(boxId, slotIdx);
+        });
+      } else {
+        // Toggle buttons (same pattern as gender)
+        for (const btn of select.querySelectorAll('.gender-btn')) {
+          btn.addEventListener('click', async () => {
+            const current = (DataManager.getInstance(boxId, slotIdx)?.state?.[field]) || '';
+            const newVal = btn.dataset.value === current ? '' : btn.dataset.value;
+            await DataManager.updateSlotIdentityField(boxId, slotIdx, field, newVal || null);
+            for (const b of select.querySelectorAll('.gender-btn')) {
+              b.classList.toggle('active', b.dataset.value === newVal);
+            }
+            _dispatchChange(boxId, slotIdx);
+          });
+        }
+      }
     }
   }
 
