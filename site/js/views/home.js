@@ -807,12 +807,13 @@ const BoxesView = (() => {
         return;
       }
 
-      // Empty slot right-click
+      // Empty slot right-click — use speciesKey for search, pass requires/defaults for placement
       const presetPid = slot.dataset.presetPid || null;
+      const presetSpeciesKey = slot.dataset.presetSpeciesKey || presetPid;
       if (clipboard?.items?.length) {
-        showPasteMenu(boxId, slotIdx, e, presetPid);
+        showPasteMenu(boxId, slotIdx, e, presetSpeciesKey);
       } else if (presetPid) {
-        openPlacement(boxId, slotIdx, presetPid);
+        openPlacement(boxId, slotIdx, presetSpeciesKey);
       } else {
         openPlacement(boxId, slotIdx, null);
       }
@@ -1493,7 +1494,18 @@ const BoxesView = (() => {
         const resolved = DataManager.resolveSpecies(presetTarget);
         const slug = resolved.slug || DataManager.normalizePresetSlug(presetTarget);
         placementTarget = { boxId, slotIdx };
-        await placeSlot(slug, null);
+        // Seed placement state from ghost slot's requires/defaults if available
+        const slotEl = document.querySelector(`.slot[data-box-id='${boxId}'][data-slot-idx='${slotIdx}']`);
+        let placementState = null;
+        if (slotEl) {
+          try {
+            const req = slotEl.dataset.presetRequires ? JSON.parse(slotEl.dataset.presetRequires) : {};
+            const def = slotEl.dataset.presetDefaults ? JSON.parse(slotEl.dataset.presetDefaults) : {};
+            placementState = { ...def, ...req };
+            if (!Object.keys(placementState).length) placementState = null;
+          } catch (_) { /* ignore malformed JSON */ }
+        }
+        await placeSlot(slug, null, placementState);
       } else {
         openPlacement(boxId, slotIdx, null);
       }
