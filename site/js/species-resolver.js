@@ -226,15 +226,11 @@ const SpeciesResolver = (() => {
   }
 
   // ── Match value normalizers ───────────────────────────────────────
-  // Per-key normalizers for matchValue. Each takes a raw value and returns
-  // a comparison key. Unknown keys fall through to DEFAULT_NORMALIZE.
-  const DEFAULT_NORMALIZE = (v) => String(v).toLowerCase().trim();
-  const NORMALIZERS = {
-    ability: (v) => String(v).toLowerCase().replace(/[\s'’-]+/g, ''),
-    gender: (v) => String(v).toUpperCase().charAt(0),  // F/Female → F, M/Male → M
-    cream: (v) => String(v).toLowerCase().replace(/\s+/g, '-'),
-    sweet: (v) => String(v).toLowerCase().replace(/\s+/g, '-'),
-  };
+  // Derived from FormMetadata registry. Unknown keys use DEFAULT_NORMALIZE.
+  const DEFAULT_NORMALIZE = (v) => String(v).toLowerCase().replace(/\s+/g, '-').trim();
+  const NORMALIZERS = (typeof FormMetadata !== 'undefined')
+    ? FormMetadata.getNormalizers()
+    : {};
 
   /**
    * Compare an instance state value against a preset requirement value.
@@ -282,13 +278,8 @@ const SpeciesResolver = (() => {
     let defaults = {};
     if (typeof presetInput === 'object') {
       presetSpeciesKey = presetInput.speciesKey || '';
-      // New structured form
       if (presetInput.requires) Object.assign(requires, presetInput.requires);
       if (presetInput.defaults) Object.assign(defaults, presetInput.defaults);
-      // Legacy structured form — fold into requires
-      if (presetInput.gender) requires.gender = presetInput.gender;
-      if (presetInput.gmax) requires.gigantamax = true;
-      if (presetInput.abilitySlug) requires.ability = presetInput.abilitySlug;
     } else {
       presetSpeciesKey = typeof presetInput === 'string' ? presetInput.replace(/--.*$/, '') : String(presetInput);
     }

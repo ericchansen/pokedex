@@ -161,21 +161,16 @@ const PresetService = (() => {
     // 3. Gmax flag (from object wrapper or explicit) → strict requirement
     if (gmaxFlag) requires.gigantamax = true;
 
-    // 4. Auto-imply lenient gender:"M" default for unsuffixed dimorphic species
-    //    Lenient (in defaults, not requires) — instances without gender still match.
-    if (!requires.gender) {
-      const probe = resolverCtx ? SpeciesResolver.resolve(speciesKey, resolverCtx) : null;
-      const baseSlug = probe?.baseEntry?.slug || probe?.slug || speciesKey;
+    // 4. Resolve species once for display name + gender default
+    const resolved = resolverCtx ? SpeciesResolver.resolve(speciesKey, resolverCtx) : null;
+    const species = resolved?.entry?.name || resolved?.displayName || speciesKey;
+
+    // 5. Auto-imply lenient gender:"M" default for unsuffixed dimorphic species
+    if (!requires.gender && resolved) {
+      const baseSlug = resolved.baseEntry?.slug || resolved.slug || speciesKey;
       if (baseSlug && GENDER_SPRITE_SPECIES.has(baseSlug)) {
         defaults.gender = 'M';
       }
-    }
-
-    // 5. Resolve display name from speciesKey
-    let species = speciesKey;
-    if (resolverCtx) {
-      const probe = SpeciesResolver.resolve(speciesKey, resolverCtx);
-      species = probe?.entry?.name || probe?.displayName || speciesKey;
     }
 
     return {

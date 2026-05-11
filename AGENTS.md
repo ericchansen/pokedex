@@ -104,20 +104,28 @@ Preset slot matching uses a generic key-value system. A `PresetTarget` declares 
 
 **Adding a new match dimension** (e.g., a new species with cap-color metadata):
 
-1. **Edit preset JSON** (`data/presets/*.json`) to use structured entries:
-   ```json
-   { "species": "NewMon", "requires": { "color": "Red" } }
+1. **Add an entry to `FORM_METADATA`** in `site/js/form-metadata.js`:
+   ```js
+   capColor: {
+     normalize: v => String(v).toLowerCase(),
+     tooltip: v => v ? formatValue(v) : null,
+     sprite: (v, slug) => slug === 'newmon' ? [`newmon-${v}`] : null,
+     placement: (slug) => slug === 'newmon' ? { type: 'select', options: ['Red', 'Blue'] } : null,
+   },
    ```
 
-2. **Add the key to `FORM_EXTRA_FIELDS`** in `site/js/domain-mappers.js` so it survives state ↔ storage roundtrips.
+2. **Edit preset JSON** (`data/presets/*.json`):
+   ```json
+   { "species": "NewMon", "requires": { "capColor": "Red" } }
+   ```
 
-3. **(Optional) Add to `copyFields`** in `mergeBuildPayloadIntoState` if it needs to be edited via the build form.
-
-4. **(Optional) Add a NORMALIZER** in `site/js/species-resolver.js` `NORMALIZERS` registry if the key needs special comparison logic (e.g., slug-strip for ability names).
-
-5. **(Optional) Update `applyStatefulSprites`** in `site/js/views/home.js` if the new key affects sprite selection.
-
-That's it. The matcher itself (`matchesPreset`) requires NO changes. Adding `cream`/`sweet` for Alcremie followed this exact pattern — see commit history for examples.
+That's it. Everything derives from the registry:
+- **Storage roundtrip**: `FORM_EXTRA_FIELDS` auto-includes registry keys
+- **Matching**: `NORMALIZERS` auto-derived from `normalize` functions
+- **Tooltips**: `buildTooltipSuffix` calls each entry's `tooltip` function
+- **Sprites**: `buildSpriteCandidates` calls each entry's `sprite` function
+- **Placement UI**: `getPlacementControls` calls each entry's `placement` function
+- **The matcher** (`matchesPreset`): NO changes — pure key-value loop
 
 Legacy PID string shorthand is still supported for simple cases:
 - `"butterfree-f"` → auto-extracted as `requires.gender = "F"`

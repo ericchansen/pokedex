@@ -672,68 +672,24 @@ const BoxesView = (() => {
 
   /**
    * Prepend state-aware sprite slugs to a resolved object's candidates.
-   * Modifies resolved.spriteCandidates in place and returns the resolved object.
-   * @param {Object} resolved - result of DataManager.resolveSpecies()
-   * @param {Object} state - slot state (gender, gigantamax, cream, etc.)
+   * Driven by FormMetadata registry — no per-dimension if-blocks.
    */
   function applyStatefulSprites(resolved, state) {
     if (!state || !resolved) return resolved;
     const base = resolved.spriteCandidates || [resolved.slug];
-    const prepend = [];
-    if (state.gigantamax) {
-      prepend.push(`${resolved.slug}-gmax`);
-    }
-    if (state.gender === 'F' && GENDER_SPRITE_SPECIES.has(resolved.slug)) {
-      prepend.push(`${resolved.slug}-f`);
-    }
-    // Alcremie cream/sweet sprite candidates — try most-specific first
-    if (resolved.slug === 'alcremie') {
-      const creamSlug = state.cream ? String(state.cream).toLowerCase().replace(/\s+/g, '-') : null;
-      const sweetSlug = state.sweet ? String(state.sweet).toLowerCase().replace(/\s+/g, '-') : null;
-      if (creamSlug && sweetSlug) prepend.push(`alcremie-${creamSlug}-${sweetSlug}`);
-      if (creamSlug) prepend.push(`alcremie-${creamSlug}`);
-    }
+    const prepend = FormMetadata.buildSpriteCandidates(state, resolved.slug);
     if (prepend.length) {
       resolved.spriteCandidates = [...new Set([...prepend, ...base])];
     }
     return resolved;
   }
 
-  // ── Tooltip formatting for generic metadata display ───
-  function formatTooltipKey(key) {
-    const labels = { gigantamax: 'Gmax', shiny: 'Shiny', alpha: 'Alpha' };
-    return labels[key] || key.charAt(0).toUpperCase() + key.slice(1);
-  }
-  function formatTooltipValue(value) {
-    return String(value).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  }
-
-  // Notable metadata keys that should appear in tooltips when present in state.
-  // Keys not in this set are not shown (avoids noise from internal fields like 'id', 'kind').
-  const TOOLTIP_METADATA_KEYS = new Set([
-    'gigantamax', 'alpha', 'cream', 'sweet', 'ability',
-  ]);
-  // Gender is shown only for dimorphic species where the variant is notable.
-  const TOOLTIP_GENDER_KEY = 'gender';
-
   /**
-   * Build a tooltip suffix string from a state object's metadata.
-   * Returns "" or " (Gmax, Female, Vanilla Cream, Strawberry)" etc.
-   * Used by BOTH occupied and ghost slot tooltips — single source of truth.
+   * Build tooltip suffix from state metadata.
+   * Driven by FormMetadata registry — no hardcoded keys or special cases.
    */
   function buildMetadataSuffix(state, resolvedSlug) {
-    if (!state) return '';
-    const parts = [];
-    for (const key of TOOLTIP_METADATA_KEYS) {
-      const val = state[key];
-      if (val == null || val === '' || val === false) continue;
-      parts.push(typeof val === 'boolean' ? formatTooltipKey(key) : formatTooltipValue(val));
-    }
-    // Gender: show "Female" only for dimorphic species (base slug in set)
-    if (state.gender === 'F' && resolvedSlug && GENDER_SPRITE_SPECIES.has(resolvedSlug)) {
-      parts.push('Female');
-    }
-    return parts.length ? ` (${parts.join(', ')})` : '';
+    return FormMetadata.buildTooltipSuffix(state, resolvedSlug);
   }
 
   // ── Delegated grid event handlers ─────────────────────
@@ -1157,13 +1113,11 @@ const BoxesView = (() => {
         const entry = DataManager.getPokedexEntry(slug);
         const templates = entry ? (DataManager.getCompetitiveSets(entry.id) || []) : [];
 
-        // Species that need extra metadata before placement
-        const lockedGender = DataManager.getSpeciesGender(slug);
-        const needsGender = !lockedGender && GENDER_SPRITE_SPECIES.has(slug);
-        const needsAlcremie = slug === 'alcremie';
+        // Species that need extra metadata before placement — derived from FormMetadata registry
+        const metaControls = FormMetadata.getPlacementControls(slug);
 
-        if (needsGender || needsAlcremie || templates.length > 0) {
-          showTemplatePicker(slug, templates, { needsGender, needsAlcremie });
+        if (metaControls.length > 0 || templates.length > 0) {
+          showTemplatePicker(slug, templates, { metaControls });
         } else {
           await placeSlot(slug, null);
         }
@@ -1171,21 +1125,16 @@ const BoxesView = (() => {
     }
   }
 
-  // Alcremie form options
-  const ALCREMIE_CREAMS = ['Vanilla Cream', 'Ruby Cream', 'Matcha Cream', 'Mint Cream',
-    'Lemon Cream', 'Salted Cream', 'Ruby Swirl', 'Caramel Swirl', 'Rainbow Swirl'];
-  const ALCREMIE_SWEETS = ['Strawberry', 'Berry', 'Love', 'Star', 'Clover', 'Flower', 'Ribbon'];
-
   /**
    * After a species is picked, show a picker of known competitive templates.
    * Picking a template seeds state + links template; "Blank" places an empty mon.
-   * Options: { needsGender, needsAlcremie } for form metadata selection.
+   * metaControls: [{key, type, options, labels?}] from FormMetadata.getPlacementControls
    */
   function showTemplatePicker(slug, templates, opts = {}) {
     const existing = document.querySelector('.template-picker');
     if (existing) existing.remove();
 
-    const { needsGender, needsAlcremie } = opts;
+    const { metaControls = [] } = opts;
 
     const STAT_ABBR = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
     function buildEvLine(t) {
@@ -1205,28 +1154,28 @@ const BoxesView = (() => {
     const picker = document.createElement('div');
     picker.className = 'template-picker';
 
-    // Form metadata selectors (gender toggle, Alcremie cream/sweet)
+    // Form metadata selectors — generated from FormMetadata registry
     let formHtml = '';
-    if (needsGender) {
-      formHtml += `<div class="form-meta-row">
-        <label>Gender:</label>
-        <button class="gender-btn selected" data-gender="M">♂</button>
-        <button class="gender-btn" data-gender="F">♀</button>
-      </div>`;
-    }
-    if (needsAlcremie) {
-      formHtml += `<div class="form-meta-row">
-        <label>Cream:</label>
-        <select class="form-meta-select" data-key="cream">
-          ${ALCREMIE_CREAMS.map(c => `<option value="${c}">${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-meta-row">
-        <label>Sweet:</label>
-        <select class="form-meta-select" data-key="sweet">
-          ${ALCREMIE_SWEETS.map(s => `<option value="${s}">${s}</option>`).join('')}
-        </select>
-      </div>`;
+    for (const ctrl of metaControls) {
+      if (ctrl.type === 'toggle') {
+        const label = ctrl.key.charAt(0).toUpperCase() + ctrl.key.slice(1);
+        formHtml += `<div class="form-meta-row">
+          <label>${label}:</label>
+          ${ctrl.options.map((opt, i) => {
+            const lbl = ctrl.labels ? ctrl.labels[i] : opt;
+            const sel = i === 0 ? ' selected' : '';
+            return `<button class="gender-btn${sel}" data-gender="${opt}">${lbl}</button>`;
+          }).join('')}
+        </div>`;
+      } else if (ctrl.type === 'select') {
+        const label = ctrl.key.charAt(0).toUpperCase() + ctrl.key.slice(1);
+        formHtml += `<div class="form-meta-row">
+          <label>${label}:</label>
+          <select class="form-meta-select" data-key="${ctrl.key}">
+            ${ctrl.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+          </select>
+        </div>`;
+      }
     }
 
     picker.innerHTML = `

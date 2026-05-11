@@ -10,14 +10,19 @@ const DomainMappers = (() => {
   const BUILD_STATE_FIELDS = Object.freeze([
     'form', 'level', 'nature', 'ability', 'item', 'tera_type', 'moves', 'evs',
   ]);
-  const FORM_EXTRA_FIELDS = Object.freeze([
-    'ivs', 'ev_system', 'ball', 'nickname', 'ot', 'gender', 'shiny',
-    'language', 'origin_game', 'notes', 'gigantamax', 'alpha',
+  // Non-metadata instance fields that persist in identity (not driven by FormMetadata registry)
+  const FORM_INSTANCE_FIELDS = Object.freeze([
+    'ivs', 'ev_system', 'ball', 'nickname', 'ot', 'shiny',
+    'language', 'origin_game', 'notes',
     'event_origin', 'genned', 'transferred_to_champions', 'from_go', 'ev_guesstimate',
-    // Form-variant metadata (Alcremie cream/sweet, future cap-style, hat-color, etc.)
-    // Any new metadata key declared in preset JSON `requires` should be added here
-    // so it survives the state ↔ storage roundtrip via createEditableBuildDraft.
-    'cream', 'sweet',
+  ]);
+  // FORM_EXTRA_FIELDS = instance fields + all registry-driven metadata keys.
+  // Adding a new metadata dimension to FormMetadata.REGISTRY automatically includes it here.
+  const FORM_EXTRA_FIELDS = Object.freeze([
+    ...FORM_INSTANCE_FIELDS,
+    ...(typeof FormMetadata !== 'undefined' ? FormMetadata.KEYS : [
+      'gender', 'gigantamax', 'alpha', 'ability', 'cream', 'sweet',
+    ]),
   ]);
   const BOOLEAN_FIELDS = new Set(['shiny', 'gigantamax', 'alpha', 'event_origin', 'genned', 'transferred_to_champions', 'from_go', 'ev_guesstimate']);
 
@@ -228,13 +233,13 @@ const DomainMappers = (() => {
       evSystem: buildPayload?.ev_system || current.ev_system,
     });
     const next = { ...current };
+    // copyFields: BUILD_STATE_FIELDS + identity fields + registry metadata keys.
+    // Derived from the same sources as FORM_EXTRA_FIELDS — no manual sync needed.
     const copyFields = [
-      'species', 'slug', 'form', 'level', 'nature', 'ability', 'item',
-      'tera_type', 'moves', 'ball', 'nickname', 'ot', 'gender', 'shiny',
-      'language', 'origin_game', 'notes', 'gigantamax', 'alpha',
-      'egg_moves', 'event_origin', 'genned', 'transferred_to_champions', 'from_go', 'ev_guesstimate',
-      // Form-variant metadata — must match additions to FORM_EXTRA_FIELDS
-      'cream', 'sweet',
+      'species', 'slug', ...BUILD_STATE_FIELDS,
+      ...FORM_INSTANCE_FIELDS,
+      'egg_moves',
+      ...(typeof FormMetadata !== 'undefined' ? FormMetadata.KEYS : []),
     ];
 
     for (const field of copyFields) {
