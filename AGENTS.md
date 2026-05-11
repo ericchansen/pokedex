@@ -89,6 +89,43 @@ serve.py               Dev server + JSON persistence endpoints
 - All converted EVs must be multiples of 4 (sub-4 EVs are wasted in classic)
 - Overflow: trim from smallest stats in 4-EV chunks to preserve max investments
 
+### Preset Matching (Data-Driven)
+
+Preset slot matching uses a generic key-value system. A `PresetTarget` declares two metadata maps:
+
+```js
+{
+  pid: string,                      // round-trip identifier
+  species, speciesKey: string,
+  requires: { [key]: value },       // STRICT: actual must be set AND equal
+  defaults: { [key]: value },       // LENIENT: unset OK; explicit non-equal fails
+}
+```
+
+**Adding a new match dimension** (e.g., a new species with cap-color metadata):
+
+1. **Edit preset JSON** (`data/presets/*.json`) to use structured entries:
+   ```json
+   { "species": "NewMon", "requires": { "color": "Red" } }
+   ```
+
+2. **Add the key to `FORM_EXTRA_FIELDS`** in `site/js/domain-mappers.js` so it survives state ↔ storage roundtrips.
+
+3. **(Optional) Add to `copyFields`** in `mergeBuildPayloadIntoState` if it needs to be edited via the build form.
+
+4. **(Optional) Add a NORMALIZER** in `site/js/species-resolver.js` `NORMALIZERS` registry if the key needs special comparison logic (e.g., slug-strip for ability names).
+
+5. **(Optional) Update `applyStatefulSprites`** in `site/js/views/home.js` if the new key affects sprite selection.
+
+That's it. The matcher itself (`matchesPreset`) requires NO changes. Adding `cream`/`sweet` for Alcremie followed this exact pattern — see commit history for examples.
+
+Legacy PID string shorthand is still supported for simple cases:
+- `"butterfree-f"` → auto-extracted as `requires.gender = "F"`
+- `"rockruff--own-tempo"` → auto-extracted as `requires.ability = "Own Tempo"`
+- `{ "pid": "venusaur", "gmax": true }` → auto-extracted as `requires.gigantamax = true`
+
+Complex multi-dimension cases (Alcremie cream + sweet) MUST use structured form.
+
 ## Git Workflow
 
 - Use conventional commit prefixes: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `ci`, `perf`
