@@ -78,10 +78,10 @@ const BuildEditor = (() => {
           <span class="comp-label">Ability</span>
           <span class="comp-value"><select id="bf-ability"></select></span>
         </div>
-        <div class="comp-row comp-row--editable">
+        ${isLibrary ? `<div class="comp-row comp-row--editable">
           <span class="comp-label">Ball</span>
           <span class="comp-value"><div id="bf-ball"></div></span>
-        </div>
+        </div>` : ''}
         <div class="comp-row comp-row--editable">
           <span class="comp-label">Tera Type</span>
           <span class="comp-value">
@@ -125,58 +125,7 @@ const BuildEditor = (() => {
             escapeHtml,
           })}
 
-        <div class="editor-identity-section${isLibrary ? ' hidden' : ''}">
-          <h3 class="stat-heading editor-section-heading">Identity &amp; Provenance</h3>
-          <div class="comp-row comp-row--editable">
-            <span class="comp-label">Level</span>
-            <span class="comp-value"><input type="number" id="bf-level" min="1" max="100" placeholder="?"></span>
-          </div>
-          <div class="comp-row comp-row--editable">
-            <span class="comp-label">Nickname</span>
-            <span class="comp-value"><input type="text" id="bf-nickname" placeholder="None"></span>
-          </div>
-          <div class="comp-row comp-row--editable">
-            <span class="comp-label">OT</span>
-            <span class="comp-value"><input type="text" id="bf-ot" placeholder="None"></span>
-          </div>
-          <div class="comp-row comp-row--editable">
-            <span class="comp-label">Origin Game</span>
-            <span class="comp-value">
-              <select id="bf-origin-game">
-                <option value="">Unknown</option>
-                <option value="Scarlet">Scarlet</option>
-                <option value="Violet">Violet</option>
-                <option value="Legends: Arceus">Legends: Arceus</option>
-                <option value="Legends: Z-A">Legends: Z-A</option>
-                <option value="Sword">Sword</option>
-                <option value="Shield">Shield</option>
-                <option value="Champions">Champions</option>
-              </select>
-            </span>
-          </div>
-          <div class="comp-row comp-row--editable">
-            <span class="comp-label">Language</span>
-            <span class="comp-value">
-              <select id="bf-language">
-                ${renderLanguageOptions(build.language, { blankLabel: `Default (${defaultLanguageName})` })}
-              </select>
-            </span>
-          </div>
-          <div class="comp-row comp-row--editable">
-            <span class="comp-label">Flags</span>
-            <span class="comp-value checkbox-group">
-              <label class="checkbox-label"><input type="checkbox" id="bf-shiny"> ✨ Shiny</label>
-              <label class="checkbox-label"><input type="checkbox" id="bf-genned"> Genned</label>
-              <label class="checkbox-label"><input type="checkbox" id="bf-gigantamax"> Gmax</label>
-              <label class="checkbox-label"><input type="checkbox" id="bf-alpha"> Alpha</label>
-              <label class="checkbox-label"><input type="checkbox" id="bf-event-origin"> Event</label>
-              <label class="checkbox-label"><input type="checkbox" id="bf-from-go"> Pokémon GO</label>
-              <label class="checkbox-label"><input type="checkbox" id="bf-ev-guesstimate"> EV Guesstimate</label>
-              <label class="checkbox-label"><input type="checkbox" id="bf-transferred"> 🏆 Champions</label>
-            </span>
-          </div>
-          <div id="bf-registry-fields"></div>
-        </div>
+        <div id="bf-identity-section-host"${isLibrary ? ' class="hidden"' : ''}></div>
 
         <div class="comp-row comp-row--editable">
           <span class="comp-label">Notes</span>
@@ -539,10 +488,26 @@ const BuildEditor = (() => {
 
     createAutocomplete(speciesInput, (query) => DataManager.searchSpecies(query), {
       onSelect: async (item) => {
+        // Snapshot surviving fields before re-rendering section for new species
+        const prevSlug = build.slug;
+        const snapshot = metaSection ? metaSection.collectValues(prevSlug) : {};
+
         build.slug = item.slug;
         refreshAbilitySelect(abilitySelect.value);
 
         recalcAllStats();
+
+        // Re-render section for new species (registry locks/controls may change)
+        if (metaSection && !isLibrary) {
+          const host = content.querySelector('#bf-identity-section-host');
+          if (host) {
+            host.innerHTML = InstanceMetadataSection.render({ state: build, speciesSlug: item.slug, mode: 'edit' });
+            metaSection = InstanceMetadataSection.mount(host, { mode: 'edit', onChange: () => markDirty() });
+            // Restore surviving fields (nickname, OT, level, language, shiny, flags)
+            // Species-specific fields (form, cream, sweet) reset to new species defaults
+            metaSection.populate(snapshot, { onlyIfEmpty: false });
+          }
+        }
 
         if (!isEdit) {
           try {
@@ -570,7 +535,6 @@ const BuildEditor = (() => {
         }
 
         scheduleEggMoveRefresh();
-        refreshRegistryFields();
         markDirty();
       },
       formatItem: formatSpeciesItem,
@@ -607,102 +571,21 @@ const BuildEditor = (() => {
       });
     });
 
-    const ballDefault = build.ball || (isEdit ? '' : 'Poke');
-    const ballPicker = BallPicker.createBallPicker(content.querySelector('#bf-ball'), ballDefault);
+    const ballDefault = build.ball || 'Poke';
+    const ballPicker = isLibrary
+      ? BallPicker.createBallPicker(content.querySelector('#bf-ball'), ballDefault)
+      : null;
 
-    if (build.level) content.querySelector('#bf-level').value = build.level;
-    if (build.shiny) content.querySelector('#bf-shiny').checked = true;
-    if (build.nickname) content.querySelector('#bf-nickname').value = build.nickname;
-    if (build.ot) content.querySelector('#bf-ot').value = build.ot;
-    if (build.origin_game) content.querySelector('#bf-origin-game').value = build.origin_game;
-    if (build.language) content.querySelector('#bf-language').value = build.language;
-    if (build.gigantamax) content.querySelector('#bf-gigantamax').checked = true;
-    if (build.alpha) content.querySelector('#bf-alpha').checked = true;
-    if (build.event_origin) content.querySelector('#bf-event-origin').checked = true;
-    if (build.from_go) content.querySelector('#bf-from-go').checked = true;
-    if (build.ev_guesstimate) content.querySelector('#bf-ev-guesstimate').checked = true;
-    if (build.genned) content.querySelector('#bf-genned').checked = true;
-    if (build.transferred_to_champions) content.querySelector('#bf-transferred').checked = true;
-
-    // ── Registry-driven metadata fields (gender, cream/sweet, future dimensions) ──
-    // Renders editable controls OR locked badges based on FormMetadata.getLock/getPlacementControls.
-    // Replaces the hardcoded syncGenderLock — all lock logic lives in the registry.
-    function refreshRegistryFields() {
-      const container = content.querySelector('#bf-registry-fields');
-      if (!container) return;
-      const slug = getCurrentSpeciesSlug();
-      if (typeof FormMetadata === 'undefined') return;
-      const locks = FormMetadata.getLock(slug);
-      const controls = FormMetadata.getPlacementControls(slug);
-      // Get current values from the build draft or existing rendered inputs
-      const getValue = (key) => {
-        const existing = container.querySelector(`[data-meta-field="${key}"]`);
-        if (existing) return existing.tagName === 'SELECT' ? existing.value : existing.dataset.value || '';
-        return build[key] || '';
-      };
-
-      let html = '';
-      // Render each control: locked badge OR editable input
-      for (const ctrl of controls) {
-        const lock = locks[ctrl.key];
-        const label = escapeHtml(ctrl.key.charAt(0).toUpperCase() + ctrl.key.slice(1));
-        if (lock) {
-          // Locked: static display with reason tooltip
-          html += `<div class="comp-row comp-row--editable">
-            <span class="comp-label">${label}</span>
-            <span class="comp-value">
-              <span class="instance-metadata__locked" title="${escapeHtml(lock.reason)}">${escapeHtml(lock.display || lock.value)}</span>
-            </span>
-          </div>`;
-          continue;
-        }
-        const currentVal = getValue(ctrl.key);
-        if (ctrl.type === 'select') {
-          html += `<div class="comp-row comp-row--editable">
-            <span class="comp-label">${label}</span>
-            <span class="comp-value">
-              <select data-meta-field="${ctrl.key}">
-                <option value="">—</option>
-                ${ctrl.options.map(o => `<option value="${escapeHtml(o)}"${o === currentVal ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}
-              </select>
-            </span>
-          </div>`;
-        } else if (ctrl.type === 'toggle') {
-          html += `<div class="comp-row comp-row--editable">
-            <span class="comp-label">${label}</span>
-            <span class="comp-value">
-              <div class="instance-metadata__gender-toggle" data-meta-field="${ctrl.key}" data-value="${escapeHtml(currentVal)}">
-                ${ctrl.options.map((opt, i) => {
-                  const lbl = ctrl.labels ? ctrl.labels[i] : opt;
-                  const active = opt === currentVal ? ' active' : '';
-                  return `<button type="button" class="gender-btn${active}" data-value="${escapeHtml(opt)}">${escapeHtml(lbl)}</button>`;
-                }).join('')}
-              </div>
-            </span>
-          </div>`;
-        }
-      }
-      container.innerHTML = html;
-
-      // Wire events → markDirty
-      for (const sel of container.querySelectorAll('select[data-meta-field]')) {
-        sel.addEventListener('change', () => markDirty());
-      }
-      for (const toggle of container.querySelectorAll('.instance-metadata__gender-toggle[data-meta-field]')) {
-        for (const btn of toggle.querySelectorAll('.gender-btn')) {
-          btn.addEventListener('click', () => {
-            const current = toggle.dataset.value || '';
-            const newVal = btn.dataset.value === current ? '' : btn.dataset.value;
-            toggle.dataset.value = newVal;
-            for (const b of toggle.querySelectorAll('.gender-btn')) {
-              b.classList.toggle('active', b.dataset.value === newVal);
-            }
-            markDirty();
-          });
-        }
+    // Render and mount the unified metadata section into the host div
+    let metaSection = null;
+    if (!isLibrary) {
+      const host = content.querySelector('#bf-identity-section-host');
+      if (host) {
+        const initSlug = speciesSlug || build.slug || '';
+        host.innerHTML = InstanceMetadataSection.render({ state: build, speciesSlug: initSlug, mode: 'edit' });
+        metaSection = InstanceMetadataSection.mount(host, { mode: 'edit', onChange: () => markDirty() });
       }
     }
-    refreshRegistryFields();
 
     // ── Stat editor (sliders, nature labels, recalc, EV conversion) ──
     const { statEditor, natureSelect, recalcAllStats, updateNatureLabels, updateClassicEvTotal, updateChampEvTotal } =
@@ -714,13 +597,11 @@ const BuildEditor = (() => {
     });
     speciesInput.addEventListener('input', () => {
       refreshAbilitySelect();
-      refreshRegistryFields();
       recalcAllStats();
       scheduleEggMoveRefresh(EGG_MOVE_REFRESH_INPUT_DEBOUNCE_MS);
     });
     speciesInput.addEventListener('blur', () => {
       refreshAbilitySelect();
-      refreshRegistryFields();
       recalcAllStats();
       scheduleEggMoveRefresh();
     });
@@ -729,7 +610,6 @@ const BuildEditor = (() => {
       updateChampEvTotal();
       updateNatureLabels();
       recalcAllStats();
-      refreshRegistryFields();
       scheduleEggMoveRefresh();
     }
 
@@ -752,43 +632,9 @@ const BuildEditor = (() => {
       refreshAbilitySelect(onlyIfEmpty && currentAbility ? currentAbility : (data.ability || ''));
       if (data.item && (!onlyIfEmpty || isTextEmpty('#bf-item'))) content.querySelector('#bf-item').value = data.item;
       if (teraType && (!onlyIfEmpty || isTextEmpty('#bf-tera'))) content.querySelector('#bf-tera').value = teraType;
-      if (data.ball && (!onlyIfEmpty || !ballPicker.getValue())) ballPicker.setValue(data.ball);
-      // Identity fields from paste: nickname, level, shiny, gigantamax
-      if (data.nickname && (!onlyIfEmpty || isTextEmpty('#bf-nickname'))) {
-        const nickEl = content.querySelector('#bf-nickname');
-        if (nickEl) nickEl.value = data.nickname;
-      }
-      if (data.level && (!onlyIfEmpty || isZeroOrBlank('#bf-level'))) {
-        const levelEl = content.querySelector('#bf-level');
-        if (levelEl) levelEl.value = data.level;
-      }
-      if (data.shiny) {
-        const shinyEl = content.querySelector('#bf-shiny');
-        if (shinyEl && (!onlyIfEmpty || !shinyEl.checked)) shinyEl.checked = true;
-      }
-      if (data.gigantamax) {
-        const gmaxEl = content.querySelector('#bf-gigantamax');
-        if (gmaxEl && (!onlyIfEmpty || !gmaxEl.checked)) gmaxEl.checked = true;
-      }
-      // Registry-driven metadata fields (gender, cream/sweet, future dimensions)
-      if (typeof FormMetadata !== 'undefined') {
-        for (const key of FormMetadata.KEYS) {
-          if (key === 'gigantamax' || key === 'alpha') continue; // handled above
-          if (data[key] == null || data[key] === '') continue;
-          const el = content.querySelector(`#bf-registry-fields [data-meta-field="${key}"]`);
-          if (!el) continue;
-          const currentValue = el.tagName === 'SELECT' ? el.value : el.dataset.value || '';
-          if (onlyIfEmpty && currentValue) continue;
-          if (el.tagName === 'SELECT') {
-            el.value = data[key];
-          } else {
-            el.dataset.value = data[key];
-            for (const btn of el.querySelectorAll('.gender-btn')) {
-              btn.classList.toggle('active', btn.dataset.value === data[key]);
-            }
-          }
-        }
-      }
+      if (data.ball && ballPicker && (!onlyIfEmpty || !ballPicker.getValue())) ballPicker.setValue(data.ball);
+      // Instance identity + metadata fields delegated to section
+      if (metaSection) metaSection.populate(data, { onlyIfEmpty });
       if (data.evs && Object.keys(data.evs).length) {
         for (const [key, value] of Object.entries(data.evs)) {
           const shouldPopulate = !onlyIfEmpty || isZeroOrBlank(`#bf-cev-${key}`);
@@ -900,7 +746,7 @@ const BuildEditor = (() => {
         item: content.querySelector('#bf-item').value.trim(),
         ability: abilitySelect.value.trim(),
         nature: content.querySelector('#bf-nature').value,
-        ball: ballPicker.getValue(),
+        ball: ballPicker?.getValue() || '',
         tera_type: content.querySelector('#bf-tera').value,
         ev_system: evSystem,
         evs: structuredEvs,
@@ -911,41 +757,9 @@ const BuildEditor = (() => {
       };
 
       if (!isLibrary) {
-        // Read gender from registry field (toggle or locked)
-        const genderToggle = content.querySelector('#bf-registry-fields [data-meta-field="gender"]');
-        if (genderToggle) {
-          payload.gender = genderToggle.tagName === 'SELECT'
-            ? (genderToggle.value || null)
-            : (genderToggle.dataset.value || null);
-        } else {
-          // Fallback: locked gender from registry
-          const locks = (typeof FormMetadata !== 'undefined') ? FormMetadata.getLock(getCurrentSpeciesSlug()) : {};
-          payload.gender = locks.gender?.value || null;
-        }
-        payload.shiny = content.querySelector('#bf-shiny').checked;
-        payload.language = content.querySelector('#bf-language').value || null;
-        payload.ot = content.querySelector('#bf-ot').value.trim() || null;
-        payload.origin_game = content.querySelector('#bf-origin-game').value || null;
-        const levelRaw = parseInt(content.querySelector('#bf-level').value, 10);
-        payload.level = (Number.isFinite(levelRaw) && levelRaw > 0) ? levelRaw : null;
-        payload.nickname = content.querySelector('#bf-nickname').value.trim() || null;
-        payload.gigantamax = content.querySelector('#bf-gigantamax').checked;
-        payload.alpha = content.querySelector('#bf-alpha').checked;
-        payload.event_origin = content.querySelector('#bf-event-origin').checked;
-        payload.from_go = content.querySelector('#bf-from-go').checked;
-        payload.ev_guesstimate = content.querySelector('#bf-ev-guesstimate').checked;
-        payload.genned = content.querySelector('#bf-genned').checked;
-        payload.transferred_to_champions = content.querySelector('#bf-transferred').checked;
-        // Registry-driven metadata fields (cream/sweet, future dimensions — excludes gender, handled above)
-        for (const el of content.querySelectorAll('#bf-registry-fields select[data-meta-field]')) {
-          const key = el.dataset.metaField;
-          if (key !== 'gender') payload[key] = el.value || null;
-        }
-        // Locked field values
-        const locks = (typeof FormMetadata !== 'undefined') ? FormMetadata.getLock(getCurrentSpeciesSlug()) : {};
-        for (const [key, lock] of Object.entries(locks)) {
-          if (key !== 'gender') payload[key] = lock.value;
-        }
+        // Identity + metadata fields collected from the unified metadata section (includes ball)
+        const identityVals = metaSection ? metaSection.collectValues(slug) : {};
+        Object.assign(payload, identityVals);
       }
 
       return DomainMappers.createEditableBuildDraft(payload, {
