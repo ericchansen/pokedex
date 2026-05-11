@@ -1113,32 +1113,27 @@ a:hover { text-decoration: underline; }
 }
 
 /* IV badge — upper-left corner of slot */
-.slot-iv-badge {
+.slot-iv-badge,
+.slot-egg-badge {
   position: absolute;
-  top: 1px;
-  left: 1px;
-  font-size: 0.55rem;
+  top: 2px;
+  font-size: 0.5rem;
   font-weight: 700;
   line-height: 1;
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.45);
   color: #fff;
-  -webkit-text-stroke: 1px #000;
-  paint-order: stroke fill;
   pointer-events: none;
   z-index: 2;
 }
 
+.slot-iv-badge {
+  left: 2px;
+}
+
 .slot-egg-badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  font-size: 0.55rem;
-  font-weight: 700;
-  line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 1px #000;
-  paint-order: stroke fill;
-  pointer-events: none;
-  z-index: 2;
+  right: 2px;
 }
 
 /* Tooltip */
