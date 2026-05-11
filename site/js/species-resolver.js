@@ -41,12 +41,7 @@ const SpeciesResolver = (() => {
 
   function prettifyName(value) {
     const parts = normalizeHyphenSlug(value).split('-').filter(Boolean);
-    // Don't bake metadata (gender, etc.) into the name — that's the registry's job.
-    // Strip trailing gender suffixes so "butterfree-f" → "Butterfree", not "Butterfree Female".
-    const cleaned = (parts.length > 1 && (parts[parts.length - 1] === 'f' || parts[parts.length - 1] === 'm'))
-      ? parts.slice(0, -1)
-      : parts;
-    return cleaned.join(' ').replace(/\b\w/g, (match) => match.toUpperCase());
+    return parts.join(' ').replace(/\b\w/g, (match) => match.toUpperCase());
   }
 
   function pushSlugVariants(out, value) {

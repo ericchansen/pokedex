@@ -144,14 +144,22 @@ const PresetService = (() => {
       requires.ability = abilitySlugToName(abilitySlug);
     }
 
-    // 2. Detect gender suffix -(f|m) — only if NOT a direct dex entry
-    //    (nidoran-f is a real species; sneasel-hisui-f is a gender suffix)
+    // 2. Detect gender suffix -(f|m) — only if:
+    //    a) The full string is NOT a direct/known pokedex entry (nidoranf, unownf, etc.)
+    //    b) The BASE species (without suffix) IS dimorphic (in GENDER_SPRITE_SPECIES)
+    //    This prevents "unown-f" (letter F) from being misidentified as gender.
     let speciesKey = withoutAbility;
     if (resolverCtx) {
       const genderMatch = withoutAbility.match(/^(.+)-(f|m)$/i);
       if (genderMatch) {
-        const probe = SpeciesResolver.resolve(withoutAbility, resolverCtx);
-        if (!probe.matchedDirect) {
+        const fullProbe = SpeciesResolver.resolve(withoutAbility, resolverCtx);
+        const collapsedFull = SpeciesResolver.normalizeCollapsedSlug(withoutAbility);
+        const isRealEntry = fullProbe.matchedDirect || (fullProbe.entry && fullProbe.entry.slug === collapsedFull);
+        // Also check: is the base species actually dimorphic?
+        const baseProbe = SpeciesResolver.resolve(genderMatch[1], resolverCtx);
+        const baseSlug = baseProbe?.baseEntry?.slug || baseProbe?.slug || '';
+        const isDimorphic = GENDER_SPRITE_SPECIES.has(baseSlug);
+        if (!isRealEntry && isDimorphic) {
           requires.gender = genderMatch[2].toUpperCase();
           speciesKey = genderMatch[1];
         }
@@ -163,7 +171,7 @@ const PresetService = (() => {
 
     // 4. Resolve species once for display name + gender default
     const resolved = resolverCtx ? SpeciesResolver.resolve(speciesKey, resolverCtx) : null;
-    const species = resolved?.entry?.name || resolved?.displayName || speciesKey;
+    const species = resolved?.displayName || resolved?.entry?.name || speciesKey;
 
     // 5. Auto-imply lenient gender:"M" default for unsuffixed dimorphic species
     if (!requires.gender && resolved) {
