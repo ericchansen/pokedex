@@ -49,25 +49,37 @@ const ShowdownParser = (() => {
     };
 
     // Line 1: Species @ Item  (or  Nickname (Species) @ Item)
-    const firstLine = lines[0];
-    const atIdx = firstLine.indexOf(' @ ');
-    let speciesPart;
-    if (atIdx >= 0) {
-      speciesPart = firstLine.slice(0, atIdx).trim();
-      result.item = firstLine.slice(atIdx + 3).trim();
+    // If line 1 looks like a field line (Ability:, EVs:, etc.), the species line
+    // was omitted — start parsing fields from line 0 instead.
+    const FIELD_LINE = /^(Ability|EVs|IVs|Tera Type|Level|Ball|Shiny|Happiness)\s*:/i;
+    const NATURE_LINE = /^\w+\s+Nature$/i;
+    const MOVE_LINE = /^- /;
+    const firstIsField = FIELD_LINE.test(lines[0]) || NATURE_LINE.test(lines[0]) || MOVE_LINE.test(lines[0]);
+    let fieldStart = 1;
+
+    if (!firstIsField) {
+      const firstLine = lines[0];
+      const atIdx = firstLine.indexOf(' @ ');
+      let speciesPart;
+      if (atIdx >= 0) {
+        speciesPart = firstLine.slice(0, atIdx).trim();
+        result.item = firstLine.slice(atIdx + 3).trim();
+      } else {
+        speciesPart = firstLine.trim();
+      }
+
+      // Handle nickname: "Nickname (Species)"
+      const nickMatch = speciesPart.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      if (nickMatch) {
+        result.nickname = nickMatch[1].trim();
+        speciesPart = nickMatch[2].trim();
+      }
+      result.species = speciesPart;
     } else {
-      speciesPart = firstLine.trim();
+      fieldStart = 0;
     }
 
-    // Handle nickname: "Nickname (Species)"
-    const nickMatch = speciesPart.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
-    if (nickMatch) {
-      result.nickname = nickMatch[1].trim();
-      speciesPart = nickMatch[2].trim();
-    }
-    result.species = speciesPart;
-
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = fieldStart; i < lines.length; i++) {
       const line = lines[i];
 
       // Moves: - Move Name
