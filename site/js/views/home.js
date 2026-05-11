@@ -699,15 +699,41 @@ const BoxesView = (() => {
     return resolved;
   }
 
-  // ── Tooltip formatting for generic requires display ───
+  // ── Tooltip formatting for generic metadata display ───
   function formatTooltipKey(key) {
-    // boolean keys → key as label (e.g. "gigantamax" → "Gmax")
     const labels = { gigantamax: 'Gmax', shiny: 'Shiny', alpha: 'Alpha' };
     return labels[key] || key.charAt(0).toUpperCase() + key.slice(1);
   }
   function formatTooltipValue(value) {
-    // String values → title-cased ("own-tempo" → "Own Tempo", "Vanilla Cream" → "Vanilla Cream")
     return String(value).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  // Notable metadata keys that should appear in tooltips when present in state.
+  // Keys not in this set are not shown (avoids noise from internal fields like 'id', 'kind').
+  const TOOLTIP_METADATA_KEYS = new Set([
+    'gigantamax', 'alpha', 'cream', 'sweet', 'ability',
+  ]);
+  // Gender is shown only for dimorphic species where the variant is notable.
+  const TOOLTIP_GENDER_KEY = 'gender';
+
+  /**
+   * Build a tooltip suffix string from a state object's metadata.
+   * Returns "" or " (Gmax, Female, Vanilla Cream, Strawberry)" etc.
+   * Used by BOTH occupied and ghost slot tooltips — single source of truth.
+   */
+  function buildMetadataSuffix(state, resolvedSlug) {
+    if (!state) return '';
+    const parts = [];
+    for (const key of TOOLTIP_METADATA_KEYS) {
+      const val = state[key];
+      if (val == null || val === '' || val === false) continue;
+      parts.push(typeof val === 'boolean' ? formatTooltipKey(key) : formatTooltipValue(val));
+    }
+    // Gender: show "Female" only for dimorphic species (base slug in set)
+    if (state.gender === 'F' && resolvedSlug && GENDER_SPRITE_SPECIES.has(resolvedSlug)) {
+      parts.push('Female');
+    }
+    return parts.length ? ` (${parts.join(', ')})` : '';
   }
 
   // ── Delegated grid event handlers ─────────────────────
@@ -908,7 +934,7 @@ const BoxesView = (() => {
 
     const tooltip = document.createElement('span');
     tooltip.className = 'tooltip';
-    tooltip.textContent = name;
+    tooltip.textContent = name + buildMetadataSuffix(state, resolved.slug);
     slot.appendChild(tooltip);
 
     // FR-2.4: drag & drop between slots
@@ -979,21 +1005,11 @@ const BoxesView = (() => {
         { slug });
       while (spriteFragment.firstChild) slot.appendChild(spriteFragment.firstChild);
 
-      // Tooltip: species name + comma-separated requires (generic, data-driven)
-      const baseName = resolved.entry?.baseSpecies || resolved.name || name;
-      const hasFormInfo = resolved.entry?.baseSpecies || resolved.entry?.forme || (presetTarget.requires?.gender);
-      let tooltipText = hasFormInfo ? name : baseName;
-      const requireLabels = Object.entries(presetTarget.requires || {})
-        .filter(([k]) => k !== 'gender' || !hasFormInfo)  // gender already implied by display name
-        .map(([k, v]) => {
-          if (typeof v === 'boolean') return v ? formatTooltipKey(k) : null;
-          return formatTooltipValue(v);
-        })
-        .filter(Boolean);
-      if (requireLabels.length) tooltipText += ` (${requireLabels.join(', ')})`;
+      // Tooltip: same rendering as occupied slots — species + metadata suffix.
+      // For ghosts, the "state" is what the template requires/defaults.
       const tooltip = document.createElement('span');
       tooltip.className = 'tooltip';
-      tooltip.textContent = tooltipText;
+      tooltip.textContent = name + buildMetadataSuffix(ghostState, slug);
       slot.appendChild(tooltip);
     }
 
