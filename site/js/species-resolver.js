@@ -237,15 +237,17 @@ const SpeciesResolver = (() => {
     if (!speciesInput || !presetInput) return false;
 
     // Normalize presetInput: accept either parsed PresetTarget or raw string
-    let presetSpeciesKey, presetGender, presetGmax;
+    let presetSpeciesKey, presetGender, presetGmax, presetAbility;
     if (typeof presetInput === 'object' && presetInput.speciesKey !== undefined) {
       presetSpeciesKey = presetInput.speciesKey;
       presetGender = presetInput.gender || null;
       presetGmax = !!presetInput.gmax;
+      presetAbility = presetInput.abilitySlug || null;
     } else {
       presetSpeciesKey = typeof presetInput === 'string' ? presetInput.replace(/--.*$/, '') : String(presetInput);
       presetGender = null;
       presetGmax = false;
+      presetAbility = null;
     }
 
     const species = resolve(speciesInput, ctx);
@@ -266,6 +268,13 @@ const SpeciesResolver = (() => {
     // 3. Gmax enforcement
     if (presetGmax && instanceState) {
       if (!instanceState.gigantamax) return false;
+    }
+
+    // 4. Ability enforcement (e.g., rockruff--own-tempo requires Own Tempo)
+    if (presetAbility && instanceState?.ability) {
+      const instanceAbilitySlug = String(instanceState.ability).toLowerCase().replace(/[\s'-]+/g, '');
+      const presetAbilitySlug = presetAbility.toLowerCase().replace(/[\s'-]+/g, '');
+      if (instanceAbilitySlug !== presetAbilitySlug) return false;
     }
 
     return true;

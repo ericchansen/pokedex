@@ -883,7 +883,7 @@ const BoxesView = (() => {
     if (eggMoves.length > 0) {
       const eggBadge = document.createElement('span');
       eggBadge.className = 'slot-egg-badge';
-      eggBadge.textContent = `${eggMoves.length}🥚`;
+      eggBadge.textContent = `${eggMoves.length}`;
       eggBadge.title = `${eggMoves.length} Egg Move${eggMoves.length > 1 ? 's' : ''}`;
       slot.appendChild(eggBadge);
     }
@@ -952,8 +952,9 @@ const BoxesView = (() => {
 
       const requiresGender = presetTarget.gender;
       const requiresGmax = presetTarget.gmax;
+      const requiresAbility = presetTarget.abilitySlug;
       const impliesMale = !requiresGender && GENDER_SPRITE_SPECIES.has(baseSlug);
-      const needsFiltering = requiresGender || requiresGmax || impliesMale;
+      const needsFiltering = requiresGender || requiresGmax || impliesMale || requiresAbility;
 
       let ownedCount;
       if (!needsFiltering) {
@@ -965,6 +966,11 @@ const BoxesView = (() => {
           if (requiresGender && inv.state?.gender !== requiresGender) return false;
           if (impliesMale && inv.state?.gender === 'F') return false;
           if (requiresGmax && !inv.state?.gigantamax) return false;
+          if (requiresAbility && inv.state?.ability) {
+            const invAbility = String(inv.state.ability).toLowerCase().replace(/[\s'-]+/g, '');
+            const presetAbility = requiresAbility.toLowerCase().replace(/[\s'-]+/g, '');
+            if (invAbility !== presetAbility) return false;
+          }
           return true;
         }).length;
       }
@@ -978,10 +984,14 @@ const BoxesView = (() => {
         { slug });
       while (spriteFragment.firstChild) slot.appendChild(spriteFragment.firstChild);
 
-      // Tooltip: show short base name for plain species, full name for forms/gender variants
+      // Tooltip: show short base name for plain species, full name for forms/gender/ability variants
       const baseName = resolved.entry?.baseSpecies || resolved.name || name;
       const hasFormInfo = resolved.entry?.baseSpecies || resolved.entry?.forme || presetTarget.gender;
-      const tooltipText = hasFormInfo ? name : baseName;
+      let tooltipText = hasFormInfo ? name : baseName;
+      if (presetTarget.abilitySlug) {
+        const abilityName = presetTarget.abilitySlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        tooltipText += ` (${abilityName})`;
+      }
       const tooltip = document.createElement('span');
       tooltip.className = 'tooltip';
       tooltip.textContent = tooltipText;

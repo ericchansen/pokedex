@@ -1116,24 +1116,23 @@ a:hover { text-decoration: underline; }
 .slot-iv-badge,
 .slot-egg-badge {
   position: absolute;
-  top: 2px;
-  font-size: 0.5rem;
+  top: 3px;
+  font-size: 0.55rem;
   font-weight: 700;
   line-height: 1;
-  padding: 1px 2px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.45);
   color: #fff;
+  -webkit-text-stroke: 1px #000;
+  paint-order: stroke fill;
   pointer-events: none;
   z-index: 2;
 }
 
 .slot-iv-badge {
-  left: 2px;
+  left: 3px;
 }
 
 .slot-egg-badge {
-  right: 2px;
+  right: 3px;
 }
 
 /* Tooltip */
