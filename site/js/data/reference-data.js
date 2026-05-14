@@ -21,8 +21,8 @@ const ReferenceData = (() => {
       naturesData,
       inventoryData,
     ] = await Promise.all([
-      ApiClient.getJson('/data/builds.json'),
-      ApiClient.getJson('/data/teams.json'),
+      ApiClient.getJson('/api/builds'),
+      ApiClient.getJson('/api/teams'),
       ApiClient.getJson('/data/reference/pokedex.json'),
       ApiClient.getJson('/data/champions_filter.json'),
       ApiClient.getJson('/data/sv_filter.json'),
@@ -32,7 +32,7 @@ const ReferenceData = (() => {
       ApiClient.getJson('/data/reference/items.json'),
       ApiClient.getJson('/data/reference/abilities.json'),
       ApiClient.getJson('/data/reference/natures.json'),
-      ApiClient.getJson('/data/inventory.json'),
+      ApiClient.getJson('/api/inventory'),
     ]);
 
     return {

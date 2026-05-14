@@ -2,9 +2,9 @@
  * data.js — Data layer for Pokémon HOME Tracker v2.
  *
  * Loads:
- *   /data/builds.json              — user builds (competitive sets)
- *   /data/teams.json               — imported/user teams
- *   /data/inventory.json           — 200-box HOME inventory
+ *   /api/builds                    — user builds (competitive sets)
+ *   /api/teams                     — imported/user teams
+ *   /api/inventory                 — 200-box HOME inventory
  *   /data/reference/pokedex.json   — Smogon species reference
  *   /data/champions_filter.json    — Champions-legal dex IDs
  *   /data/sv_filter.json           — SV-legal slugs
