@@ -42,6 +42,9 @@ tmp/
 .env
 .env.*
 
+# Azure Functions local settings (contains connection strings)
+api/local.settings.json
+
 # User data — NEVER let git touch these
 userdata/
 data/builds.json

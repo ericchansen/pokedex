@@ -1,0 +1,10 @@
+using 'app.bicep'
+
+param resourceGroupName = 'rg-pokemon-app'
+param location = 'eastus2'
+param swaName = 'swa-pokemon-tracker'
+param repoOwner = 'ericchansen'
+param repoName = 'pokedex'
+param repoBranch = 'main'
+param dataResourceGroupName = 'rg-pokemon-data'
+param storageAccountName = 'stpokemontracker'
