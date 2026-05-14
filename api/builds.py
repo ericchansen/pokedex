@@ -93,28 +93,34 @@ def create_build(req: func.HttpRequest) -> func.HttpResponse:
         inner if isinstance(inner, dict) else {}, egg
     )
 
-    # Check for existing build with same fingerprint
-    data, _ = read_blob_or_default(_builds_path(user_id), EMPTY_BUILDS)
-    data = _normalize(data)
-    for existing in data["builds"]:
-        if existing.get("fingerprint") == incoming_fp:
-            return func.HttpResponse(
-                json.dumps(existing, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json",
-            )
-
     # Create new build
     build_id = generate_ulid()
     body["id"] = build_id
     body["fingerprint"] = incoming_fp
 
+    existing_match = None
+
     def append_build(current):
+        nonlocal existing_match
         current = _normalize(current)
+        # Dedupe inside callback to handle retries with fresh data
+        for b in current["builds"]:
+            if b.get("fingerprint") == incoming_fp:
+                existing_match = b
+                return current  # No mutation — return as-is
+        existing_match = None
         current["builds"].append(body)
         return current
 
     atomic_update(_builds_path(user_id), append_build, default=EMPTY_BUILDS)
+
+    # Return existing if dedupe found a match
+    if existing_match:
+        return func.HttpResponse(
+            json.dumps(existing_match, ensure_ascii=False),
+            status_code=200,
+            mimetype="application/json",
+        )
 
     return func.HttpResponse(
         json.dumps(body, ensure_ascii=False),
@@ -153,6 +159,7 @@ def update_build(req: func.HttpRequest) -> func.HttpResponse:
 
     def replace_build(current):
         nonlocal found
+        found = False  # Reset on each retry
         current = _normalize(current)
         for i, b in enumerate(current["builds"]):
             if b.get("id") == build_id:

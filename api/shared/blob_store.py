@@ -12,6 +12,7 @@ import os
 import time
 from typing import Any
 
+from azure.core import MatchConditions
 from azure.core.exceptions import ResourceExistsError, ResourceModifiedError, ResourceNotFoundError
 from azure.storage.blob import BlobServiceClient, ContainerClient
 
@@ -88,10 +89,9 @@ def write_blob(path: str, data: Any, *, etag: str | None = None, if_none_match: 
     kwargs: dict[str, Any] = {"overwrite": True}
     if etag:
         kwargs["etag"] = etag
-        kwargs["match_condition"] = "IfMatch"
+        kwargs["match_condition"] = MatchConditions.IfNotModified
     elif if_none_match:
-        kwargs["etag"] = if_none_match
-        kwargs["match_condition"] = "IfNoneMatch"
+        kwargs["match_condition"] = MatchConditions.IfMissing
 
     props = blob.upload_blob(content.encode("utf-8"), **kwargs)
     return props["etag"]

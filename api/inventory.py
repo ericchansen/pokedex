@@ -78,19 +78,20 @@ def move_slot(req: func.HttpRequest) -> func.HttpResponse:
         dst = boxes[to_box]["slots"][to_slot]
         boxes[from_box]["slots"][from_slot] = dst
         boxes[to_box]["slots"][to_slot] = src
-        data["_move_result"] = {
+        move_result["data"] = {
             "moved": True,
             "from": {"box": from_box, "slot": from_slot, "occupant": dst},
             "to": {"box": to_box, "slot": to_slot, "occupant": src},
         }
         return data
 
+    move_result: dict = {}
     try:
-        data, _ = atomic_update(_inventory_path(user_id), do_move, default=EMPTY_INVENTORY)
+        atomic_update(_inventory_path(user_id), do_move, default=EMPTY_INVENTORY)
     except ValueError as e:
         return _error(404, str(e))
 
-    result = data.pop("_move_result", {"moved": True})
+    result = move_result.get("data", {"moved": True})
     return func.HttpResponse(json.dumps(result, ensure_ascii=False), status_code=200, mimetype="application/json")
 
 
@@ -232,21 +233,23 @@ def rename_box(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return _error(400, "Invalid JSON body")
 
+    rename_result: dict = {}
+
     def do_rename(data):
         data = _ensure_boxes(data)
         if box_id < 0 or box_id >= len(data["boxes"]):
             raise ValueError(f"Box {box_id} not found")
         if "name" in body:
             data["boxes"][box_id]["name"] = body["name"]
-        data["_box_result"] = data["boxes"][box_id]
+        rename_result["data"] = data["boxes"][box_id].copy()
         return data
 
     try:
-        data, _ = atomic_update(_inventory_path(user_id), do_rename, default=EMPTY_INVENTORY)
+        atomic_update(_inventory_path(user_id), do_rename, default=EMPTY_INVENTORY)
     except ValueError as e:
         return _error(404, str(e))
 
-    result = data.pop("_box_result")
+    result = rename_result.get("data", {})
     return func.HttpResponse(json.dumps(result, ensure_ascii=False), status_code=200, mimetype="application/json")
 
 
