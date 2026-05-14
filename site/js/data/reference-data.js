@@ -7,6 +7,16 @@ const ReferenceData = (() => {
   const presetDataByGameSet = new Map();
 
   async function loadCoreData() {
+    // When hosted, verify authentication before fetching user data.
+    // SWA's 401→302 redirect causes CORS failures on fetch, so we gate here.
+    if (ApiClient.isHosted()) {
+      const auth = await ApiClient.getAuthInfo();
+      if (!auth) {
+        window.location.href = '/.auth/login/github';
+        throw new Error('Authentication required — redirecting to login');
+      }
+    }
+
     const [
       buildsData,
       teamsData,
