@@ -6,7 +6,7 @@ import json
 import urllib.request
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent.parent / "data" / "reference" / "legends_arceus_pokemon.json"
+OUT = Path(__file__).resolve().parent / "data" / "reference" / "legends_arceus_pokemon.json"
 URL = "https://pokeapi.co/api/v2/pokedex/hisui/"
 
 
