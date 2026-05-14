@@ -46,22 +46,29 @@ def list_builds(req: func.HttpRequest) -> func.HttpResponse:
     if err:
         return err
 
-    # Read all individual build blobs referenced by the index
-    index, _ = read_blob_or_default(_index_path(user_id), [])
-    builds = []
-    for entry in index:
-        try:
-            record, _ = read_blob(_build_path(user_id, entry["id"]))
-            builds.append(record)
-        except Exception:
-            continue  # Skip corrupted/missing blobs
+    # Read the single builds.json blob (whole-file, same as local mode)
+    data, _ = read_blob_or_default(user_path(user_id, "builds.json"), {"builds": []})
 
     import json
-    return func.HttpResponse(
-        json.dumps({"builds": builds}, ensure_ascii=False),
-        status_code=200,
-        mimetype="application/json",
-    )
+    # Normalize: if data is already {"builds": [...]}, return as-is; else wrap
+    if isinstance(data, dict) and "builds" in data:
+        return func.HttpResponse(
+            json.dumps(data, ensure_ascii=False),
+            status_code=200,
+            mimetype="application/json",
+        )
+    elif isinstance(data, list):
+        return func.HttpResponse(
+            json.dumps({"builds": data}, ensure_ascii=False),
+            status_code=200,
+            mimetype="application/json",
+        )
+    else:
+        return func.HttpResponse(
+            json.dumps({"builds": []}, ensure_ascii=False),
+            status_code=200,
+            mimetype="application/json",
+        )
 
 
 @bp.function_name("builds_get")

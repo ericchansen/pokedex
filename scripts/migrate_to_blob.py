@@ -51,9 +51,14 @@ def migrate_builds(container_client, user_id: str, dry_run: bool):
         print("  SKIP: builds.json not found")
         return 0
 
-    builds = json.loads(builds_file.read_text("utf-8"))
-    if not isinstance(builds, list):
-        print("  SKIP: builds.json is not a list")
+    raw = json.loads(builds_file.read_text("utf-8"))
+    # Support both flat list and wrapped {meta, builds} format
+    if isinstance(raw, dict) and "builds" in raw:
+        builds = raw["builds"]
+    elif isinstance(raw, list):
+        builds = raw
+    else:
+        print("  SKIP: builds.json has unrecognized format")
         return 0
 
     index_entries = []
