@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-Pokémon HOME Tracker — a local-first SPA (vanilla HTML/CSS/JS, no framework) for tracking competitive Pokémon Builds, HOME inventory, and Teams across Pokémon Champions and classic games (SV/SwSh). The backend is a minimal Python dev server (`serve.py`) that serves static files and provides PATCH endpoints for JSON persistence.
+Pokémon HOME Tracker — a multi-user SPA (vanilla HTML/CSS/JS, no framework) for tracking competitive Pokémon Builds, HOME inventory, and Teams across Pokémon Champions and classic games (SV/SwSh). Hosted on Azure Static Web Apps with a Python Azure Functions backend and Blob Storage persistence. Local dev via `serve.py` (single-user, no auth) or SWA CLI + Azurite (multi-user, mock auth).
 
 ## Dev Setup
 
@@ -12,12 +12,25 @@ Pokémon HOME Tracker — a local-first SPA (vanilla HTML/CSS/JS, no framework) 
 
 - [uv](https://docs.astral.sh/uv/) — fast Python runner (no global install needed)
 - Python 3.10+
+- [Node.js 22+](https://nodejs.org/) (for SWA CLI + linting)
 
-### Run the Dev Server
+### Run Locally (Simple — Single User)
 
 ```powershell
 uv run serve.py              # http://127.0.0.1:8138/
 uv run serve.py --port 8080  # custom port
+```
+
+### Run Locally (Full Stack — Multi-User Mock)
+
+```powershell
+# Terminal 1: Start Azurite (blob storage emulator)
+azurite --silent --location .azurite
+
+# Terminal 2: Seed test data + start SWA CLI
+uv run python scripts/seed_azurite.py
+npx swa start site --api-location api
+# Browse: http://localhost:4280
 ```
 
 ### Rebuild Reference Data
@@ -65,8 +78,22 @@ data/                  Reference/config data + seed templates
 ├── sv_filter.json     Scarlet/Violet availability filter
 ├── *.template.json    Empty seed templates for fresh clones
 └── reference/         Generated from Smogon data (gitignored)
+api/                   Azure Functions backend (Python 3.10, v2 model)
+├── function_app.py    Entry point — registers blueprints
+├── builds.py          Build CRUD endpoints (per-build blobs)
+├── teams.py           Team CRUD endpoints
+├── inventory.py       Inventory CRUD endpoints
+├── shared/            Shared modules (blob_store, auth, validation, ulid)
+├── tests/             pytest unit tests
+├── host.json          Functions runtime config
+└── requirements.txt   Python dependencies
+infra/                 Bicep IaC templates
+├── data.bicep         Storage account + lock (rg-pokemon-data)
+├── app.bicep          SWA + identity + role (rg-pokemon-app)
+└── modules/           Reusable Bicep modules
 docs/handoff/          Canonical spec — this wins over README/code comments
-serve.py               Dev server + JSON persistence endpoints
+docs/azure/            Azure deployment contracts + docs
+serve.py               Local-only dev server (single user, no auth)
 ```
 
 ## Conventions
@@ -168,15 +195,69 @@ npm run validate:phase5-contracts   # Data schema + browser surface contracts
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/api/builds` | All builds |
+| GET | `/api/builds` | All builds (index) |
+| GET | `/api/builds/{id}` | Single build |
+| POST | `/api/builds` | Create build |
+| PUT | `/api/builds/{id}` | Update build |
+| DELETE | `/api/builds/{id}` | Delete build |
 | GET | `/api/teams` | All teams |
-| GET | `/api/inventory` | HOME inventory |
-| PATCH | `/api/builds` | Update builds.json |
-| PATCH | `/api/teams` | Update teams.json |
-| PATCH | `/api/inventory` | Update inventory.json |
+| GET | `/api/teams/{id}` | Single team |
+| POST | `/api/teams` | Create team |
+| PUT | `/api/teams/{id}` | Update team |
+| DELETE | `/api/teams/{id}` | Delete team |
+| GET | `/api/inventory` | Full inventory |
+| GET | `/api/inventory/{boxId}` | Single box |
+| PUT | `/api/inventory/{boxId}` | Rename box |
+| PUT | `/api/inventory/{boxId}/{slot}` | Set slot |
+| DELETE | `/api/inventory/{boxId}/{slot}` | Clear slot |
+| POST | `/api/inventory/move` | Move slot |
+| POST | `/api/inventory/batch` | Batch operations |
+| GET | `/api/health` | Health check (anonymous) |
 
 ## Domain Notes
 
 - Smogon's Showdown stores Champions SP values in the `evs` field (same key, different scale)
 - PokéPaste (BSD-3) has reusable type-color CSS and Showdown parser regexes
 - Smogon `pokemon-showdown/data/` (MIT) is the reference for dex, moves, items, abilities, natures, typechart
+
+## Azure Deployment
+
+### Architecture
+
+- **Azure Static Web Apps (Free)** — hosts `site/` as static content + `api/` as managed Functions
+- **Azure Functions (Python 3.10)** — API backend, auto-scaled by SWA
+- **Azure Blob Storage** — per-user data in `users/{principalId}/` namespace
+- **SWA Easy Auth** — zero-code GitHub + Microsoft login
+
+### Infrastructure (Bicep)
+
+```powershell
+# Deploy data layer (storage + lock) — do this ONCE
+az deployment sub create --location eastus2 --template-file infra/data.bicep --parameters infra/data.bicepparam
+
+# Deploy app layer (SWA + identity + role)
+az deployment sub create --location eastus2 --template-file infra/app.bicep --parameters infra/app.bicepparam
+```
+
+### Data Protection
+
+- **CanNotDelete lock** on storage account (must `az lock delete` before any destructive ops)
+- **Split resource groups**: `rg-pokemon-data` (locked) + `rg-pokemon-app` (teardown-safe)
+- **Blob versioning** + 7-day soft delete + 90-day lifecycle cleanup
+- **ETag concurrency** — 412 on conflict, client retries
+
+### Migration
+
+```powershell
+# Dry run
+uv run python scripts/migrate_to_blob.py --user-id <principal-id>
+
+# Execute
+uv run python scripts/migrate_to_blob.py --user-id <principal-id> --execute
+```
+
+### Backend Tests
+
+```powershell
+uv run --with pytest --with azure-functions pytest api/tests/ -v
+```
