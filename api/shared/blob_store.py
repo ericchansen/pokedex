@@ -6,6 +6,7 @@ Auth branching:
 """
 from __future__ import annotations
 
+import copy
 import json
 import os
 import time
@@ -56,17 +57,17 @@ def read_blob(path: str) -> tuple[Any, str]:
     Raises ResourceNotFoundError if blob does not exist.
     """
     blob = get_container().get_blob_client(path)
-    props = blob.get_blob_properties()
-    data = blob.download_blob().readall()
-    return json.loads(data), props.etag
+    stream = blob.download_blob()
+    data = stream.readall()
+    return json.loads(data), stream.properties.etag
 
 
 def read_blob_or_default(path: str, default: Any) -> tuple[Any, str | None]:
-    """Read a JSON blob, returning default if it doesn't exist."""
+    """Read a JSON blob, returning a deep copy of default if it doesn't exist."""
     try:
         return read_blob(path)
     except ResourceNotFoundError:
-        return default, None
+        return copy.deepcopy(default), None
 
 
 def write_blob(path: str, data: Any, *, etag: str | None = None, if_none_match: str | None = None) -> str:

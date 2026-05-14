@@ -160,10 +160,10 @@ def batch_slots(req: func.HttpRequest) -> func.HttpResponse:
 
         return data
 
+    atomic_update(_inventory_path(user_id), do_batch, default=EMPTY_INVENTORY)
+
     if errors and not results:
         return _error(400, "; ".join(errors))
-
-    atomic_update(_inventory_path(user_id), do_batch, default=EMPTY_INVENTORY)
 
     resp: dict = {"applied": len(results), "results": results}
     if errors:
