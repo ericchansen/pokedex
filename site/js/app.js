@@ -137,6 +137,7 @@ if (typeof SettingsState !== 'undefined') {
   Router.updateTabs();
   ProgressIndicator.init();
   SelectionBar.init();
+  AuthWidget.init();
 
   console.debug('Pokémon HOME Tracker initialized!');
 })();

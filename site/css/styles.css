@@ -185,6 +185,37 @@ a:hover { text-decoration: underline; }
   image-rendering: -moz-crisp-edges;
 }
 
+/* Auth widget */
+.auth-widget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.auth-user {
+  color: var(--text-secondary);
+}
+
+.auth-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.auth-login {
+  background: var(--accent);
+  color: #fff;
+}
+
+.auth-logout {
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
 .hidden {
   display: none !important;
 }
