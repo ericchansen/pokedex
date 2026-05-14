@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 
 import azure.functions as func
-
 from shared.auth import require_auth
 from shared.blob_store import atomic_update, read_blob_or_default, user_path
 from shared.validation import validate_evs

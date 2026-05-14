@@ -2,7 +2,6 @@
 import json
 
 import azure.functions as func
-
 from builds import bp as builds_bp
 from inventory import bp as inventory_bp
 from teams import bp as teams_bp

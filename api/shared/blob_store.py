@@ -135,7 +135,7 @@ def atomic_update(path: str, updater: callable, *, default: Any = None) -> tuple
             if attempt < MAX_RETRIES - 1:
                 time.sleep(BASE_DELAY * (2 ** attempt))
                 continue
-            raise RuntimeError(f"atomic_update failed after {MAX_RETRIES} retries: {path}")
+            raise RuntimeError(f"atomic_update failed after {MAX_RETRIES} retries: {path}") from None
 
     raise RuntimeError(f"atomic_update exhausted retries: {path}")  # unreachable
 

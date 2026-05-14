@@ -3,7 +3,6 @@ import os
 from unittest.mock import MagicMock, patch
 
 import azure.functions as func
-
 from shared.auth import get_user_id, require_auth
 
 
