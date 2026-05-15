@@ -10,7 +10,7 @@ import json
 
 import azure.functions as func
 from shared.auth import require_auth
-from shared.blob_store import atomic_update, read_blob_or_default, user_path
+from shared.blob_store import ConflictError, atomic_update, read_blob_or_default, user_path
 from shared.validation import validate_evs
 
 bp = func.Blueprint()
@@ -88,6 +88,8 @@ def move_slot(req: func.HttpRequest) -> func.HttpResponse:
     move_result: dict = {}
     try:
         atomic_update(_inventory_path(user_id), do_move, default=EMPTY_INVENTORY)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
     except ValueError as e:
         return _error(404, str(e))
 
@@ -160,7 +162,10 @@ def batch_slots(req: func.HttpRequest) -> func.HttpResponse:
 
         return data
 
-    atomic_update(_inventory_path(user_id), do_batch, default=EMPTY_INVENTORY)
+    try:
+        atomic_update(_inventory_path(user_id), do_batch, default=EMPTY_INVENTORY)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
 
     if errors and not results:
         return _error(400, "; ".join(errors))
@@ -246,6 +251,8 @@ def rename_box(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         atomic_update(_inventory_path(user_id), do_rename, default=EMPTY_INVENTORY)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
     except ValueError as e:
         return _error(404, str(e))
 
@@ -312,6 +319,8 @@ def set_slot(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         atomic_update(_inventory_path(user_id), do_set, default=EMPTY_INVENTORY)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
     except ValueError as e:
         return _error(404, str(e))
 
@@ -347,6 +356,8 @@ def clear_slot(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         atomic_update(_inventory_path(user_id), do_clear, default=EMPTY_INVENTORY)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
     except ValueError as e:
         return _error(404, str(e))
 

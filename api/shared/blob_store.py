@@ -19,6 +19,10 @@ from azure.storage.blob import BlobServiceClient, ContainerClient
 _client: BlobServiceClient | None = None
 _container: ContainerClient | None = None
 
+
+class ConflictError(Exception):
+    """All ETag retries exhausted due to concurrent modification."""
+
 CONTAINER_NAME = os.environ.get("BLOB_CONTAINER_NAME", "userdata")
 MAX_RETRIES = 5
 BASE_DELAY = 0.1  # seconds
@@ -118,7 +122,7 @@ def atomic_update(path: str, updater: callable, *, default: Any = None) -> tuple
         (new_data, new_etag)
 
     Raises:
-        RuntimeError: All retries exhausted (concurrent modification)
+        ConflictError: All retries exhausted (concurrent modification)
     """
     for attempt in range(MAX_RETRIES):
         data, etag = read_blob_or_default(path, default)
@@ -135,9 +139,9 @@ def atomic_update(path: str, updater: callable, *, default: Any = None) -> tuple
             if attempt < MAX_RETRIES - 1:
                 time.sleep(BASE_DELAY * (2 ** attempt))
                 continue
-            raise RuntimeError(f"atomic_update failed after {MAX_RETRIES} retries: {path}") from None
+            raise ConflictError(f"atomic_update failed after {MAX_RETRIES} retries: {path}") from None
 
-    raise RuntimeError(f"atomic_update exhausted retries: {path}")  # unreachable
+    raise ConflictError(f"atomic_update exhausted retries: {path}")  # unreachable
 
 
 def user_path(user_id: str, *parts: str) -> str:

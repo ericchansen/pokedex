@@ -9,7 +9,7 @@ import json
 
 import azure.functions as func
 from shared.auth import require_auth
-from shared.blob_store import atomic_update, read_blob_or_default, user_path
+from shared.blob_store import ConflictError, atomic_update, read_blob_or_default, user_path
 from shared.ulid import generate_ulid
 from shared.validation import validate_team_members
 
@@ -82,7 +82,10 @@ def create_team(req: func.HttpRequest) -> func.HttpResponse:
         current["teams"].append(body)
         return current
 
-    atomic_update(_teams_path(user_id), append_team, default=EMPTY_TEAMS)
+    try:
+        atomic_update(_teams_path(user_id), append_team, default=EMPTY_TEAMS)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
 
     return func.HttpResponse(
         json.dumps(body, ensure_ascii=False),
@@ -123,6 +126,8 @@ def update_team(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         atomic_update(_teams_path(user_id), update_in_list, default=EMPTY_TEAMS)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
     except ValueError:
         return _error(404, f"Team {team_id} not found")
 
@@ -153,7 +158,10 @@ def delete_team(req: func.HttpRequest) -> func.HttpResponse:
         found = len(current["teams"]) < before
         return current
 
-    atomic_update(_teams_path(user_id), remove_from_list, default=EMPTY_TEAMS)
+    try:
+        atomic_update(_teams_path(user_id), remove_from_list, default=EMPTY_TEAMS)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
 
     if not found:
         return _error(404, f"Team {team_id} not found")

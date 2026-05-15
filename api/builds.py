@@ -9,7 +9,7 @@ import json
 
 import azure.functions as func
 from shared.auth import require_auth
-from shared.blob_store import atomic_update, read_blob_or_default, user_path
+from shared.blob_store import ConflictError, atomic_update, read_blob_or_default, user_path
 from shared.build_fingerprint import build_fingerprint
 from shared.ulid import generate_ulid
 from shared.validation import validate_evs
@@ -112,7 +112,10 @@ def create_build(req: func.HttpRequest) -> func.HttpResponse:
         current["builds"].append(body)
         return current
 
-    atomic_update(_builds_path(user_id), append_build, default=EMPTY_BUILDS)
+    try:
+        atomic_update(_builds_path(user_id), append_build, default=EMPTY_BUILDS)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
 
     # Return existing if dedupe found a match
     if existing_match:
@@ -168,7 +171,10 @@ def update_build(req: func.HttpRequest) -> func.HttpResponse:
                 return current
         return current
 
-    atomic_update(_builds_path(user_id), replace_build, default=EMPTY_BUILDS)
+    try:
+        atomic_update(_builds_path(user_id), replace_build, default=EMPTY_BUILDS)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
 
     if not found:
         return _error(404, f"Build {build_id} not found")
@@ -199,7 +205,10 @@ def delete_build(req: func.HttpRequest) -> func.HttpResponse:
         found = len(current["builds"]) < before
         return current
 
-    atomic_update(_builds_path(user_id), remove_build, default=EMPTY_BUILDS)
+    try:
+        atomic_update(_builds_path(user_id), remove_build, default=EMPTY_BUILDS)
+    except ConflictError:
+        return _error(409, "Concurrent modification — please retry")
 
     if not found:
         return _error(404, f"Build {build_id} not found")
