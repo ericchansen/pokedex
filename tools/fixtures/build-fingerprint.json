@@ -18,7 +18,7 @@
         }
       },
       "egg_moves": ["Leaf Storm", "Sleep Powder"],
-      "expectedHash": "35bd3479a626c68476dc54ab30c0f12d4a0e191c"
+      "expectedHash": "9b65c2445eb4f0f00f5011ed39ade54e88551118"
     },
     {
       "name": "garchomp-dual-system",
@@ -46,7 +46,7 @@
         }
       },
       "egg_moves": [],
-      "expectedHash": "97ceba1f6676d3fd329922f42c9c3a2ab1845579"
+      "expectedHash": "5751943d9200f5c05ac359f34fd6d423fdd70632"
     },
     {
       "name": "rotom-wash-sorted-egg-moves",
@@ -66,7 +66,7 @@
         }
       },
       "egg_moves": ["Pain Split", "Nasty Plot"],
-      "expectedHash": "bbba26bb048bf336d6b331f7e2a54f3bc53ee1a7"
+      "expectedHash": "11e4e001de9ff7286d5e71b211c9339f44952ed9"
     }
   ]
 }

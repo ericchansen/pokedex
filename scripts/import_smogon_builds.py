@@ -25,8 +25,8 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-from build_fingerprint import build_fingerprint  # noqa: E402
+sys.path.insert(0, str(ROOT / "api"))
+from shared.build_fingerprint import build_fingerprint  # noqa: E402
 
 BUILDS_FILE = ROOT / "userdata" / "builds.json"
 BACKUP_DIR = ROOT / "userdata" / "backups"

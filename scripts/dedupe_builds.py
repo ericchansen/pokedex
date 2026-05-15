@@ -23,13 +23,16 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 from collections import defaultdict
 from pathlib import Path
 
-# scripts/ is on sys.path when invoked from repo root
-from build_fingerprint import build_fingerprint  # type: ignore
-
 ROOT = Path(__file__).resolve().parents[1]
+
+# Import shared domain modules from api/shared/ — single source of truth
+sys.path.insert(0, str(ROOT / "api"))
+from shared.build_fingerprint import build_fingerprint  # noqa: E402
+
 USER_DATA_DIR = ROOT / "userdata"
 INV_PATH = USER_DATA_DIR / "inventory.json"
 TEAMS_PATH = USER_DATA_DIR / "teams.json"

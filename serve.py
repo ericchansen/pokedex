@@ -24,8 +24,6 @@ import os
 import shutil
 import sys
 import threading
-import time
-import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -40,12 +38,12 @@ MAX_BACKUPS = 50  # rolling backups per file
 # User data files that live in userdata/ (not git-tracked)
 _USER_DATA_FILES = ("builds.json", "inventory.json", "teams.json")
 
-# Local helper for build de-duplication. Defined under scripts/ so the
-# maintenance script and the server share one source of truth.
-sys.path.insert(0, str(ROOT / "scripts"))
-from build_fingerprint import build_fingerprint  # noqa: E402
-
-CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+# Shared domain modules live in api/shared/ — single source of truth for both
+# the local dev server and the Azure Functions cloud backend.
+sys.path.insert(0, str(ROOT / "api"))
+from shared.build_fingerprint import build_fingerprint  # noqa: E402
+from shared.ulid import generate_ulid  # noqa: E402
+from shared.validation import validate_evs, validate_team_members  # noqa: E402
 
 # Serialize all API write operations to prevent concurrent read-modify-write races
 _api_lock = threading.Lock()
@@ -57,21 +55,6 @@ def _path_within_root(path: Path, root: Path) -> bool:
         return os.path.commonpath([path.resolve(), root.resolve()]) == str(root.resolve())
     except ValueError:
         return False
-
-
-def generate_ulid() -> str:
-    ts = int(time.time() * 1000)
-    t_part = ""
-    for _ in range(10):
-        t_part = CROCKFORD[ts & 0x1F] + t_part
-        ts >>= 5
-    rand_bytes = uuid.uuid4().bytes
-    r_int = int.from_bytes(rand_bytes[:10], "big")
-    r_part = ""
-    for _ in range(16):
-        r_part = CROCKFORD[r_int & 0x1F] + r_part
-        r_int >>= 5
-    return t_part + r_part
 
 
 def read_json(path: Path) -> dict:
@@ -207,16 +190,24 @@ class DevHandler(SimpleHTTPRequestHandler):
             self._json_error(404, f"Unknown resource: {resource}")
 
     def _read_body(self) -> dict | None:
-        """Read and parse JSON body. Returns None and sends 400 on parse failure."""
+        """Read and parse JSON body. Returns None and sends 400 on parse failure.
+
+        Rejects non-dict bodies (arrays, strings, etc.) to prevent TypeErrors
+        downstream when callers use .get() or key access.
+        """
         length = int(self.headers.get("Content-Length", 0))
         if length == 0:
             return {}
         raw = self.rfile.read(length)
         try:
-            return json.loads(raw.decode("utf-8"))
+            parsed = json.loads(raw.decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             self._json_error(400, f"Invalid JSON body: {e}")
             return None
+        if not isinstance(parsed, dict):
+            self._json_error(400, "Request body must be a JSON object")
+            return None
+        return parsed
 
     def _json_response(self, code: int, data):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -228,65 +219,6 @@ class DevHandler(SimpleHTTPRequestHandler):
 
     def _json_error(self, code: int, message: str):
         self._json_response(code, {"error": message})
-
-    # ── Validation ─────────────────────────────────────────────
-
-    EV_LIMITS = {
-        "classic": {"per_stat": 252, "total": 510},
-        "champions": {"per_stat": 32, "total": 66},
-    }
-
-    def _validate_evs(self, evs: dict) -> list[str]:
-        """Validate EV spreads. Returns list of error messages (empty = valid)."""
-        errors = []
-        for system, limits in self.EV_LIMITS.items():
-            spread = evs.get(system)
-            if not spread or not isinstance(spread, dict):
-                continue
-            total = 0
-            for stat, val in spread.items():
-                if stat.startswith("classic_"):
-                    continue  # skip classic_ivs
-                if not isinstance(val, (int, float)):
-                    errors.append(f"{system}.{stat}: not a number")
-                    continue
-                if val < 0:
-                    errors.append(f"{system}.{stat}: negative ({val})")
-                elif val > limits["per_stat"]:
-                    errors.append(f"{system}.{stat}: {val} > {limits['per_stat']} max")
-                total += val
-            if total > limits["total"]:
-                errors.append(f"{system} total: {total} > {limits['total']} max")
-        # Validate IVs if present
-        ivs = evs.get("classic_ivs")
-        if ivs and isinstance(ivs, dict):
-            for stat, val in ivs.items():
-                if isinstance(val, (int, float)) and (val < 0 or val > 31):
-                    errors.append(f"classic_ivs.{stat}: {val} not in 0-31")
-        return errors
-
-    def _validate_team_members(self, body: dict) -> list[str]:
-        """Validate canonical team member references."""
-        errors = []
-        if "evs_migration_needed" in body:
-            errors.append("team field evs_migration_needed is not allowed")
-        members = body.get("members")
-        if not members or not isinstance(members, list):
-            return errors
-
-        for i, member in enumerate(members):
-            if not isinstance(member, dict):
-                errors.append(f"slot {i + 1} member must be an object")
-                continue
-            label = f"slot {member.get('slot', i + 1)}"
-            build_id = member.get("build_id")
-            if not isinstance(build_id, str) or not build_id.strip():
-                errors.append(f"{label} build_id is required")
-            extra_keys = sorted(k for k in member.keys() if k not in {"slot", "build_id"})
-            if extra_keys:
-                errors.append(f"{label} unexpected keys: {', '.join(extra_keys)}")
-
-        return errors
 
     # ── Builds CRUD ─────────────────────────────────────────────
 
@@ -300,7 +232,7 @@ class DevHandler(SimpleHTTPRequestHandler):
 
         if method == "GET" and item_id:
             data = read_json(self._builds_path())
-            build = next((b for b in data["builds"] if b["id"] == item_id), None)
+            build = next((b for b in data["builds"] if b.get("id") == item_id), None)
             if not build:
                 return self._json_error(404, f"Build {item_id} not found")
             return self._json_response(200, build)
@@ -310,7 +242,7 @@ class DevHandler(SimpleHTTPRequestHandler):
             if body is None: return
             inner = body.get("build", {}) if isinstance(body, dict) else {}
             if isinstance(inner, dict) and "evs" in inner:
-                ev_errors = self._validate_evs(inner["evs"])
+                ev_errors = validate_evs(inner["evs"])
                 if ev_errors:
                     return self._json_error(400, "EV validation failed: " + "; ".join(ev_errors))
             data = read_json(self._builds_path())
@@ -339,11 +271,11 @@ class DevHandler(SimpleHTTPRequestHandler):
             if body is None: return
             inner = body.get("build", {}) if isinstance(body, dict) else {}
             if isinstance(inner, dict) and "evs" in inner:
-                ev_errors = self._validate_evs(inner["evs"])
+                ev_errors = validate_evs(inner["evs"])
                 if ev_errors:
                     return self._json_error(400, "EV validation failed: " + "; ".join(ev_errors))
             data = read_json(self._builds_path())
-            idx = next((i for i, b in enumerate(data["builds"]) if b["id"] == item_id), None)
+            idx = next((i for i, b in enumerate(data["builds"]) if b.get("id") == item_id), None)
             if idx is None:
                 return self._json_error(404, f"Build {item_id} not found")
             body["id"] = item_id  # preserve ID
@@ -354,7 +286,18 @@ class DevHandler(SimpleHTTPRequestHandler):
         if method == "DELETE" and item_id:
             data = read_json(self._builds_path())
             before = len(data["builds"])
-            data["builds"] = [b for b in data["builds"] if b["id"] != item_id]
+
+            # FK guard: reject delete if any team references this build
+            teams_data = read_json(self._teams_path())
+            for team in teams_data.get("teams", []):
+                for member in team.get("members", []):
+                    if member.get("build_id") == item_id:
+                        return self._json_error(
+                            409,
+                            f"Cannot delete build {item_id}: referenced by team '{team.get('name', '?')}'",
+                        )
+
+            data["builds"] = [b for b in data["builds"] if b.get("id") != item_id]
             if len(data["builds"]) == before:
                 return self._json_error(404, f"Build {item_id} not found")
             write_json(self._builds_path(), data)
@@ -374,7 +317,7 @@ class DevHandler(SimpleHTTPRequestHandler):
 
         if method == "GET" and item_id:
             data = read_json(self._teams_path())
-            team = next((t for t in data["teams"] if t["id"] == item_id), None)
+            team = next((t for t in data["teams"] if t.get("id") == item_id), None)
             if not team:
                 return self._json_error(404, f"Team {item_id} not found")
             return self._json_response(200, team)
@@ -382,7 +325,7 @@ class DevHandler(SimpleHTTPRequestHandler):
         if method == "POST" and item_id is None:
             body = self._read_body()
             if body is None: return
-            ev_errors = self._validate_team_members(body)
+            ev_errors = validate_team_members(body)
             if ev_errors:
                 return self._json_error(400, "Team EV validation failed: " + "; ".join(ev_errors))
             if "id" not in body:
@@ -395,11 +338,11 @@ class DevHandler(SimpleHTTPRequestHandler):
         if method == "PUT" and item_id:
             body = self._read_body()
             if body is None: return
-            ev_errors = self._validate_team_members(body)
+            ev_errors = validate_team_members(body)
             if ev_errors:
                 return self._json_error(400, "Team EV validation failed: " + "; ".join(ev_errors))
             data = read_json(self._teams_path())
-            idx = next((i for i, t in enumerate(data["teams"]) if t["id"] == item_id), None)
+            idx = next((i for i, t in enumerate(data["teams"]) if t.get("id") == item_id), None)
             if idx is None:
                 return self._json_error(404, f"Team {item_id} not found")
             body["id"] = item_id
@@ -410,7 +353,7 @@ class DevHandler(SimpleHTTPRequestHandler):
         if method == "DELETE" and item_id:
             data = read_json(self._teams_path())
             before = len(data["teams"])
-            data["teams"] = [t for t in data["teams"] if t["id"] != item_id]
+            data["teams"] = [t for t in data["teams"] if t.get("id") != item_id]
             if len(data["teams"]) == before:
                 return self._json_error(404, f"Team {item_id} not found")
             write_json(self._teams_path(), data)
@@ -515,7 +458,7 @@ class DevHandler(SimpleHTTPRequestHandler):
                     return self._json_error(400, "identity must be an object")
 
                 if "evs" in build:
-                    ev_errors = self._validate_evs(build["evs"])
+                    ev_errors = validate_evs(build["evs"])
                     if ev_errors:
                         return self._json_error(400, "EV validation failed: " + "; ".join(ev_errors))
 
@@ -547,6 +490,9 @@ class DevHandler(SimpleHTTPRequestHandler):
 
         if any(v is None for v in (from_box, from_slot, to_box, to_slot)):
             return self._json_error(400, "from_box, from_slot, to_box, to_slot required")
+
+        if not all(isinstance(v, int) for v in (from_box, from_slot, to_box, to_slot)):
+            return self._json_error(400, "from_box, from_slot, to_box, to_slot must be integers")
 
         data = read_json(self._inventory_path())
         boxes = data["boxes"]
@@ -594,6 +540,9 @@ class DevHandler(SimpleHTTPRequestHandler):
             if box_id is None or slot_idx is None:
                 errors.append(f"op[{i}]: box and slot required")
                 continue
+            if not isinstance(box_id, int) or not isinstance(slot_idx, int):
+                errors.append(f"op[{i}]: box and slot must be integers")
+                continue
             if box_id < 0 or box_id >= len(boxes) or slot_idx < 0 or slot_idx >= data.get("slots_per_box", 30):
                 errors.append(f"op[{i}]: box {box_id} slot {slot_idx} out of range")
                 continue
@@ -607,7 +556,7 @@ class DevHandler(SimpleHTTPRequestHandler):
                     errors.append(f"op[{i}]: build.species required for set")
                     continue
                 if "evs" in build:
-                    ev_errors = self._validate_evs(build["evs"])
+                    ev_errors = validate_evs(build["evs"])
                     if ev_errors:
                         errors.append(f"op[{i}]: " + "; ".join(ev_errors))
                         continue

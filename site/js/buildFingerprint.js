@@ -4,8 +4,8 @@
 // battle identity. Two builds with the same fingerprint are considered the
 // same build for de-duplication purposes.
 //
-// Identity rules (mirrored exactly in scripts/build_fingerprint.py):
-//   - species, form, item, ability, nature: as stored (lowercased? no — exact)
+// Identity rules (mirrored exactly in api/shared/build_fingerprint.py):
+//   - species, form, item, ability, nature, tera_type: exact string or null
 //   - moves: ORDER-SENSITIVE (Showdown slot order is meaningful)
 //   - evs: per-system; each system's spread sorted by stat key. Different
 //          EV systems (champions vs classic) are NOT collapsed.
@@ -15,7 +15,7 @@
 // Algorithm: build a canonical JSON string with sorted top-level keys and
 // sorted nested keys, then SHA-1 the UTF-8 bytes.
 
-const FINGERPRINT_VERSION = 1;
+const FINGERPRINT_VERSION = 2;
 
 function sortedObject(obj) {
   if (obj == null) return null;
@@ -46,6 +46,7 @@ function canonicalPayload(build, eggMoves) {
     item: b.item || null,
     ability: b.ability || null,
     nature: b.nature || null,
+    tera_type: b.tera_type || null,
     moves,
     evs,
     egg_moves: egg,
