@@ -10,7 +10,7 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-FINGERPRINT_VERSION = 1
+FINGERPRINT_VERSION = 2
 
 
 def _sorted_dict(obj: Any) -> Any:
@@ -38,6 +38,7 @@ def _canonical_payload(build: Mapping[str, Any], egg_moves: Iterable[str] | None
         "item": b.get("item") or None,
         "ability": b.get("ability") or None,
         "nature": b.get("nature") or None,
+        "tera_type": b.get("tera_type") or None,
         "moves": moves,
         "evs": evs,
         "egg_moves": egg,

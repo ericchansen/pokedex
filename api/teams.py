@@ -46,7 +46,7 @@ def get_team(req: func.HttpRequest) -> func.HttpResponse:
 
     team_id = req.route_params.get("teamId")
     data, _ = read_blob_or_default(_teams_path(user_id), EMPTY_TEAMS)
-    team = next((t for t in data["teams"] if t["id"] == team_id), None)
+    team = next((t for t in data["teams"] if t.get("id") == team_id), None)
     if not team:
         return _error(404, f"Team {team_id} not found")
 
@@ -68,6 +68,9 @@ def create_team(req: func.HttpRequest) -> func.HttpResponse:
         body = req.get_json()
     except ValueError:
         return _error(400, "Invalid JSON body")
+
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
 
     ev_errors = validate_team_members(body)
     if ev_errors:
@@ -108,6 +111,9 @@ def update_team(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return _error(400, "Invalid JSON body")
 
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
+
     ev_errors = validate_team_members(body)
     if ev_errors:
         return _error(400, "Team validation failed: " + "; ".join(ev_errors))
@@ -118,7 +124,7 @@ def update_team(req: func.HttpRequest) -> func.HttpResponse:
         if not isinstance(current, dict) or "teams" not in current:
             raise ValueError("not_found")
         teams = current["teams"]
-        idx = next((i for i, t in enumerate(teams) if t["id"] == team_id), None)
+        idx = next((i for i, t in enumerate(teams) if t.get("id") == team_id), None)
         if idx is None:
             raise ValueError("not_found")
         teams[idx] = body
@@ -154,7 +160,7 @@ def delete_team(req: func.HttpRequest) -> func.HttpResponse:
         if not isinstance(current, dict) or "teams" not in current:
             return current
         before = len(current["teams"])
-        current["teams"] = [t for t in current["teams"] if t["id"] != team_id]
+        current["teams"] = [t for t in current["teams"] if t.get("id") != team_id]
         found = len(current["teams"]) < before
         return current
 

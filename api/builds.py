@@ -81,14 +81,17 @@ def create_build(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return _error(400, "Invalid JSON body")
 
-    inner = body.get("build", {}) if isinstance(body, dict) else {}
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
+
+    inner = body.get("build", {})
     if isinstance(inner, dict) and "evs" in inner:
         ev_errors = validate_evs(inner["evs"])
         if ev_errors:
             return _error(400, "EV validation failed: " + "; ".join(ev_errors))
 
     # Dedupe check via fingerprint
-    egg = body.get("egg_moves") if isinstance(body, dict) else None
+    egg = body.get("egg_moves")
     incoming_fp = build_fingerprint(
         inner if isinstance(inner, dict) else {}, egg
     )
@@ -146,14 +149,17 @@ def update_build(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return _error(400, "Invalid JSON body")
 
-    inner = body.get("build", {}) if isinstance(body, dict) else {}
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
+
+    inner = body.get("build", {})
     if isinstance(inner, dict) and "evs" in inner:
         ev_errors = validate_evs(inner["evs"])
         if ev_errors:
             return _error(400, "EV validation failed: " + "; ".join(ev_errors))
 
     body["id"] = build_id
-    egg = body.get("egg_moves") if isinstance(body, dict) else None
+    egg = body.get("egg_moves")
     body["fingerprint"] = build_fingerprint(
         inner if isinstance(inner, dict) else {}, egg
     )
@@ -194,6 +200,18 @@ def delete_build(req: func.HttpRequest) -> func.HttpResponse:
         return err
 
     build_id = req.route_params.get("buildId")
+
+    # Reject deletion if any team references this build
+    teams_data, _ = read_blob_or_default(user_path(user_id, "teams.json"), {"teams": []})
+    if isinstance(teams_data, dict):
+        for team in teams_data.get("teams", []):
+            for member in team.get("members", []):
+                if isinstance(member, dict) and member.get("build_id") == build_id:
+                    team_name = team.get("name", team.get("id", "unknown"))
+                    return _error(
+                        409,
+                        f"Build {build_id} is referenced by team '{team_name}' — remove it from the team first",
+                    )
 
     found = False
 

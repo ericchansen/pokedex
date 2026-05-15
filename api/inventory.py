@@ -55,6 +55,9 @@ def move_slot(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return _error(400, "Invalid JSON body")
 
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
+
     from_box = body.get("from_box")
     from_slot = body.get("from_slot")
     to_box = body.get("to_box")
@@ -62,6 +65,9 @@ def move_slot(req: func.HttpRequest) -> func.HttpResponse:
 
     if any(v is None for v in (from_box, from_slot, to_box, to_slot)):
         return _error(400, "from_box, from_slot, to_box, to_slot required")
+
+    if not all(isinstance(v, int) for v in (from_box, from_slot, to_box, to_slot)):
+        return _error(400, "from_box, from_slot, to_box, to_slot must be integers")
 
     def do_move(data):
         data = _ensure_boxes(data)
@@ -111,6 +117,9 @@ def batch_slots(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return _error(400, "Invalid JSON body")
 
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
+
     ops = body.get("operations")
     if not isinstance(ops, list) or not ops:
         return _error(400, "operations array required")
@@ -132,6 +141,9 @@ def batch_slots(req: func.HttpRequest) -> func.HttpResponse:
             slot_idx = op.get("slot")
             if box_id is None or slot_idx is None:
                 errors.append(f"op[{i}]: box and slot required")
+                continue
+            if not isinstance(box_id, int) or not isinstance(slot_idx, int):
+                errors.append(f"op[{i}]: box and slot must be integers")
                 continue
             if box_id < 0 or box_id >= len(boxes) or slot_idx < 0 or slot_idx >= slots_per_box:
                 errors.append(f"op[{i}]: box {box_id} slot {slot_idx} out of range")
@@ -238,6 +250,9 @@ def rename_box(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return _error(400, "Invalid JSON body")
 
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
+
     rename_result: dict = {}
 
     def do_rename(data):
@@ -281,6 +296,9 @@ def set_slot(req: func.HttpRequest) -> func.HttpResponse:
         body = req.get_json()
     except ValueError:
         return _error(400, "Invalid JSON body")
+
+    if not isinstance(body, dict):
+        return _error(400, "Request body must be a JSON object")
 
     build = body.get("build")
     if not isinstance(build, dict) or not build.get("species"):
