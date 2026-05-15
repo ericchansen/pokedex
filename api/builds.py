@@ -2,34 +2,29 @@
 
 Storage: single blob per user at users/{userId}/builds.json
 Shape: { "meta": {...}, "builds": [...] } or { "builds": [...] }
+
+All domain logic lives in shared.operations; this file is a thin HTTP adapter.
 """
 from __future__ import annotations
 
 import json
 
 import azure.functions as func
+from shared import operations as ops
 from shared.auth import require_auth
 from shared.blob_store import ConflictError, atomic_update, read_blob_or_default, user_path
-from shared.build_fingerprint import build_fingerprint
-from shared.ulid import generate_ulid
-from shared.validation import validate_evs
+from shared.operations import (
+    DuplicateBuildError,
+    FKConflictError,
+    NotFoundError,
+    ValidationError,
+)
 
 bp = func.Blueprint()
-
-EMPTY_BUILDS = {"builds": []}
 
 
 def _builds_path(user_id: str) -> str:
     return user_path(user_id, "builds.json")
-
-
-def _normalize(data) -> dict:
-    """Ensure data is in {builds: [...]} shape."""
-    if isinstance(data, dict) and "builds" in data:
-        return data
-    if isinstance(data, list):
-        return {"builds": data}
-    return {"builds": []}
 
 
 @bp.function_name("builds_list")
@@ -39,13 +34,8 @@ def list_builds(req: func.HttpRequest) -> func.HttpResponse:
     if err:
         return err
 
-    data, _ = read_blob_or_default(_builds_path(user_id), EMPTY_BUILDS)
-    data = _normalize(data)
-    return func.HttpResponse(
-        json.dumps(data, ensure_ascii=False),
-        status_code=200,
-        mimetype="application/json",
-    )
+    data, _ = read_blob_or_default(_builds_path(user_id), ops.EMPTY_BUILDS)
+    return _json(200, ops.list_builds(data))
 
 
 @bp.function_name("builds_get")
@@ -56,17 +46,13 @@ def get_build(req: func.HttpRequest) -> func.HttpResponse:
         return err
 
     build_id = req.route_params.get("buildId")
-    data, _ = read_blob_or_default(_builds_path(user_id), EMPTY_BUILDS)
-    data = _normalize(data)
-    record = next((b for b in data["builds"] if b.get("id") == build_id), None)
-    if not record:
-        return _error(404, f"Build {build_id} not found")
+    data, _ = read_blob_or_default(_builds_path(user_id), ops.EMPTY_BUILDS)
+    try:
+        record = ops.get_build(data, build_id)
+    except NotFoundError as e:
+        return _error(404, str(e))
 
-    return func.HttpResponse(
-        json.dumps(record, ensure_ascii=False),
-        status_code=200,
-        mimetype="application/json",
-    )
+    return _json(200, record)
 
 
 @bp.function_name("builds_create")
@@ -76,63 +62,38 @@ def create_build(req: func.HttpRequest) -> func.HttpResponse:
     if err:
         return err
 
-    try:
-        body = req.get_json()
-    except ValueError:
-        return _error(400, "Invalid JSON body")
+    body, body_err = _parse_body(req)
+    if body_err:
+        return body_err
 
-    if not isinstance(body, dict):
-        return _error(400, "Request body must be a JSON object")
-
-    inner = body.get("build", {})
-    if isinstance(inner, dict) and "evs" in inner:
-        ev_errors = validate_evs(inner["evs"])
-        if ev_errors:
-            return _error(400, "EV validation failed: " + "; ".join(ev_errors))
-
-    # Dedupe check via fingerprint
-    egg = body.get("egg_moves")
-    incoming_fp = build_fingerprint(
-        inner if isinstance(inner, dict) else {}, egg
-    )
-
-    # Create new build
-    build_id = generate_ulid()
-    body["id"] = build_id
-    body["fingerprint"] = incoming_fp
-
-    existing_match = None
+    result_record = None
+    duplicate_record = None
 
     def append_build(current):
-        nonlocal existing_match
-        current = _normalize(current)
-        # Dedupe inside callback to handle retries with fresh data
-        for b in current["builds"]:
-            if b.get("fingerprint") == incoming_fp:
-                existing_match = b
-                return current  # No mutation — return as-is
-        existing_match = None
-        current["builds"].append(body)
-        return current
+        nonlocal result_record, duplicate_record
+        result_record = None
+        duplicate_record = None
+        try:
+            new_data, record = ops.create_build(current, body)
+            result_record = record
+            return new_data
+        except DuplicateBuildError as e:
+            duplicate_record = e.existing
+            return current  # No mutation
+        except ValidationError as e:
+            raise ValueError(str(e)) from e
 
     try:
-        atomic_update(_builds_path(user_id), append_build, default=EMPTY_BUILDS)
+        atomic_update(_builds_path(user_id), append_build, default=ops.EMPTY_BUILDS)
     except ConflictError:
         return _error(409, "Concurrent modification — please retry")
+    except ValueError as e:
+        return _error(400, str(e))
 
-    # Return existing if dedupe found a match
-    if existing_match:
-        return func.HttpResponse(
-            json.dumps(existing_match, ensure_ascii=False),
-            status_code=200,
-            mimetype="application/json",
-        )
+    if duplicate_record:
+        return _json(200, duplicate_record)
 
-    return func.HttpResponse(
-        json.dumps(body, ensure_ascii=False),
-        status_code=201,
-        mimetype="application/json",
-    )
+    return _json(201, result_record)
 
 
 @bp.function_name("builds_update")
@@ -144,52 +105,29 @@ def update_build(req: func.HttpRequest) -> func.HttpResponse:
 
     build_id = req.route_params.get("buildId")
 
-    try:
-        body = req.get_json()
-    except ValueError:
-        return _error(400, "Invalid JSON body")
+    body, body_err = _parse_body(req)
+    if body_err:
+        return body_err
 
-    if not isinstance(body, dict):
-        return _error(400, "Request body must be a JSON object")
-
-    inner = body.get("build", {})
-    if isinstance(inner, dict) and "evs" in inner:
-        ev_errors = validate_evs(inner["evs"])
-        if ev_errors:
-            return _error(400, "EV validation failed: " + "; ".join(ev_errors))
-
-    body["id"] = build_id
-    egg = body.get("egg_moves")
-    body["fingerprint"] = build_fingerprint(
-        inner if isinstance(inner, dict) else {}, egg
-    )
-
-    found = False
+    result_record = None
 
     def replace_build(current):
-        nonlocal found
-        found = False  # Reset on each retry
-        current = _normalize(current)
-        for i, b in enumerate(current["builds"]):
-            if b.get("id") == build_id:
-                current["builds"][i] = body
-                found = True
-                return current
-        return current
+        nonlocal result_record
+        result_record = None
+        new_data, record = ops.update_build(current, build_id, body)
+        result_record = record
+        return new_data
 
     try:
-        atomic_update(_builds_path(user_id), replace_build, default=EMPTY_BUILDS)
+        atomic_update(_builds_path(user_id), replace_build, default=ops.EMPTY_BUILDS)
     except ConflictError:
         return _error(409, "Concurrent modification — please retry")
+    except NotFoundError as e:
+        return _error(404, str(e))
+    except ValidationError as e:
+        return _error(400, str(e))
 
-    if not found:
-        return _error(404, f"Build {build_id} not found")
-
-    return func.HttpResponse(
-        json.dumps(body, ensure_ascii=False),
-        status_code=200,
-        mimetype="application/json",
-    )
+    return _json(200, result_record)
 
 
 @bp.function_name("builds_delete")
@@ -201,39 +139,45 @@ def delete_build(req: func.HttpRequest) -> func.HttpResponse:
 
     build_id = req.route_params.get("buildId")
 
-    # Reject deletion if any team references this build
-    teams_data, _ = read_blob_or_default(user_path(user_id, "teams.json"), {"teams": []})
-    if isinstance(teams_data, dict):
-        for team in teams_data.get("teams", []):
-            for member in team.get("members", []):
-                if isinstance(member, dict) and member.get("build_id") == build_id:
-                    team_name = team.get("name", team.get("id", "unknown"))
-                    return _error(
-                        409,
-                        f"Build {build_id} is referenced by team '{team_name}' — remove it from the team first",
-                    )
-
-    found = False
-
     def remove_build(current):
-        nonlocal found
-        current = _normalize(current)
-        before = len(current["builds"])
-        current["builds"] = [b for b in current["builds"] if b.get("id") != build_id]
-        found = len(current["builds"]) < before
-        return current
+        # teams_reader reads the teams blob *inside* the retry loop —
+        # this ensures fresh data on each retry, fixing the FK race.
+        def teams_reader():
+            data, _ = read_blob_or_default(user_path(user_id, "teams.json"), ops.EMPTY_TEAMS)
+            return data
+
+        return ops.delete_build(current, build_id, teams_reader)
 
     try:
-        atomic_update(_builds_path(user_id), remove_build, default=EMPTY_BUILDS)
+        atomic_update(_builds_path(user_id), remove_build, default=ops.EMPTY_BUILDS)
     except ConflictError:
         return _error(409, "Concurrent modification — please retry")
+    except NotFoundError as e:
+        return _error(404, str(e))
+    except FKConflictError as e:
+        return _error(409, str(e))
 
-    if not found:
-        return _error(404, f"Build {build_id} not found")
+    return _json(200, {"deleted": build_id})
 
+
+# ── Helpers ────────────────────────────────────────────────────────────
+
+
+def _parse_body(req: func.HttpRequest) -> tuple[dict | None, func.HttpResponse | None]:
+    """Parse and validate JSON body. Returns (body, None) or (None, error_response)."""
+    try:
+        body = req.get_json()
+    except ValueError:
+        return None, _error(400, "Invalid JSON body")
+    if not isinstance(body, dict):
+        return None, _error(400, "Request body must be a JSON object")
+    return body, None
+
+
+def _json(status: int, data) -> func.HttpResponse:
     return func.HttpResponse(
-        json.dumps({"deleted": build_id}, ensure_ascii=False),
-        status_code=200,
+        json.dumps(data, ensure_ascii=False),
+        status_code=status,
         mimetype="application/json",
     )
 

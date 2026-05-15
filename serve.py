@@ -41,9 +41,13 @@ _USER_DATA_FILES = ("builds.json", "inventory.json", "teams.json")
 # Shared domain modules live in api/shared/ — single source of truth for both
 # the local dev server and the Azure Functions cloud backend.
 sys.path.insert(0, str(ROOT / "api"))
-from shared.build_fingerprint import build_fingerprint  # noqa: E402
-from shared.ulid import generate_ulid  # noqa: E402
-from shared.validation import validate_evs, validate_team_members  # noqa: E402
+from shared import operations as ops  # noqa: E402
+from shared.operations import (  # noqa: E402
+    DuplicateBuildError,
+    FKConflictError,
+    NotFoundError,
+    ValidationError,
+)
 
 # Serialize all API write operations to prevent concurrent read-modify-write races
 _api_lock = threading.Lock()
@@ -228,78 +232,52 @@ class DevHandler(SimpleHTTPRequestHandler):
     def _handle_builds(self, method: str, item_id: str | None):
         if method == "GET" and item_id is None:
             data = read_json(self._builds_path())
-            return self._json_response(200, data)
+            return self._json_response(200, ops.list_builds(data))
 
         if method == "GET" and item_id:
             data = read_json(self._builds_path())
-            build = next((b for b in data["builds"] if b.get("id") == item_id), None)
-            if not build:
-                return self._json_error(404, f"Build {item_id} not found")
-            return self._json_response(200, build)
+            try:
+                return self._json_response(200, ops.get_build(data, item_id))
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
 
         if method == "POST" and item_id is None:
             body = self._read_body()
             if body is None: return
-            inner = body.get("build", {}) if isinstance(body, dict) else {}
-            if isinstance(inner, dict) and "evs" in inner:
-                ev_errors = validate_evs(inner["evs"])
-                if ev_errors:
-                    return self._json_error(400, "EV validation failed: " + "; ".join(ev_errors))
             data = read_json(self._builds_path())
-            # Server-side dedupe guard: if the incoming payload fingerprints
-            # to a build already on disk, return the existing record instead
-            # of creating a duplicate. Defense in depth — the client should
-            # have caught this already via DataManager.findBuildByFingerprint.
             try:
-                incoming_fp = build_fingerprint(inner if isinstance(inner, dict) else {}, body.get("egg_moves") if isinstance(body, dict) else None)
-                for existing in data["builds"]:
-                    existing_inner = existing.get("build") if isinstance(existing, dict) else None
-                    if existing_inner is None:
-                        continue
-                    existing_fp = build_fingerprint(existing_inner, existing.get("egg_moves"))
-                    if existing_fp == incoming_fp:
-                        return self._json_response(200, existing)
-            except Exception as exc:  # noqa: BLE001 — fall through to create
-                print(f"  [warn] build fingerprint dedupe check failed: {exc}", file=sys.stderr)
-            body["id"] = generate_ulid()
-            data["builds"].append(body)
+                data, record = ops.create_build(data, body)
+            except DuplicateBuildError as e:
+                return self._json_response(200, e.existing)
+            except ValidationError as e:
+                return self._json_error(400, str(e))
             write_json(self._builds_path(), data)
-            return self._json_response(201, body)
+            return self._json_response(201, record)
 
         if method == "PUT" and item_id:
             body = self._read_body()
             if body is None: return
-            inner = body.get("build", {}) if isinstance(body, dict) else {}
-            if isinstance(inner, dict) and "evs" in inner:
-                ev_errors = validate_evs(inner["evs"])
-                if ev_errors:
-                    return self._json_error(400, "EV validation failed: " + "; ".join(ev_errors))
             data = read_json(self._builds_path())
-            idx = next((i for i, b in enumerate(data["builds"]) if b.get("id") == item_id), None)
-            if idx is None:
-                return self._json_error(404, f"Build {item_id} not found")
-            body["id"] = item_id  # preserve ID
-            data["builds"][idx] = body
+            try:
+                data, record = ops.update_build(data, item_id, body)
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
+            except ValidationError as e:
+                return self._json_error(400, str(e))
             write_json(self._builds_path(), data)
-            return self._json_response(200, body)
+            return self._json_response(200, record)
 
         if method == "DELETE" and item_id:
             data = read_json(self._builds_path())
-            before = len(data["builds"])
-
-            # FK guard: reject delete if any team references this build
-            teams_data = read_json(self._teams_path())
-            for team in teams_data.get("teams", []):
-                for member in team.get("members", []):
-                    if member.get("build_id") == item_id:
-                        return self._json_error(
-                            409,
-                            f"Cannot delete build {item_id}: referenced by team '{team.get('name', '?')}'",
-                        )
-
-            data["builds"] = [b for b in data["builds"] if b.get("id") != item_id]
-            if len(data["builds"]) == before:
-                return self._json_error(404, f"Build {item_id} not found")
+            try:
+                data = ops.delete_build(
+                    data, item_id,
+                    teams_reader=lambda: read_json(self._teams_path()),
+                )
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
+            except FKConflictError as e:
+                return self._json_error(409, str(e))
             write_json(self._builds_path(), data)
             return self._json_response(200, {"deleted": item_id})
 
@@ -313,49 +291,45 @@ class DevHandler(SimpleHTTPRequestHandler):
     def _handle_teams(self, method: str, item_id: str | None):
         if method == "GET" and item_id is None:
             data = read_json(self._teams_path())
-            return self._json_response(200, data)
+            return self._json_response(200, ops.list_teams(data))
 
         if method == "GET" and item_id:
             data = read_json(self._teams_path())
-            team = next((t for t in data["teams"] if t.get("id") == item_id), None)
-            if not team:
-                return self._json_error(404, f"Team {item_id} not found")
-            return self._json_response(200, team)
+            try:
+                return self._json_response(200, ops.get_team(data, item_id))
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
 
         if method == "POST" and item_id is None:
             body = self._read_body()
             if body is None: return
-            ev_errors = validate_team_members(body)
-            if ev_errors:
-                return self._json_error(400, "Team EV validation failed: " + "; ".join(ev_errors))
-            if "id" not in body:
-                body["id"] = generate_ulid()
             data = read_json(self._teams_path())
-            data["teams"].append(body)
+            try:
+                data, record = ops.create_team(data, body)
+            except ValidationError as e:
+                return self._json_error(400, str(e))
             write_json(self._teams_path(), data)
-            return self._json_response(201, body)
+            return self._json_response(201, record)
 
         if method == "PUT" and item_id:
             body = self._read_body()
             if body is None: return
-            ev_errors = validate_team_members(body)
-            if ev_errors:
-                return self._json_error(400, "Team EV validation failed: " + "; ".join(ev_errors))
             data = read_json(self._teams_path())
-            idx = next((i for i, t in enumerate(data["teams"]) if t.get("id") == item_id), None)
-            if idx is None:
-                return self._json_error(404, f"Team {item_id} not found")
-            body["id"] = item_id
-            data["teams"][idx] = body
+            try:
+                data, record = ops.update_team(data, item_id, body)
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
+            except ValidationError as e:
+                return self._json_error(400, str(e))
             write_json(self._teams_path(), data)
-            return self._json_response(200, body)
+            return self._json_response(200, record)
 
         if method == "DELETE" and item_id:
             data = read_json(self._teams_path())
-            before = len(data["teams"])
-            data["teams"] = [t for t in data["teams"] if t.get("id") != item_id]
-            if len(data["teams"]) == before:
-                return self._json_error(404, f"Team {item_id} not found")
+            try:
+                data = ops.delete_team(data, item_id)
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
             write_json(self._teams_path(), data)
             return self._json_response(200, {"deleted": item_id})
 
@@ -372,31 +346,23 @@ class DevHandler(SimpleHTTPRequestHandler):
         GET  /api/inventory              → all boxes (sparse)
         GET  /api/inventory/{boxId}      → single box
         PUT  /api/inventory/{boxId}      → rename box (body: {name})
-        PUT  /api/inventory/{boxId}/{slot} → set slot (body: {build, identity?, target_build_id?})
+        PUT  /api/inventory/{boxId}/{slot} → set slot
         DELETE /api/inventory/{boxId}/{slot} → clear slot
-        POST /api/inventory/move         → move slot (body: {from_box, from_slot, to_box, to_slot})
+        POST /api/inventory/move         → move slot
+        POST /api/inventory/batch        → batch set/clear
         """
         # POST /api/inventory/move
         if method == "POST" and len(parts) == 1 and parts[0] == "move":
             return self._inventory_move()
 
-        # POST /api/inventory/batch — batch set/clear slots in one disk write
+        # POST /api/inventory/batch
         if method == "POST" and len(parts) == 1 and parts[0] == "batch":
             return self._inventory_batch()
 
         # GET /api/inventory
         if method == "GET" and len(parts) == 0:
             data = read_json(self._inventory_path())
-            # Return sparse representation (omit all-null boxes)
-            sparse = {
-                "version": data.get("version", 1),
-                "box_count": data.get("box_count", 200),
-                "slots_per_box": data.get("slots_per_box", 30),
-                "columns": data.get("columns", 6),
-                "rows": data.get("rows", 5),
-                "boxes": data["boxes"],
-            }
-            return self._json_response(200, sparse)
+            return self._json_response(200, ops.sparse_inventory(data))
 
         # Parse box ID
         if len(parts) < 1:
@@ -407,24 +373,25 @@ class DevHandler(SimpleHTTPRequestHandler):
         except ValueError:
             return self._json_error(400, f"Invalid box ID: {parts[0]}")
 
-        data = read_json(self._inventory_path())
-        if box_id < 0 or box_id >= len(data["boxes"]):
-            return self._json_error(404, f"Box {box_id} not found")
-
-        box = data["boxes"][box_id]
-
         # GET /api/inventory/{boxId}
         if method == "GET" and len(parts) == 1:
-            return self._json_response(200, box)
+            data = read_json(self._inventory_path())
+            try:
+                return self._json_response(200, ops.get_box(data, box_id))
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
 
         # PUT /api/inventory/{boxId} — rename box
         if method == "PUT" and len(parts) == 1:
             body = self._read_body()
             if body is None: return
-            if "name" in body:
-                box["name"] = body["name"]
-                write_json(self._inventory_path(), data)
-            return self._json_response(200, box)
+            data = read_json(self._inventory_path())
+            try:
+                data, box_dict = ops.rename_box(data, box_id, body.get("name"))
+            except NotFoundError as e:
+                return self._json_error(404, str(e))
+            write_json(self._inventory_path(), data)
+            return self._json_response(200, box_dict)
 
         # Slot-level operations: /api/inventory/{boxId}/{slotIdx}
         if len(parts) == 2:
@@ -433,47 +400,29 @@ class DevHandler(SimpleHTTPRequestHandler):
             except ValueError:
                 return self._json_error(400, f"Invalid slot index: {parts[1]}")
 
-            if slot_idx < 0 or slot_idx >= len(box["slots"]):
-                return self._json_error(404, f"Slot {slot_idx} out of range")
-
             # PUT — set slot occupant
             if method == "PUT":
                 body = self._read_body()
                 if body is None: return
-                build = body.get("build")
-                if not isinstance(build, dict) or not build.get("species"):
-                    return self._json_error(400, "build.species is required")
-
-                deprecated_target_keys = ("linked_" + "build_id", "target_build_" + "ids")
-                if any(key in body for key in deprecated_target_keys):
-                    return self._json_error(400, "Use target_build_id; deprecated target aliases are not accepted")
-                target_build_id = body.get("target_build_id")
-                if target_build_id is not None and not isinstance(target_build_id, str):
-                    return self._json_error(400, "target_build_id must be a string or null")
-
-                identity = body.get("identity")
-                if identity is None:
-                    identity = {}
-                if not isinstance(identity, dict):
-                    return self._json_error(400, "identity must be an object")
-
-                if "evs" in build:
-                    ev_errors = validate_evs(build["evs"])
-                    if ev_errors:
-                        return self._json_error(400, "EV validation failed: " + "; ".join(ev_errors))
-
-                occupant = {
-                    "build": build,
-                    "identity": identity,
-                    "target_build_id": target_build_id,
-                }
-                box["slots"][slot_idx] = occupant
+                try:
+                    occupant = ops.validate_slot_body(body)
+                except ValidationError as e:
+                    return self._json_error(400, str(e))
+                data = read_json(self._inventory_path())
+                try:
+                    data, occupant = ops.set_slot(data, box_id, slot_idx, occupant)
+                except NotFoundError as e:
+                    return self._json_error(404, str(e))
                 write_json(self._inventory_path(), data)
                 return self._json_response(200, occupant)
 
             # DELETE — clear slot
             if method == "DELETE":
-                box["slots"][slot_idx] = None
+                data = read_json(self._inventory_path())
+                try:
+                    data = ops.clear_slot(data, box_id, slot_idx)
+                except NotFoundError as e:
+                    return self._json_error(404, str(e))
                 write_json(self._inventory_path(), data)
                 return self._json_response(200, {"cleared": True, "box": box_id, "slot": slot_idx})
 
@@ -490,85 +439,26 @@ class DevHandler(SimpleHTTPRequestHandler):
 
         if any(v is None for v in (from_box, from_slot, to_box, to_slot)):
             return self._json_error(400, "from_box, from_slot, to_box, to_slot required")
-
         if not all(isinstance(v, int) for v in (from_box, from_slot, to_box, to_slot)):
             return self._json_error(400, "from_box, from_slot, to_box, to_slot must be integers")
 
         data = read_json(self._inventory_path())
-        boxes = data["boxes"]
-
-        if from_box < 0 or from_box >= len(boxes) or to_box < 0 or to_box >= len(boxes):
-            return self._json_error(404, "Box out of range")
-        slots_per_box = data.get("slots_per_box", 30)
-        if from_slot < 0 or from_slot >= slots_per_box or to_slot < 0 or to_slot >= slots_per_box:
-            return self._json_error(404, "Slot out of range")
-
-        # Swap
-        src = boxes[from_box]["slots"][from_slot]
-        dst = boxes[to_box]["slots"][to_slot]
-        boxes[from_box]["slots"][from_slot] = dst
-        boxes[to_box]["slots"][to_slot] = src
-
+        try:
+            data, result = ops.move_slots(data, from_box, from_slot, to_box, to_slot)
+        except NotFoundError as e:
+            return self._json_error(404, str(e))
         write_json(self._inventory_path(), data)
-        return self._json_response(200, {
-            "moved": True,
-            "from": {"box": from_box, "slot": from_slot, "occupant": dst},
-            "to": {"box": to_box, "slot": to_slot, "occupant": src},
-        })
+        return self._json_response(200, result)
 
     def _inventory_batch(self):
-        """Apply multiple slot set/clear operations in a single disk write.
-
-        Body: { "operations": [ { "op": "set"|"clear", "box": int, "slot": int,
-                                  "build"?: {}, "identity"?: {}, "target_build_id"?: str } ] }
-        """
+        """Apply multiple slot set/clear operations in a single disk write."""
         body = self._read_body()
         if body is None: return
-        ops = body.get("operations")
-        if not isinstance(ops, list) or not ops:
-            return self._json_error(400, "operations array required")
-
         data = read_json(self._inventory_path())
-        boxes = data["boxes"]
-        results = []
-        errors = []
-
-        for i, op in enumerate(ops):
-            action = op.get("op", "set")
-            box_id = op.get("box")
-            slot_idx = op.get("slot")
-            if box_id is None or slot_idx is None:
-                errors.append(f"op[{i}]: box and slot required")
-                continue
-            if not isinstance(box_id, int) or not isinstance(slot_idx, int):
-                errors.append(f"op[{i}]: box and slot must be integers")
-                continue
-            if box_id < 0 or box_id >= len(boxes) or slot_idx < 0 or slot_idx >= data.get("slots_per_box", 30):
-                errors.append(f"op[{i}]: box {box_id} slot {slot_idx} out of range")
-                continue
-
-            if action == "clear":
-                boxes[box_id]["slots"][slot_idx] = None
-                results.append({"box": box_id, "slot": slot_idx, "cleared": True})
-            elif action == "set":
-                build = op.get("build")
-                if not isinstance(build, dict) or not build.get("species"):
-                    errors.append(f"op[{i}]: build.species required for set")
-                    continue
-                if "evs" in build:
-                    ev_errors = validate_evs(build["evs"])
-                    if ev_errors:
-                        errors.append(f"op[{i}]: " + "; ".join(ev_errors))
-                        continue
-                occupant = {
-                    "build": build,
-                    "identity": op.get("identity", {}),
-                    "target_build_id": op.get("target_build_id"),
-                }
-                boxes[box_id]["slots"][slot_idx] = occupant
-                results.append({"box": box_id, "slot": slot_idx, "occupant": occupant})
-            else:
-                errors.append(f"op[{i}]: unknown op '{action}'")
+        try:
+            data, results, errors = ops.batch_slots(data, body.get("operations"))
+        except ValidationError as e:
+            return self._json_error(400, str(e))
 
         if errors and not results:
             return self._json_error(400, "; ".join(errors))

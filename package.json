@@ -10,7 +10,8 @@
     "validate:phase2-contracts": "node tools/validate_phase2_contracts.mjs",
     "validate:phase3-contracts": "node tools/validate_phase3_contracts.mjs",
     "validate:phase4-contracts": "python tools/validate_contracts.py && node tools/validate_phase4_contracts.mjs && node tools/validate_browser_surface_contracts.mjs",
-    "validate:phase5-contracts": "python tools/validate_data_schema.py && node tools/validate_phase5_contracts.mjs"
+    "validate:phase5-contracts": "python tools/validate_data_schema.py && node tools/validate_phase5_contracts.mjs",
+    "validate:script-order": "node tools/validate_script_order.mjs"
   },
   "devDependencies": {
     "eslint": "^10.3.0",

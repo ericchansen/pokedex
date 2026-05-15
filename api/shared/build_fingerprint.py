@@ -1,7 +1,8 @@
 """Build fingerprint — SHA-1 canonical hash for deduplication.
 
-Copied from scripts/build_fingerprint.py. Two builds with the same
-fingerprint are considered identical.
+Single source of truth used by both local (serve.py) and cloud (api/*.py)
+backends, plus offline scripts. Two builds with the same fingerprint are
+considered identical.
 """
 from __future__ import annotations
 
