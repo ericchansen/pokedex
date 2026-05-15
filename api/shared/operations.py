@@ -152,6 +152,14 @@ def delete_build(
     retry loop, ensuring fresh data. In the local backend, the global lock
     already serializes access, so it simply reads the file.
 
+    Note — known limitation (cloud only): the FK check and the builds-blob
+    commit are NOT cross-blob atomic.  A concurrent team create/update could
+    reference this build between the teams_reader() call and the ETag-guarded
+    write, leaving a dangling build_id.  Fixing this would require a per-user
+    lease blob or similar cross-resource lock, which adds significant
+    complexity for a very low-probability race.  The local backend is immune
+    (global threading lock serializes all writes).
+
     Returns mutated_data.
     Raises NotFoundError if build_id not found.
     Raises FKConflictError if a team references this build.

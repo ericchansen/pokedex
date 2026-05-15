@@ -37,12 +37,21 @@ while ((m = scriptRe.exec(html)) !== null) {
 // These execute in document order and form the dependency chain.
 const classicScripts = scripts.filter(s => !s.isModule && !s.isDefer);
 
+// ── Helpers ─────────────────────────────────────────────────────────
+
+/** Strip comments and string literals so regex scanning avoids phantoms. */
+function stripCommentsAndStrings(src) {
+  return src
+    .replace(/\/\/.*$/gm, '')           // line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
+    .replace(/'[^']*'/g, '""')          // single-quoted strings
+    .replace(/"[^"]*"/g, '""')          // double-quoted strings
+    .replace(/`[^`]*`/g, '""');         // template literals (simple)
+}
+
 // ── Scan each script for provides/depends ──────────────────────────
 
-// Known global namespaces assigned via window.X = ...
 const provideRe = /\bwindow\.(\w+)\s*=/g;
-
-// Build a provides map: globalName → script index
 const providesMap = new Map();  // globalName → first provider index
 const scriptProvides = [];      // index → Set of provided globals
 
@@ -58,9 +67,12 @@ for (let i = 0; i < classicScripts.length; i++) {
     continue;
   }
 
+  // Strip comments/strings before scanning for provides (avoids phantom
+  // registrations from commented-out `// window.Foo = ...` lines).
+  const stripped = stripCommentsAndStrings(content);
   const provides = new Set();
   let pm;
-  while ((pm = provideRe.exec(content)) !== null) {
+  while ((pm = provideRe.exec(stripped)) !== null) {
     const name = pm[1];
     provides.add(name);
     if (!providesMap.has(name)) {
@@ -72,53 +84,61 @@ for (let i = 0; i < classicScripts.length; i++) {
 
 // ── Check dependencies ─────────────────────────────────────────────
 //
-// Heuristic: in classic scripts that use window.X = { ... } namespaces,
-// most cross-global references are deferred (inside function bodies or
-// method definitions, called only at runtime after all scripts load).
-// We only flag IMMEDIATE (top-level) uses:
-//   - Lines starting at column 0 (not inside function/method bodies)
-//   - window.GlobalName. / window.GlobalName[ at any indent (explicit
-//     immediate property access)
-// References inside object methods ({  foo() { ... GlobalName ... } })
-// are safe because they execute later.
+// Heuristic: classic scripts use `window.X = { methods... }` namespaces.
+// References inside method/function bodies are deferred (safe). We flag
+// references that execute immediately during script parse:
+//   depth 0: true top-level statements
+//   depth 1: property initializers inside `window.X = { key: VALUE }`
+//            (these execute immediately UNLESS inside a function body)
+//
+// At depth ≥ 1 we track whether we're inside a function/method body
+// (line contains `function` or `=>` or `() {` pattern). Property
+// initializers like `dep: OtherGlobal.value` ARE immediate at depth 1.
 
 const allGlobals = [...providesMap.keys()];
 const errors = [];
 
 /**
- * Check if a reference to `globalName` appears at the top level
- * (outside function/method bodies). Simple brace-depth heuristic:
- * depth 0 = top level, depth 1 = inside window.X = { ... }.
- * Anything at depth ≤ 1 that isn't inside a function/method is flagged.
+ * Check if a reference to `globalName` appears in an immediate context
+ * (executed during script parse, not deferred to a later call).
  */
 function hasImmediateUse(content, globalName) {
-  // Split into lines and track brace depth
   const lines = content.split('\n');
   let depth = 0;
-  let inAssignment = false; // inside window.X = { ... }
+  let funcDepth = Infinity; // brace depth where current function body starts
 
   for (const line of lines) {
     const trimmed = line.trim();
+    const prevDepth = depth;
 
-    // Track brace depth (crude but effective for our namespace pattern)
+    // Track brace depth
     for (const ch of trimmed) {
       if (ch === '{') depth++;
-      if (ch === '}') depth--;
-    }
-
-    // Detect start of window.X = { assignment
-    if (/^window\.\w+\s*=\s*\{/.test(trimmed)) {
-      inAssignment = true;
-    }
-
-    // At depth 0 (true top-level), any reference is immediate
-    if (depth <= 0) {
-      const re = new RegExp(`\\b${globalName}\\b`);
-      if (re.test(trimmed) && !/^\/\//.test(trimmed)) {
-        // Skip window.X = declarations
-        if (new RegExp(`^window\\.${globalName}\\s*=`).test(trimmed)) continue;
-        return true;
+      if (ch === '}') {
+        depth--;
+        // Leaving a function body?
+        if (depth < funcDepth) funcDepth = Infinity;
       }
+    }
+
+    // Detect function/method body entry: `function`, `=>`, or `name() {`
+    if (/\bfunction\b/.test(trimmed) || /=>/.test(trimmed) ||
+        /\w+\s*\([^)]*\)\s*\{/.test(trimmed)) {
+      // If this line opened a brace, mark that depth as a function body
+      if (depth > prevDepth) {
+        funcDepth = Math.min(funcDepth, prevDepth + 1);
+      }
+    }
+
+    // Skip lines inside function/method bodies (deferred execution)
+    if (depth >= funcDepth) continue;
+
+    // At depth 0–1 outside function bodies, references are immediate
+    const re = new RegExp(`\\b${globalName}\\b`);
+    if (re.test(trimmed)) {
+      // Skip own declarations
+      if (new RegExp(`^window\\.${globalName}\\s*=`).test(trimmed)) continue;
+      return true;
     }
   }
   return false;
@@ -134,26 +154,16 @@ for (let i = 0; i < classicScripts.length; i++) {
     continue;
   }
 
-  // Remove string literals and comments to avoid false positives
-  const stripped = content
-    .replace(/\/\/.*$/gm, '')           // line comments
-    .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
-    .replace(/'[^']*'/g, '""')          // single-quoted strings
-    .replace(/"[^"]*"/g, '""')          // double-quoted strings
-    .replace(/`[^`]*`/g, '""');         // template literals (simple)
+  const stripped = stripCommentsAndStrings(content);
 
   for (const globalName of allGlobals) {
-    // Skip self-provides
     if (scriptProvides[i].has(globalName)) continue;
 
-    // Quick check: does the name appear at all?
     const useRe = new RegExp(`\\b${globalName}\\b`, 'g');
     if (!useRe.test(stripped)) continue;
 
-    // It uses this global — is the provider loaded before us?
     const providerIdx = providesMap.get(globalName);
     if (providerIdx > i) {
-      // Only flag if the use is immediate (top-level), not deferred
       if (hasImmediateUse(stripped, globalName)) {
         errors.push({
           consumer: s.src,
