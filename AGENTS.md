@@ -83,7 +83,8 @@ api/                   Azure Functions backend (Python 3.10, v2 model)
 ├── builds.py          Build CRUD endpoints (per-build blobs)
 ├── teams.py           Team CRUD endpoints
 ├── inventory.py       Inventory CRUD endpoints
-├── shared/            Shared modules (blob_store, auth, validation, ulid)
+├── domain/            Pure domain logic (operations, validation, fingerprint, ulid)
+├── shared/            Cloud-only modules (blob_store, auth)
 ├── tests/             pytest unit tests
 ├── host.json          Functions runtime config
 └── requirements.txt   Python dependencies

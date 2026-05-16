@@ -12,9 +12,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from shared.build_fingerprint import build_fingerprint, fingerprint_record
-from shared.ulid import generate_ulid
-from shared.validation import validate_evs, validate_team_members
+from domain.build_fingerprint import build_fingerprint, fingerprint_record
+from domain.ulid import generate_ulid
+from domain.validation import validate_evs, validate_team_members
 
 # ── Domain exceptions ───────────────────────────────────────────────
 

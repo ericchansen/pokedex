@@ -38,11 +38,11 @@ MAX_BACKUPS = 50  # rolling backups per file
 # User data files that live in userdata/ (not git-tracked)
 _USER_DATA_FILES = ("builds.json", "inventory.json", "teams.json")
 
-# Shared domain modules live in api/shared/ — single source of truth for both
+# Shared domain modules live in api/domain/ — single source of truth for both
 # the local dev server and the Azure Functions cloud backend.
 sys.path.insert(0, str(ROOT / "api"))
-from shared import operations as ops  # noqa: E402
-from shared.operations import (  # noqa: E402
+from domain import operations as ops  # noqa: E402
+from domain.operations import (  # noqa: E402
     DuplicateBuildError,
     FKConflictError,
     NotFoundError,

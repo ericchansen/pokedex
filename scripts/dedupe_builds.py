@@ -29,9 +29,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Import shared domain modules from api/shared/ — single source of truth
+# Import shared domain modules from api/domain/ — single source of truth
 sys.path.insert(0, str(ROOT / "api"))
-from shared.build_fingerprint import build_fingerprint  # noqa: E402
+from domain.build_fingerprint import build_fingerprint  # noqa: E402
 
 USER_DATA_DIR = ROOT / "userdata"
 INV_PATH = USER_DATA_DIR / "inventory.json"

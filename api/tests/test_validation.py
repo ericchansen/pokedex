@@ -1,5 +1,5 @@
 """Tests for EV and team validation."""
-from shared.validation import validate_evs, validate_team_members
+from domain.validation import validate_evs, validate_team_members
 
 
 class TestValidateEvs:

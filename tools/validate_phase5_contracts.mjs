@@ -101,7 +101,7 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 sys.path.insert(0, str(root / "api"))
-from shared.build_fingerprint import build_fingerprint
+from domain.build_fingerprint import build_fingerprint
 
 payload = json.loads(sys.stdin.read())
 print(build_fingerprint(payload.get("build") or {}, payload.get("egg_moves") or []))

@@ -10,15 +10,15 @@ from __future__ import annotations
 import json
 
 import azure.functions as func
-from shared import operations as ops
-from shared.auth import require_auth
-from shared.blob_store import ConflictError, atomic_update, read_blob_or_default, user_path
-from shared.operations import (
+from domain import operations as ops
+from domain.operations import (
     DuplicateBuildError,
     FKConflictError,
     NotFoundError,
     ValidationError,
 )
+from shared.auth import require_auth
+from shared.blob_store import ConflictError, atomic_update, read_blob_or_default, user_path
 
 bp = func.Blueprint()
 

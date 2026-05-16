@@ -2,7 +2,7 @@
 import re
 import time
 
-from shared.ulid import CROCKFORD, generate_ulid
+from domain.ulid import CROCKFORD, generate_ulid
 
 
 def test_ulid_length():

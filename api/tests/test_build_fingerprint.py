@@ -1,5 +1,5 @@
 """Tests for build fingerprint hashing."""
-from shared.build_fingerprint import build_fingerprint, fingerprint_record
+from domain.build_fingerprint import build_fingerprint, fingerprint_record
 
 
 class TestBuildFingerprint:

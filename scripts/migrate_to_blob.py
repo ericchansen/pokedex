@@ -23,10 +23,10 @@ import json
 import sys
 from pathlib import Path
 
-# Add api/ to path for shared modules
+# Add api/ to path for domain modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
 
-from shared.build_fingerprint import fingerprint_record  # noqa: E402
+from domain.build_fingerprint import fingerprint_record  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 USERDATA = ROOT / "userdata"
