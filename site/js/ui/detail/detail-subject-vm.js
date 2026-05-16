@@ -1,7 +1,7 @@
 /**
  * ui/detail/detail-subject-vm.js - Shared detail subject/view-model helpers.
  */
-const DetailSubjectVM = (() => {
+export const DetailSubjectVM = (() => {
   function resolveSpeciesSubject(source, fallback = {}) {
     const resolved = DataManager.resolveSpecies(source || fallback.slug || fallback.species || null);
     const speciesEntry = source?.baseStats ? source : (resolved.entry || source || null);

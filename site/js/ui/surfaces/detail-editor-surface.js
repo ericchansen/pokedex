@@ -1,7 +1,7 @@
 /**
  * ui/surfaces/detail-editor-surface.js - Shared page/panel shell for editors.
  */
-const DetailEditorSurface = (() => {
+export const DetailEditorSurface = (() => {
   function render(options) {
     const {
       isFullPage = false,

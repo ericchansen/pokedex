@@ -5,7 +5,7 @@
  * without owning persistence or DOM.
  */
 
-const DomainMappers = (() => {
+export const DomainMappers = (() => {
   const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
   const BUILD_STATE_FIELDS = Object.freeze([
     'form', 'level', 'nature', 'ability', 'item', 'tera_type', 'moves', 'evs',

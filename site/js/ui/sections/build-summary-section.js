@@ -1,7 +1,7 @@
 /**
  * ui/sections/build-summary-section.js - Shared build summary rendering section.
  */
-const BuildSummarySection = (() => {
+export const BuildSummarySection = (() => {
   const STAT_KEYS = DomainMappers.STAT_KEYS;
   const NATURE_BOOSTS = {
     Adamant: { plus: 'atk', minus: 'spa' },

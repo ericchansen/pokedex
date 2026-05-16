@@ -1,7 +1,7 @@
 /**
  * ui/widgets/stat-editor-widget.js - Shared stat editor rendering and input wiring.
  */
-const StatEditorWidget = (() => {
+export const StatEditorWidget = (() => {
   const {
     CHAMPIONS_PER_STAT_CAP = 32,
     CHAMPIONS_TOTAL_CAP = 66,

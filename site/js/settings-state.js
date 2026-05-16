@@ -2,7 +2,7 @@
  * settings-state.js - Local UI preferences persisted in localStorage.
  */
 
-const SettingsState = (() => {
+export const SettingsState = (() => {
   const STORAGE_KEY = 'pokemonHomeTrackerSettings';
   const VALID_THEMES = new Set(['default', 'gen3']);
   const DEFAULTS = Object.freeze({

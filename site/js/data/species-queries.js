@@ -1,7 +1,7 @@
 /**
  * data/species-queries.js - Species lookup, compatibility, and sprite queries.
  */
-const SpeciesQueries = (() => {
+export const SpeciesQueries = (() => {
   let _ctx = null;
 
   function init(ctx) {

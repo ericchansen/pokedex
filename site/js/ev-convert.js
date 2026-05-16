@@ -25,7 +25,7 @@
  * closest Level 50 heuristic and fills the Classic EV budget correctly.
  */
 
-const EvConvert = (() => {
+export const EvConvert = (() => {
   const emptySpread = DomainMappers.emptySpread;
   const STAT_KEYS = DomainMappers.STAT_KEYS;
   const CHAMPIONS_PER_STAT_CAP = 32;

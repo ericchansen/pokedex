@@ -1,4 +1,4 @@
-const PresetService = (() => {
+export const PresetService = (() => {
   let activePreset = null; // { gameSet, layoutId, name, boxes: [{title, pokemon: [slug]}] }
   let _ctx = null;
 

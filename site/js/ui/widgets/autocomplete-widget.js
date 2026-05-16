@@ -1,7 +1,7 @@
 /**
  * ui/widgets/autocomplete-widget.js - Shared autocomplete widget.
  */
-const AutocompleteWidget = (() => {
+export const AutocompleteWidget = (() => {
   function create(input, searchFn, options = {}) {
     const { onSelect, formatItem } = options;
     const escapeHtml = options.escapeHtml || UIShared.escapeHtml;

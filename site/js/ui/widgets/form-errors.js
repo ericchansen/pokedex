@@ -1,7 +1,7 @@
 /**
  * ui/widgets/form-errors.js - Shared form error rendering.
  */
-const FormErrors = (() => {
+export const FormErrors = (() => {
   function clearFieldError(input) {
     input.classList.remove('field-error');
     const existing = input.parentElement.querySelector('.field-error-msg');

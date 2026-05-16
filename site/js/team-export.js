@@ -2,7 +2,7 @@
  * team-export.js - Showdown importable formatting + export trust metadata for battle teams.
  */
 
-const TeamExportFormatter = (() => {
+export const TeamExportFormatter = (() => {
   const STAT_ORDER = DomainMappers.STAT_KEYS;
   const STAT_LABELS = DomainMappers.STAT_LABELS;
   const DEFAULT_LEVEL = 50;
@@ -106,3 +106,4 @@ const TeamExportFormatter = (() => {
     getExportMeta,
   };
 })();
+window.TeamExportFormatter = TeamExportFormatter;

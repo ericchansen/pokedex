@@ -1,7 +1,7 @@
 /**
  * ui/widgets/ball-picker.js - Shared ball picker widget.
  */
-const BallPicker = (() => {
+export const BallPicker = (() => {
   const BALL_LIST = Object.freeze(['Poke','Great','Ultra','Master','Safari','Fast','Level','Lure','Heavy','Love',
     'Friend','Moon','Dream','Beast','Sport','Premier','Repeat','Timer','Nest','Net',
     'Dive','Luxury','Heal','Quick','Dusk','Cherish','Strange']);

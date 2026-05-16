@@ -1,7 +1,7 @@
 /**
  * ui/sections/detail-hero-section.js - Shared detail hero/header rendering.
  */
-const DetailHeroSection = (() => {
+export const DetailHeroSection = (() => {
   function renderPokemon(subject, options = {}) {
     const {
       submetaHtml = '',

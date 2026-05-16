@@ -6,14 +6,16 @@ export default [
     files: ["site/js/**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: "script",
+      sourceType: "module",
       globals: {
         ...globals.browser,
-        // App modules (IIFE globals assigned to window)
+        // App modules — still accessed via window.X globals during transition.
+        // These will be removed progressively as imports replace global refs.
         ApiClient: "readonly",
         AppRoutes: "readonly",
         AppSelectors: "readonly",
         AppStore: "readonly",
+        AuthWidget: "readonly",
         BallPicker: "readonly",
         BoxesView: "readonly",
         BrowserSurface: "readonly",
@@ -32,6 +34,7 @@ export default [
         FilterToolbar: "readonly",
         FormErrors: "readonly",
         FormFields: "readonly",
+        FormMetadata: "readonly",
         InstanceMetadataSection: "readonly",
         InventoryView: "readonly",
         LearnsetService: "readonly",
@@ -84,17 +87,6 @@ export default [
       "no-throw-literal": "warn",
       "no-self-compare": "warn",
       "no-template-curly-in-string": "warn",
-    },
-  },
-  {
-    // Files that use ES module syntax (import/export)
-    files: [
-      "site/js/app.js",
-      "site/js/router.js",
-      "site/js/views/*.js",
-    ],
-    languageOptions: {
-      sourceType: "module",
     },
   },
   {

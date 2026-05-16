@@ -5,7 +5,7 @@
  * Shows user identity + logout when authenticated.
  * Shows login button when not authenticated.
  */
-const AuthWidget = (() => {
+export const AuthWidget = (() => {
   async function init() {
     const container = document.getElementById('auth-widget');
     if (!container) return;

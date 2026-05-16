@@ -4,7 +4,7 @@
  * "boxes" is the canonical route/section name for the storage view. New code
  * should not introduce additional "home" route naming.
  */
-const AppRoutes = (() => {
+export const AppRoutes = (() => {
   const sections = Object.freeze({
     boxes: 'boxes',
     inventory: 'inventory',

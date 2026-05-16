@@ -2,7 +2,7 @@
  * build-editor.js - Build creation/editing UI and build delete actions.
  */
 
-const BuildEditor = (() => {
+export const BuildEditor = (() => {
   const {
     ALL_TYPES,
     STAT_NAMES,

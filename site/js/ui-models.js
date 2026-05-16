@@ -5,7 +5,7 @@
  * "what facts should the UI display?" without owning any DOM.
  */
 
-const UIModels = (() => {
+export const UIModels = (() => {
   const STAT_KEYS = DomainMappers.STAT_KEYS;
   const EV_TOTALS = { classic: 510, champions: 66 };
   const EV_NEAR_MAX = { classic: 508, champions: 66 };

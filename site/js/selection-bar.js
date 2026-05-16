@@ -5,7 +5,7 @@
  * regardless of which tab/view is active.
  */
 
-const SelectionBar = (() => {
+export const SelectionBar = (() => {
   let barEl = null;
   let initialized = false;
 

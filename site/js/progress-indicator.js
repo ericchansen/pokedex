@@ -2,7 +2,7 @@
  * progress-indicator.js - Shared progress meter updates.
  */
 
-const ProgressIndicator = (() => {
+export const ProgressIndicator = (() => {
   let unsubscribe = null;
   let lastSignature = '';
 

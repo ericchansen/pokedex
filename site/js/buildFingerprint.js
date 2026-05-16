@@ -137,11 +137,5 @@ function buildFingerprint(build, eggMoves) {
   return sha1Hex(stableStringify(payload));
 }
 
-// CommonJS / ES export shim — used both in browser (window.BuildFingerprint)
-// and in any future test runner.
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { buildFingerprint, FINGERPRINT_VERSION };
-}
-if (typeof window !== 'undefined') {
-  window.BuildFingerprint = { buildFingerprint, FINGERPRINT_VERSION };
-}
+export const BuildFingerprint = { buildFingerprint, FINGERPRINT_VERSION };
+window.BuildFingerprint = BuildFingerprint;

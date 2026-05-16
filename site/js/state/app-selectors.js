@@ -1,7 +1,7 @@
 /**
  * state/app-selectors.js - Derived state selectors over AppStore + DataManager.
  */
-const AppSelectors = (() => {
+export const AppSelectors = (() => {
   const SEC = {
     boxes: globalThis.AppRoutes?.sections?.boxes || 'boxes',
     inventory: globalThis.AppRoutes?.sections?.inventory || 'inventory',

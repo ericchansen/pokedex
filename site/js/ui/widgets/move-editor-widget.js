@@ -1,7 +1,7 @@
 /**
  * ui/widgets/move-editor-widget.js - Shared move editor rendering and wiring.
  */
-const MoveEditorWidget = (() => {
+export const MoveEditorWidget = (() => {
   function renderClearableFields(values = [], options = {}) {
     const {
       count = 4,

@@ -5,7 +5,7 @@
  * Purely in-memory — clears on tab change or page reload.
  * Separate from the build Selection module (which is for export).
  */
-const SlotSelection = (() => {
+export const SlotSelection = (() => {
   const selected = new Map(); // key "boxId:slotIdx" → {boxId, slotIdx}
   const subscribers = [];
   let lastClicked = null; // {boxId, slotIdx} for Shift+Click range

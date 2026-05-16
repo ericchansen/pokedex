@@ -1,4 +1,4 @@
-const BrowserSurface = (() => {
+export const BrowserSurface = (() => {
   const {
     AppStore,
     AppRoutes,

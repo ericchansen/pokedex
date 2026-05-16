@@ -2,7 +2,7 @@
  * pokemon-viewer.js - Species/build detail viewer and inventory build card UI.
  */
 
-const PokemonViewer = (() => {
+export const PokemonViewer = (() => {
   const {
     escapeHtml,
     titleCase,

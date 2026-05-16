@@ -1,7 +1,7 @@
 /**
  * data/repositories.js - Focused HTTP repositories for persisted app data.
  */
-const DataRepositories = (() => {
+export const DataRepositories = (() => {
   const inventory = {
     putSlot(boxId, slotIdx, slotData) {
       return ApiClient.put(`/api/inventory/${boxId}/${slotIdx}`, slotData);

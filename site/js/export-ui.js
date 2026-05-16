@@ -2,7 +2,7 @@
  * export-ui.js - Bulk export UI decoupled from route renderers.
  */
 
-const ExportUI = (() => {
+export const ExportUI = (() => {
   const { escapeHtml } = UIShared;
 
   function openBulkExportModal(builds, opts) {

@@ -1,7 +1,7 @@
 /**
  * data/learnset-service.js - Learnset and factory-set queries shared via DataManager.
  */
-const LearnsetService = (() => {
+export const LearnsetService = (() => {
   let learnsetsData = null;
   let factorySetsData = null;
   const learnsetDetailsCache = new Map();

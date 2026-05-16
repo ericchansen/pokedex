@@ -92,7 +92,7 @@
  * @property {string|null} subjectId
  */
 
-const RuntimeContracts = (() => {
+export const RuntimeContracts = (() => {
   const buildKinds = Object.freeze({
     library: 'library',
     instance: 'instance',

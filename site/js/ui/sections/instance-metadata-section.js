@@ -18,7 +18,7 @@
  *   // handle.collectValues(speciesSlug) → { gender, level, nickname, ot, origin_game, language, shiny, ... }
  *   // handle.populate(state, { onlyIfEmpty }) → sets field values
  */
-const InstanceMetadataSection = (() => {
+export const InstanceMetadataSection = (() => {
   const { escapeHtml } = UIShared;
 
   const ORIGIN_GAMES = ['Scarlet', 'Violet', 'Legends: Arceus', 'Legends: Z-A', 'Sword', 'Shield', 'Champions'];

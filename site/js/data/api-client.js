@@ -6,7 +6,7 @@
  * - 412 → ETag conflict notification
  * - Generic errors with descriptive messages
  */
-const ApiClient = (() => {
+export const ApiClient = (() => {
   function isHosted() {
     // SWA serves on azurestaticapps.net or custom domains; local dev uses localhost
     return !location.hostname.match(/^(localhost|127\.0\.0\.1)$/);

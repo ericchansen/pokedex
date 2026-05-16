@@ -4,7 +4,7 @@
  * Must be loaded after data.js and team-export.js.
  */
 
-const UIShared = (() => {
+export const UIShared = (() => {
   // ── Constants ──────────────────────────────────────────
 
   const STAT_NAMES = DomainMappers.STAT_LABELS;

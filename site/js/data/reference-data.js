@@ -1,7 +1,7 @@
 /**
  * data/reference-data.js - Loading and normalization helpers for reference datasets.
  */
-const ReferenceData = (() => {
+export const ReferenceData = (() => {
   let learnsetsData = null;
   let factorySetsData = null;
   const presetDataByGameSet = new Map();

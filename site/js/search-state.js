@@ -4,7 +4,7 @@
  * Views subscribe to this instead of routing search changes through a shared renderer hub.
  */
 
-const SearchState = (() => {
+export const SearchState = (() => {
   function resolveRoute(route) {
     if (route) return route;
     if (typeof AppStore.getActiveQueryRoute === 'function') {

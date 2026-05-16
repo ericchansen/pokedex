@@ -4,7 +4,7 @@
  * while exposing a stable surface for stat math and summary rendering.
  */
 
-const BuildUIHelpers = (() => {
+export const BuildUIHelpers = (() => {
   const NATURE_BOOSTS = BuildSummarySection.NATURE_BOOSTS;
 
   function getEvSystems(build) {

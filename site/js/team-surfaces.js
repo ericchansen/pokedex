@@ -2,7 +2,7 @@
  * team-surfaces.js - Team list, detail, import, and editor surfaces.
  */
 
-const TeamSurfaces = (() => {
+export const TeamSurfaces = (() => {
   const {
     STAT_NAMES,
     renderNatureOptions,

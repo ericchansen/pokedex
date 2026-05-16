@@ -13,7 +13,7 @@
  * and reference-data services.
  */
 
-const DataManager = (() => {
+export const DataManager = (() => {
   // ── State ──────────────────────────────────────────────
   let pokedexEntries = [];
   let builds = [];

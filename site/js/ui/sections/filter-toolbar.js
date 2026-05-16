@@ -1,7 +1,7 @@
 /**
  * ui/sections/filter-toolbar.js - Shared filter-toolbar section builders.
  */
-const FilterToolbarSection = (() => {
+export const FilterToolbarSection = (() => {
   const GENERATIONS = [
     { value: '1', label: 'Gen 1 (Kanto)' },
     { value: '2', label: 'Gen 2 (Johto)' },

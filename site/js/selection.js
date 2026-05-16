@@ -6,7 +6,7 @@
  * sprites are in this set — there is no separate per-team selection state.
  */
 
-const Selection = (() => {
+export const Selection = (() => {
   function has(buildId) {
     return AppStore.hasSelectedBuildId(buildId);
   }

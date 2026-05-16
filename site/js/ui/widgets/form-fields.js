@@ -1,7 +1,7 @@
 /**
  * ui/widgets/form-fields.js - Shared form-field widgets and validation helpers.
  */
-const FormFields = (() => {
+export const FormFields = (() => {
   function renderNatureOptions(selectedNature, deps = {}) {
     const escapeHtml = deps.escapeHtml || UIShared.escapeHtml;
     return '<option value="">-- Select --</option>' +

@@ -12,7 +12,9 @@ function assert(condition, message) {
 
 function loadScript(relPath, sandbox) {
   const filePath = path.join(ROOT, relPath);
-  const source = fs.readFileSync(filePath, 'utf8');
+  let source = fs.readFileSync(filePath, 'utf8');
+  // Strip ES module export declarations so vm.runInContext can parse them
+  source = source.replace(/^export\s+/gm, '');
   vm.runInContext(source, sandbox, { filename: filePath });
 }
 

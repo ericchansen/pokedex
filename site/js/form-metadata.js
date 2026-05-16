@@ -14,7 +14,7 @@
  *   That's it. Storage roundtrip, matching, tooltips, sprites, and
  *   placement UI all derive from this registry.
  */
-const FormMetadata = (() => {
+export const FormMetadata = (() => {
   // Species whose sprites differ by gender (cosmetic dimorphism).
   // Exported from SpeciesResolver but also needed here for tooltip/sprite logic.
   const GENDER_SPRITE_SPECIES = (typeof SpeciesResolver !== 'undefined' && SpeciesResolver.GENDER_SPRITE_SPECIES)

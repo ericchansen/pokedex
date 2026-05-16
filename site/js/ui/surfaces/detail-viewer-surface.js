@@ -1,7 +1,7 @@
 /**
  * ui/surfaces/detail-viewer-surface.js - Shared viewer shell for detail panels.
  */
-const DetailViewerSurface = (() => {
+export const DetailViewerSurface = (() => {
   function render(options = {}) {
     const {
       contextBadgeHtml = '',

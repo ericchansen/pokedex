@@ -3,7 +3,7 @@
  * Inverse of team-export.js formatMember().
  */
 
-const ShowdownParser = (() => {
+export const ShowdownParser = (() => {
   const STAT_KEYS = Object.fromEntries(
     Object.entries(DomainMappers.STAT_LABELS).map(([k, label]) => [label, k])
   );
@@ -165,3 +165,4 @@ const ShowdownParser = (() => {
 
   return { parseSet, parseTeam };
 })();
+window.ShowdownParser = ShowdownParser;

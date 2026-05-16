@@ -4,7 +4,7 @@
  * Pure helper layer. Callers pass the current pokedex indexes / entries.
  */
 
-const SpeciesResolver = (() => {
+export const SpeciesResolver = (() => {
   // Species whose sprites differ by gender (cosmetic dimorphism with separate Showdown sprites).
   // Keyed by BASE collapsed slug (Smogon entry key for base form, without regional suffixes).
   const GENDER_SPRITE_SPECIES = new Set([

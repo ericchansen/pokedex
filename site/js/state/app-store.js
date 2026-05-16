@@ -1,7 +1,7 @@
 /**
  * state/app-store.js - Central runtime store for shell/query/selection/detail state.
  */
-const AppStore = (() => {
+export const AppStore = (() => {
   const SEC = {
     boxes: globalThis.AppRoutes?.sections?.boxes || 'boxes',
     inventory: globalThis.AppRoutes?.sections?.inventory || 'inventory',

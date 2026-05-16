@@ -1,7 +1,7 @@
 /**
  * data/storage-mappers.js - Storage/in-memory projection helpers for builds and instances.
  */
-const StorageMappers = (() => {
+export const StorageMappers = (() => {
   const BUILD_STATE_FIELDS = DomainMappers.BUILD_STATE_FIELDS;
   const IDENTITY_EXCLUDE = new Set([
     ...BUILD_STATE_FIELDS,
