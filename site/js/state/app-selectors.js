@@ -239,6 +239,7 @@ export const AppSelectors = (() => {
       showType: normalizedRoute === (SEC.boxes),
       showGeneration: normalizedRoute === (SEC.boxes),
       showFlags: normalizedRoute === (SEC.boxes),
+      collapseSecondary: normalizedRoute === (SEC.boxes),
       showTransferred: false,
       showOwnedOnly: false,
       summaryText: '',

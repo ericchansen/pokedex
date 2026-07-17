@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-16T03:13:54.6006484Z",
+  "title": "Design System: Pokémon HOME Tracker",
+  "extensions": {
+    "colorMeta": {
+      "night-canvas": {
+        "role": "neutral",
+        "displayName": "PC Night",
+        "canonical": "#0f1923",
+        "tonalRamp": ["oklch(15% 0.025 249.1)", "oklch(27% 0.025 249.1)", "oklch(39% 0.025 249.1)", "oklch(51% 0.025 249.1)", "oklch(63% 0.025 249.1)", "oklch(75% 0.025 249.1)", "oklch(87% 0.025 249.1)", "oklch(95% 0.025 249.1)"]
+      },
+      "deep-shell": {
+        "role": "neutral",
+        "displayName": "Deep Cabinet",
+        "canonical": "#162231",
+        "tonalRamp": ["oklch(15% 0.033 254.4)", "oklch(27% 0.033 254.4)", "oklch(39% 0.033 254.4)", "oklch(51% 0.033 254.4)", "oklch(63% 0.033 254.4)", "oklch(75% 0.033 254.4)", "oklch(87% 0.033 254.4)", "oklch(95% 0.033 254.4)"]
+      },
+      "box-surface": {
+        "role": "neutral",
+        "displayName": "Box Interior",
+        "canonical": "#1e2d3d",
+        "tonalRamp": ["oklch(15% 0.036 250.7)", "oklch(27% 0.036 250.7)", "oklch(39% 0.036 250.7)", "oklch(51% 0.036 250.7)", "oklch(63% 0.036 250.7)", "oklch(75% 0.036 250.7)", "oklch(87% 0.036 250.7)", "oklch(95% 0.036 250.7)"]
+      },
+      "slate-header": {
+        "role": "neutral",
+        "displayName": "Header Slate",
+        "canonical": "#2a3f55",
+        "tonalRamp": ["oklch(15% 0.047 250.3)", "oklch(27% 0.047 250.3)", "oklch(39% 0.047 250.3)", "oklch(51% 0.047 250.3)", "oklch(63% 0.047 250.3)", "oklch(75% 0.047 250.3)", "oklch(87% 0.047 250.3)", "oklch(95% 0.047 250.3)"]
+      },
+      "slate-hover": {
+        "role": "neutral",
+        "displayName": "Hover Slate",
+        "canonical": "#2a4060",
+        "tonalRamp": ["oklch(15% 0.062 257.7)", "oklch(27% 0.062 257.7)", "oklch(39% 0.062 257.7)", "oklch(51% 0.062 257.7)", "oklch(63% 0.062 257.7)", "oklch(75% 0.062 257.7)", "oklch(87% 0.062 257.7)", "oklch(95% 0.062 257.7)"]
+      },
+      "detail-surface": {
+        "role": "neutral",
+        "displayName": "Detail Bay",
+        "canonical": "#1a2838",
+        "tonalRamp": ["oklch(15% 0.036 252.4)", "oklch(27% 0.036 252.4)", "oklch(39% 0.036 252.4)", "oklch(51% 0.036 252.4)", "oklch(63% 0.036 252.4)", "oklch(75% 0.036 252.4)", "oklch(87% 0.036 252.4)", "oklch(95% 0.036 252.4)"]
+      },
+      "ink-primary": {
+        "role": "neutral",
+        "displayName": "Primary LCD Text",
+        "canonical": "#e8edf2",
+        "tonalRamp": ["oklch(15% 0.009 247.9)", "oklch(27% 0.009 247.9)", "oklch(39% 0.009 247.9)", "oklch(51% 0.009 247.9)", "oklch(63% 0.009 247.9)", "oklch(75% 0.009 247.9)", "oklch(87% 0.009 247.9)", "oklch(95% 0.009 247.9)"]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary LCD Text",
+        "canonical": "#8899aa",
+        "tonalRamp": ["oklch(15% 0.032 248.3)", "oklch(27% 0.032 248.3)", "oklch(39% 0.032 248.3)", "oklch(51% 0.032 248.3)", "oklch(63% 0.032 248.3)", "oklch(75% 0.032 248.3)", "oklch(87% 0.032 248.3)", "oklch(95% 0.032 248.3)"]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted LCD Text",
+        "canonical": "#9aa9b8",
+        "tonalRamp": ["oklch(15% 0.032 248.4)", "oklch(27% 0.032 248.4)", "oklch(39% 0.032 248.4)", "oklch(51% 0.032 248.4)", "oklch(63% 0.032 248.4)", "oklch(75% 0.032 248.4)", "oklch(87% 0.032 248.4)", "oklch(95% 0.032 248.4)"]
+      },
+      "control-ink": {
+        "role": "neutral",
+        "displayName": "Default Control Ink",
+        "canonical": "#07131f",
+        "tonalRamp": ["oklch(15% 0.000 0.0)", "oklch(27% 0.000 0.0)", "oklch(39% 0.000 0.0)", "oklch(51% 0.000 0.0)", "oklch(63% 0.000 0.0)", "oklch(75% 0.000 0.0)", "oklch(87% 0.000 0.0)", "oklch(95% 0.000 0.0)"]
+      },
+      "danger-control-ink": {
+        "role": "neutral",
+        "displayName": "Default Danger Control Ink",
+        "canonical": "#210909",
+        "tonalRamp": ["oklch(15% 0.000 0.0)", "oklch(27% 0.000 0.0)", "oklch(39% 0.000 0.0)", "oklch(51% 0.000 0.0)", "oklch(63% 0.000 0.0)", "oklch(75% 0.000 0.0)", "oklch(87% 0.000 0.0)", "oklch(95% 0.000 0.0)"]
+      },
+      "pc-blue": {
+        "role": "primary",
+        "displayName": "Link Cable Blue",
+        "canonical": "#4a9eff",
+        "tonalRamp": ["oklch(15% 0.165 254.0)", "oklch(27% 0.165 254.0)", "oklch(39% 0.165 254.0)", "oklch(51% 0.165 254.0)", "oklch(63% 0.165 254.0)", "oklch(75% 0.165 254.0)", "oklch(87% 0.165 254.0)", "oklch(95% 0.165 254.0)"]
+      },
+      "pc-blue-hover": {
+        "role": "primary",
+        "displayName": "Link Cable Highlight",
+        "canonical": "#72b3ff",
+        "tonalRamp": ["oklch(15% 0.084 247.8)", "oklch(27% 0.084 247.8)", "oklch(39% 0.084 247.8)", "oklch(51% 0.084 247.8)", "oklch(63% 0.084 247.8)", "oklch(75% 0.084 247.8)", "oklch(87% 0.084 247.8)", "oklch(95% 0.084 247.8)"]
+      },
+      "completion-gold": {
+        "role": "secondary",
+        "displayName": "Completion Gold",
+        "canonical": "#f0c040",
+        "tonalRamp": ["oklch(15% 0.149 87.4)", "oklch(27% 0.149 87.4)", "oklch(39% 0.149 87.4)", "oklch(51% 0.149 87.4)", "oklch(63% 0.149 87.4)", "oklch(75% 0.149 87.4)", "oklch(87% 0.149 87.4)", "oklch(95% 0.149 87.4)"]
+      },
+      "ready-green": {
+        "role": "secondary",
+        "displayName": "Battle-Ready Green",
+        "canonical": "#4ade80",
+        "tonalRamp": ["oklch(15% 0.182 151.7)", "oklch(27% 0.182 151.7)", "oklch(39% 0.182 151.7)", "oklch(51% 0.182 151.7)", "oklch(63% 0.182 151.7)", "oklch(75% 0.182 151.7)", "oklch(87% 0.182 151.7)", "oklch(95% 0.182 151.7)"]
+      },
+      "warning-red": {
+        "role": "tertiary",
+        "displayName": "Warning Red",
+        "canonical": "#f87171",
+        "tonalRamp": ["oklch(15% 0.166 22.2)", "oklch(27% 0.166 22.2)", "oklch(39% 0.166 22.2)", "oklch(51% 0.166 22.2)", "oklch(63% 0.166 22.2)", "oklch(75% 0.166 22.2)", "oklch(87% 0.166 22.2)", "oklch(95% 0.166 22.2)"]
+      },
+      "warning-red-hover": {
+        "role": "tertiary",
+        "displayName": "Warning Red Highlight",
+        "canonical": "#ff9595",
+        "tonalRamp": ["oklch(15% 0.166 22.2)", "oklch(27% 0.166 22.2)", "oklch(39% 0.166 22.2)", "oklch(51% 0.166 22.2)", "oklch(63% 0.166 22.2)", "oklch(75% 0.166 22.2)", "oklch(87% 0.166 22.2)", "oklch(95% 0.166 22.2)"]
+      },
+      "gen3-parchment": {
+        "role": "neutral",
+        "displayName": "Gen III Parchment",
+        "canonical": "#DED5B4",
+        "tonalRamp": ["oklch(15% 0.045 94.5)", "oklch(27% 0.045 94.5)", "oklch(39% 0.045 94.5)", "oklch(51% 0.045 94.5)", "oklch(63% 0.045 94.5)", "oklch(75% 0.045 94.5)", "oklch(87% 0.045 94.5)", "oklch(95% 0.045 94.5)"]
+      },
+      "gen3-menu-gray": {
+        "role": "neutral",
+        "displayName": "Gen III Menu Gray",
+        "canonical": "#D5D5CD",
+        "tonalRamp": ["oklch(15% 0.011 106.6)", "oklch(27% 0.011 106.6)", "oklch(39% 0.011 106.6)", "oklch(51% 0.011 106.6)", "oklch(63% 0.011 106.6)", "oklch(75% 0.011 106.6)", "oklch(87% 0.011 106.6)", "oklch(95% 0.011 106.6)"]
+      },
+      "gen3-panel-lavender": {
+        "role": "neutral",
+        "displayName": "Gen III Panel Lavender",
+        "canonical": "#D5CDD5",
+        "tonalRamp": ["oklch(15% 0.014 325.7)", "oklch(27% 0.014 325.7)", "oklch(39% 0.014 325.7)", "oklch(51% 0.014 325.7)", "oklch(63% 0.014 325.7)", "oklch(75% 0.014 325.7)", "oklch(87% 0.014 325.7)", "oklch(95% 0.014 325.7)"]
+      },
+      "gen3-slate": {
+        "role": "neutral",
+        "displayName": "Gen III Slate",
+        "canonical": "#52629C",
+        "tonalRamp": ["oklch(15% 0.094 271.0)", "oklch(27% 0.094 271.0)", "oklch(39% 0.094 271.0)", "oklch(51% 0.094 271.0)", "oklch(63% 0.094 271.0)", "oklch(75% 0.094 271.0)", "oklch(87% 0.094 271.0)", "oklch(95% 0.094 271.0)"]
+      },
+      "gen3-cream": {
+        "role": "neutral",
+        "displayName": "Gen III Healthbox Cream",
+        "canonical": "#FFFFDE",
+        "tonalRamp": ["oklch(15% 0.043 107.2)", "oklch(27% 0.043 107.2)", "oklch(39% 0.043 107.2)", "oklch(51% 0.043 107.2)", "oklch(63% 0.043 107.2)", "oklch(75% 0.043 107.2)", "oklch(87% 0.043 107.2)", "oklch(95% 0.043 107.2)"]
+      },
+      "gen3-ink": {
+        "role": "neutral",
+        "displayName": "Gen III Ink",
+        "canonical": "#000000",
+        "tonalRamp": ["oklch(15% 0.000 0.0)", "oklch(27% 0.000 0.0)", "oklch(39% 0.000 0.0)", "oklch(51% 0.000 0.0)", "oklch(63% 0.000 0.0)", "oklch(75% 0.000 0.0)", "oklch(87% 0.000 0.0)", "oklch(95% 0.000 0.0)"]
+      },
+      "gen3-cobalt": {
+        "role": "primary",
+        "displayName": "Gen III Cobalt",
+        "canonical": "#3152CD",
+        "tonalRamp": ["oklch(15% 0.194 267.2)", "oklch(27% 0.194 267.2)", "oklch(39% 0.194 267.2)", "oklch(51% 0.194 267.2)", "oklch(63% 0.194 267.2)", "oklch(75% 0.194 267.2)", "oklch(87% 0.194 267.2)", "oklch(95% 0.194 267.2)"]
+      },
+      "gen3-teal": {
+        "role": "secondary",
+        "displayName": "Gen III Teal",
+        "canonical": "#52CDB4",
+        "tonalRamp": ["oklch(15% 0.116 177.3)", "oklch(27% 0.116 177.3)", "oklch(39% 0.116 177.3)", "oklch(51% 0.116 177.3)", "oklch(63% 0.116 177.3)", "oklch(75% 0.116 177.3)", "oklch(87% 0.116 177.3)", "oklch(95% 0.116 177.3)"]
+      },
+      "gen3-yellow": {
+        "role": "secondary",
+        "displayName": "Gen III Logo Yellow",
+        "canonical": "#FFD520",
+        "tonalRamp": ["oklch(15% 0.176 93.9)", "oklch(27% 0.176 93.9)", "oklch(39% 0.176 93.9)", "oklch(51% 0.176 93.9)", "oklch(63% 0.176 93.9)", "oklch(75% 0.176 93.9)", "oklch(87% 0.176 93.9)", "oklch(95% 0.176 93.9)"]
+      },
+      "gen3-cursor-red": {
+        "role": "tertiary",
+        "displayName": "Gen III Cursor Red",
+        "canonical": "#E60808",
+        "tonalRamp": ["oklch(15% 0.236 29.0)", "oklch(27% 0.236 29.0)", "oklch(39% 0.236 29.0)", "oklch(51% 0.236 29.0)", "oklch(63% 0.236 29.0)", "oklch(75% 0.236 29.0)", "oklch(87% 0.236 29.0)", "oklch(95% 0.236 29.0)"]
+      },
+      "gen3-frame": {
+        "role": "neutral",
+        "displayName": "Gen III Frame",
+        "canonical": "#293131",
+        "tonalRamp": ["oklch(15% 0.011 196.6)", "oklch(27% 0.011 196.6)", "oklch(39% 0.011 196.6)", "oklch(51% 0.011 196.6)", "oklch(63% 0.011 196.6)", "oklch(75% 0.011 196.6)", "oklch(87% 0.011 196.6)", "oklch(95% 0.011 196.6)"]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Compact Headline",
+        "purpose": "Major surface and dialog headings."
+      },
+      "body": {
+        "displayName": "Dense Interface Body",
+        "purpose": "Collection data, forms, and explanatory text."
+      },
+      "label": {
+        "displayName": "Control Label",
+        "purpose": "Tabs, filters, badges, and compact actions."
+      },
+      "pixel-display": {
+        "displayName": "Gen III Display",
+        "purpose": "Short headings and labels in the Gen III theme only."
+      },
+      "pixel-body": {
+        "displayName": "Gen III Data",
+        "purpose": "Readable body data and controls in the Gen III theme."
+      }
+    },
+    "shadows": [
+      {
+        "name": "popover",
+        "value": "0 4px 12px var(--shadow)",
+        "purpose": "Autocomplete and picker panels."
+      },
+      {
+        "name": "dialog",
+        "value": "0 8px 32px rgb(0, 0, 0, 0.5)",
+        "purpose": "Blocking modal content."
+      },
+      {
+        "name": "viewer-overlay",
+        "value": "0 20px 60px var(--shadow)",
+        "purpose": "Centered detail viewer."
+      },
+      {
+        "name": "gen3-frame",
+        "value": "inset 2px 2px 0 #6A8BBD, inset -2px -2px 0 #52629C, 4px 4px 0 rgb(0, 0, 0, 0.4)",
+        "purpose": "Structural framing for major Gen III surfaces."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "150ms ease",
+        "purpose": "Default hover and state feedback."
+      },
+      {
+        "name": "panel-enter",
+        "value": "300ms ease",
+        "purpose": "Detail panel translation."
+      },
+      {
+        "name": "gen3-cursor",
+        "value": "1s step-end infinite",
+        "purpose": "Blinking active-tab cursor in the Gen III theme."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "none",
+        "purpose": "Disable nonessential indicator animation when reduced motion is requested."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-phone",
+        "value": "500px"
+      },
+      {
+        "name": "phone",
+        "value": "640px"
+      },
+      {
+        "name": "tablet",
+        "value": "768px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "900px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Compact affirmative action using the principal interactive color.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Save Build</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; font: 600 13px/1.4 system-ui, sans-serif; transition: background 150ms ease, transform 100ms ease; } .ds-btn-primary { background: var(--accent-blue, #4a9eff); color: var(--button-primary-text, #07131f); } .ds-btn-primary:hover { background: var(--accent-blue-hover, #72b3ff); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent-gold, #f0c040); outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Compact supporting action with a visible full border.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; border-radius: 6px; cursor: pointer; font: 600 13px/1.4 system-ui, sans-serif; transition: background 150ms ease, transform 100ms ease; } .ds-btn-secondary { background: var(--bg-box-header, #2a3f55); color: var(--text-primary, #e8edf2); border: 1px solid var(--border, #2a3f55); } .ds-btn-secondary:hover { background: var(--bg-hover, #2a4060); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent-blue, #4a9eff); outline-offset: 2px; } .ds-btn-secondary:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Global collection search with compact padding and explicit focus.",
+      "html": "<input class=\"ds-search\" type=\"search\" placeholder=\"Search Pokémon…\">",
+      "css": ".ds-search { min-width: 240px; padding: 8px 14px; border: 1px solid var(--border, #2a3f55); border-radius: 8px; background: var(--bg-box, #1e2d3d); color: var(--text-primary, #e8edf2); font: 400 0.9rem/1.5 system-ui, sans-serif; outline: none; transition: border-color 200ms ease; } .ds-search::placeholder { color: var(--text-muted, #9aa9b8); } .ds-search:hover, .ds-search:focus-visible { border-color: var(--accent-blue, #4a9eff); }"
+    },
+    {
+      "name": "Navigation Tab",
+      "kind": "nav",
+      "refersTo": "navigation-tab-active",
+      "description": "Primary route tab with a filled active state.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Primary\"><button class=\"ds-tab\">Boxes</button><button class=\"ds-tab ds-tab-active\">Builds</button><button class=\"ds-tab\">Teams</button></nav>",
+      "css": ".ds-tabs { display: inline-flex; gap: 8px; } .ds-tab { padding: 8px 14px; border: 1px solid var(--border, #2a3f55); border-radius: 999px; background: var(--bg-box, #1e2d3d); color: var(--text-secondary, #8899aa); font: 700 0.85rem/1.3 system-ui, sans-serif; cursor: pointer; } .ds-tab:hover { background: var(--bg-hover, #2a4060); } .ds-tab:focus-visible { outline: 2px solid var(--accent-gold, #f0c040); outline-offset: 2px; } .ds-tab-active { background: var(--accent-blue, #4a9eff); border-color: var(--accent-blue, #4a9eff); color: var(--button-primary-text, #07131f); }"
+    },
+    {
+      "name": "Type Badge",
+      "kind": "chip",
+      "description": "Short semantic badge using committed Pokémon type color.",
+      "html": "<span class=\"ds-type-badge\">Water</span>",
+      "css": ".ds-type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--type-water, #6390f0); color: #fff; font: 600 11px/1.3 system-ui, sans-serif; letter-spacing: 0.5px; text-transform: uppercase; }"
+    },
+    {
+      "name": "Storage Box",
+      "kind": "custom",
+      "refersTo": "box-container",
+      "description": "Signature six-column Pokémon storage container.",
+      "html": "<section class=\"ds-box\"><header class=\"ds-box-header\">Box 01</header><div class=\"ds-box-grid\"><button class=\"ds-slot\">001</button><button class=\"ds-slot\">004</button><button class=\"ds-slot\">007</button><button class=\"ds-slot\">025</button><button class=\"ds-slot\">133</button><button class=\"ds-slot\">150</button></div></section>",
+      "css": ".ds-box { width: 290px; overflow: visible; border: 1px solid var(--border, #2a3f55); border-radius: 12px; background: var(--bg-box, #1e2d3d); color: var(--text-primary, #e8edf2); } .ds-box-header { padding: 4px 8px; border-bottom: 1px solid var(--border, #2a3f55); border-radius: 12px 12px 0 0; background: var(--bg-box-header, #2a3f55); color: var(--accent-gold, #f0c040); font: 600 0.75rem/1.3 system-ui, sans-serif; letter-spacing: 0.5px; text-align: center; } .ds-box-grid { display: grid; grid-template-columns: repeat(6, 44px); gap: 2px; justify-content: center; padding: 4px 8px 8px; } .ds-slot { width: 44px; height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary, #8899aa); cursor: pointer; font: 600 10px/1 system-ui, sans-serif; } .ds-slot:hover { background: var(--bg-hover, #2a4060); } .ds-slot:focus-visible { outline: 2px solid var(--accent-blue, #4a9eff); outline-offset: -2px; }"
+    },
+    {
+      "name": "Filter Toolbar",
+      "kind": "custom",
+      "description": "Dense filter grouping that keeps labels and controls scannable.",
+      "html": "<div class=\"ds-toolbar\"><span class=\"ds-toolbar-label\">View</span><label class=\"ds-toolbar-check\"><input type=\"checkbox\" checked> Owned</label><label class=\"ds-toolbar-check\"><input type=\"checkbox\"> Missing</label><select class=\"ds-toolbar-select\"><option>All games</option></select></div>",
+      "css": ".ds-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; color: var(--text-secondary, #8899aa); } .ds-toolbar-label { margin-right: 4px; color: var(--text-muted, #9aa9b8); font: 600 0.72rem/1.3 system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; } .ds-toolbar-check { display: inline-flex; align-items: center; gap: 4px; font: 400 0.85rem/1.4 system-ui, sans-serif; cursor: pointer; } .ds-toolbar-check input { accent-color: var(--accent-blue, #4a9eff); } .ds-toolbar-select { padding: 3px 8px; border: 1px solid var(--border, #2a3f55); border-radius: 6px; background: var(--bg-secondary, #162231); color: var(--text-primary, #e8edf2); font: 400 0.82rem/1.4 system-ui, sans-serif; } .ds-toolbar-select:focus-visible { outline: 2px solid var(--accent-gold, #f0c040); outline-offset: 2px; }"
+    },
+    {
+      "name": "Box State Key",
+      "kind": "custom",
+      "description": "Compact disclosure that explains existing slot backgrounds, borders, and glows without adding per-slot icons.",
+      "html": "<details class=\"ds-state-key\"><summary>Key <span>slot states</span></summary><div><span><i class=\"slot ds-state-sample\" data-preset=\"match\"></i> Correct slot</span><span><i class=\"slot ds-state-sample\" data-border=\"partial\"></i> Documentation partial</span><span><i class=\"slot ds-state-sample\" data-trained=\"full\"><img src=\"sprite.png\" alt=\"\"></i> Fully trained</span></div></details>",
+      "css": ".ds-state-key summary { display: inline-flex; gap: 6px; padding: 5px 10px; border: 1px solid var(--border, #2a3f55); border-radius: 8px; background: var(--bg-box-header, #2a3f55); color: var(--text-primary, #e8edf2); cursor: pointer; } .ds-state-key > div { display: flex; gap: 12px; padding: 12px; background: var(--bg-box, #1e2d3d); } .ds-state-key span { display: inline-flex; align-items: center; gap: 6px; } .ds-state-sample.slot { width: 24px; height: 24px; flex: 0 0 auto; cursor: default; pointer-events: none; }"
+    },
+    {
+      "name": "Dialog",
+      "kind": "card",
+      "refersTo": "dialog",
+      "description": "Elevated blocking layer for confirmation and focused input.",
+      "html": "<section class=\"ds-dialog\" role=\"dialog\" aria-labelledby=\"ds-dialog-title\"><h2 id=\"ds-dialog-title\">Release Pokémon?</h2><p>This action removes the instance from its box.</p><div class=\"ds-dialog-actions\"><button class=\"ds-dialog-cancel\">Cancel</button><button class=\"ds-dialog-danger\">Release</button></div></section>",
+      "css": ".ds-dialog { width: min(480px, 100%); padding: 20px 24px; border: 1px solid var(--border, #2a3f55); border-radius: 12px; background: var(--bg-box, #1e2d3d); color: var(--text-primary, #e8edf2); box-shadow: 0 8px 32px rgb(0 0 0 / 0.5); font-family: system-ui, sans-serif; } .ds-dialog h2 { margin: 0 0 10px; font-size: 1rem; } .ds-dialog p { margin: 0 0 16px; font-size: 0.95rem; line-height: 1.5; } .ds-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; } .ds-dialog button { padding: 6px 14px; border: 1px solid var(--border, #2a3f55); border-radius: 6px; font-weight: 600; cursor: pointer; } .ds-dialog-cancel { background: var(--bg-box-header, #2a3f55); color: var(--text-primary, #e8edf2); } .ds-dialog-danger { background: var(--accent-red, #f87171); color: var(--button-danger-text, #210909); } .ds-dialog button:hover { filter: brightness(1.1); } .ds-dialog button:focus-visible { outline: 2px solid var(--accent-gold, #f0c040); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Bill's PC",
+    "overview": "The interface is a modern collection workstation viewed through the memory of a Pokémon storage terminal. It is focused, nostalgic, and precise: Pokémon sprites and box positions lead, while the application chrome stays compact enough to disappear into the workflow. The default theme is a dark PokéPC workspace for sustained scanning. The optional Gen III theme is an authentic alternate skin built from FireRed and LeafGreen-era colors, pixel typography, hard frames, and instant interactions. Both themes preserve the same information hierarchy and component behavior. The system explicitly rejects the feel of a sterile enterprise administration tool.",
+    "keyCharacteristics": [
+      "Dense, spatial collection views with Pokémon as the dominant visual material.",
+      "Compact controls whose active, hover, selected, and invalid states are unmistakable.",
+      "Flat-at-rest surfaces; elevation appears only when content genuinely changes layer.",
+      "Semantic color channels for ownership, readiness, warnings, games, types, and stats.",
+      "A responsive shell that preserves scanning and editing workflows on narrow screens."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Channel Rule",
+        "body": "Blue means interaction, gold means completion, green means ready or correct, and red means danger or mismatch. Never reuse these colors as arbitrary decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Theme Parity Rule",
+        "body": "A theme may change material, typography, and rendering style; it must never change the meaning or visibility of a state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sprite-First Rule",
+        "body": "Type must identify and explain Pokémon; it must not compete with sprites through oversized display treatment.",
+        "section": "typography"
+      },
+      {
+        "name": "The Pixel Legibility Rule",
+        "body": "Never render VT323 below 16px, and never use Press Start 2P for paragraphs, dense tables, or long control labels.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-at-Rest Rule",
+        "body": "Repeated collection content is never raised merely to look clickable. Elevation signals layering, not decoration.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep Pokémon sprites, forms, box positions, Builds, and Teams visually dominant.",
+      "Do preserve the shared semantic color meanings across both themes.",
+      "Do use full borders, tonal surfaces, and spacing before adding elevation.",
+      "Do keep controls compact and unmistakable, with explicit active and focus states.",
+      "Do keep unknown, mismatched, and blocked states visibly distinct from confirmed states.",
+      "Do preserve mobile wrapping and touch-target behavior whenever dense desktop controls change."
+    ],
+    "donts": [
+      "Don't make the product resemble a sterile enterprise administration tool.",
+      "Don't introduce generic corporate dashboard cards, oversized KPI treatments, or detached business terminology.",
+      "Don't raise every box, row, or card with a shadow; collection surfaces are flat at rest.",
+      "Don't use blue, gold, green, or red as arbitrary decoration that weakens their semantic roles.",
+      "Don't add nostalgia that slows scanning, hides data, or replaces familiar controls with game imitation.",
+      "Don't let an unknown form, placement, or training state appear confirmed."
+    ]
+  }
+}

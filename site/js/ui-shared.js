@@ -231,6 +231,8 @@ export const UIShared = (() => {
   function showToast(message, durationMs = 3000) {
     const toast = document.createElement('div');
     toast.className = 'toast-notification';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
     toast.textContent = message;
     document.body.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('toast-visible'));
@@ -660,12 +662,14 @@ export const UIShared = (() => {
   // ── Panel management ───────────────────────────────────
 
   let _panelBeforeClose = null;
+  let _panelReturnFocus = null;
 
   function openPanel(html, opts = {}) {
     const panel = document.getElementById('detail-panel');
     const overlay = document.getElementById('detail-overlay');
     const content = document.getElementById('detail-content');
 
+    if (!panel.classList.contains('open')) _panelReturnFocus = document.activeElement;
     _panelBeforeClose = opts.onBeforeClose || null;
     content.innerHTML = html;
     panel.classList.add('open');
@@ -678,11 +682,14 @@ export const UIShared = (() => {
     if (!skipBeforeClose && _panelBeforeClose) {
       try { await _panelBeforeClose(); } catch (err) { console.error('Panel beforeClose error', err); }
     }
+    const returnFocus = _panelReturnFocus;
     _panelBeforeClose = null;
+    _panelReturnFocus = null;
     document.getElementById('detail-panel').classList.remove('open');
     document.getElementById('detail-overlay').classList.remove('open');
     document.getElementById('detail-content').innerHTML = '';
     if (typeof AppStore !== 'undefined') AppStore.setDetailOpen(false);
+    if (returnFocus?.isConnected && typeof returnFocus.focus === 'function') returnFocus.focus();
   }
 
   // ── Export surface utilities ────────────────────────────
