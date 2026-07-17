@@ -61,6 +61,64 @@ for (const file of [
   );
 }
 
+expectMatch(
+  'site/js/views/home.js',
+  /setAttribute\('role', 'gridcell'\)/,
+  'Boxes slots must expose gridcell semantics'
+);
+expectMatch(
+  'site/js/views/home.js',
+  /slot\.setAttribute\('aria-label', subject\)/,
+  'Boxes slots must expose their computed subject as an accessible name'
+);
+expectMatch(
+  'site/js/views/home.js',
+  /function mount\(container\)[\s\S]*?rovingSlot = \{ boxId: 0, slotIdx: 0 \};[\s\S]*?renderAllBoxPlaceholders\(\)[\s\S]*?ensureBoxRendered\(rovingBoxEl, rovingSlot\.boxId\)/,
+  'Boxes mount must restore a rendered slot as the roving tab stop'
+);
+expectMatch(
+  'site/js/views/home.js',
+  /event\.key === 'ArrowDown'[\s\S]*event\.key === 'Enter'[\s\S]*event\.key === ' '/,
+  'Boxes slots must support arrow navigation, Enter activation, and Space selection'
+);
+expectMatch(
+  'site/js/views/home.js',
+  /wantsSelection && !slot\.classList\.contains\('occupied'\)/,
+  'Boxes selection mode must ignore empty slots'
+);
+expectMatch(
+  'site/js/views/home.js',
+  /function closePlacement\(\)[\s\S]*?focusRovingSlot\(target\.boxId, target\.slotIdx\)/,
+  'closing placement must restore focus to the originating slot'
+);
+expectMatch(
+  'site/js/views/home.js',
+  /showConfirm\(`Remove \$\{name\} from Box/,
+  'single-slot removal must use the shared confirmation dialog'
+);
+for (const stateAttribute of ['data-preset', 'data-border', 'data-trained']) {
+  expectMatch(
+    'site/js/views/home.js',
+    new RegExp(`class="slot boxes-state-key__sample"[^>]*${stateAttribute}`),
+    `Boxes state key must reuse production slot ${stateAttribute} effects`
+  );
+}
+expectNoMatch(
+  'site/css/styles.css',
+  /\.boxes-state-key[^{]*\[(?:data-state|data-preset|data-border|data-trained)=/,
+  'Boxes state key must not duplicate production slot state effects'
+);
+expectMatch(
+  'site/js/ui/sections/filter-toolbar.js',
+  /data-browser-secondary/,
+  'shared toolbar must expose the responsive secondary-filter disclosure'
+);
+expectMatch(
+  'site/js/ui-shared.js',
+  /_panelReturnFocus = document\.activeElement[\s\S]*returnFocus\?\.isConnected[\s\S]*returnFocus\.focus\(\)/,
+  'shared detail panels must restore focus to their opening control'
+);
+
 if (failures.length) {
   console.error('Browser surface contract validation failed:\n');
   for (const failure of failures) console.error(`- ${failure}`);

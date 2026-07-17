@@ -56,7 +56,7 @@ export const FilterToolbarSection = (() => {
   function renderBrowserTypeControl(selectedType = '', deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     const allTypes = deps.allTypes || [];
-    return `<select data-browser-type class="browser-toolbar__select">
+    return `<select data-browser-type class="browser-toolbar__select" aria-label="Type">
       <option value="">All Types</option>
       ${allTypes.filter((type) => type !== 'Stellar').map((type) =>
         `<option value="${escapeHtml(type)}" ${type === selectedType ? 'selected' : ''}>${escapeHtml(type)}</option>`
@@ -66,7 +66,7 @@ export const FilterToolbarSection = (() => {
 
   function renderBrowserGenerationControl(selectedGen = '', deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
-    return `<select data-browser-generation class="browser-toolbar__select">
+    return `<select data-browser-generation class="browser-toolbar__select" aria-label="Generation">
       <option value="">All Gens</option>
       ${GENERATIONS.map((generation) =>
         `<option value="${generation.value}" ${generation.value === selectedGen ? 'selected' : ''}>${escapeHtml(generation.label)}</option>`
@@ -76,7 +76,7 @@ export const FilterToolbarSection = (() => {
 
   function renderBrowserTransferredControl(value = '', deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
-    return `<select data-browser-transferred class="browser-toolbar__select" title="Filter by transfer status to Champions">
+    return `<select data-browser-transferred class="browser-toolbar__select" aria-label="Transferred" title="Filter by transfer status to Champions">
       <option value=""${value === '' ? ' selected' : ''}>All</option>
       <option value="yes"${value === 'yes' ? ' selected' : ''}>Transferred</option>
       <option value="no"${value === 'no' ? ' selected' : ''}>Not transferred</option>
@@ -92,7 +92,7 @@ export const FilterToolbarSection = (() => {
 
   function renderBrowserSourceControl(value = '', deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
-    return `<select data-browser-source class="browser-toolbar__select" title="Filter by build source">
+    return `<select data-browser-source class="browser-toolbar__select" aria-label="Source" title="Filter by build source">
       <option value=""${value === '' ? ' selected' : ''}>All</option>
       <option value="mine"${value === 'mine' ? ' selected' : ''}>Mine</option>
       <option value="templates"${value === 'templates' ? ' selected' : ''}>Templates</option>
@@ -113,9 +113,21 @@ export const FilterToolbarSection = (() => {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     return `
       <div class="browser-toolbar__mode-toggle">
-        <button type="button" class="btn btn-sm ${mode === 'table' ? 'btn-primary' : 'btn-secondary'}" data-browser-mode="table">${escapeHtml('Table')}</button>
-        <button type="button" class="btn btn-sm ${mode === 'card' ? 'btn-primary' : 'btn-secondary'}" data-browser-mode="card">${escapeHtml('Card')}</button>
+        <button type="button" class="btn btn-sm ${mode === 'table' ? 'btn-primary' : 'btn-secondary'}" data-browser-mode="table" aria-pressed="${mode === 'table'}">${escapeHtml('Table')}</button>
+        <button type="button" class="btn btn-sm ${mode === 'card' ? 'btn-primary' : 'btn-secondary'}" data-browser-mode="card" aria-pressed="${mode === 'card'}">${escapeHtml('Card')}</button>
       </div>`;
+  }
+
+  function countActiveFilters(query = {}) {
+    return [
+      query.type,
+      query.generation,
+      query.transferred,
+      query.ownedOnly,
+      query.source,
+      ...(query.games || []),
+      ...(query.flags || []),
+    ].filter(Boolean).length;
   }
 
   function renderBrowserToolbar(config = {}, deps = {}) {
@@ -128,6 +140,7 @@ export const FilterToolbarSection = (() => {
     const rows = [];
     const primaryGroups = [];
     const filterGroups = [];
+    const secondaryRows = [];
 
     if (config.showModeToggle) {
       primaryGroups.push(renderToolbarGroup('View', renderBrowserModeControl(query.mode || 'table', { escapeHtml }), { escapeHtml }));
@@ -165,11 +178,25 @@ export const FilterToolbarSection = (() => {
     }
 
     if (config.showGames) {
-      rows.push(`<div class="browser-toolbar__row">${renderToolbarGroup('Games', renderBrowserGameControls(query.games || [], { escapeHtml }), { escapeHtml })}</div>`);
+      const row = `<div class="browser-toolbar__row">${renderToolbarGroup('Games', renderBrowserGameControls(query.games || [], { escapeHtml }), { escapeHtml })}</div>`;
+      if (config.collapseSecondary) secondaryRows.push(row);
+      else rows.push(row);
     }
 
     if (config.showFlags) {
-      rows.push(`<div class="browser-toolbar__row">${renderToolbarGroup('Flags', renderBrowserFlagsControl(query.flags || [], { escapeHtml }), { escapeHtml })}</div>`);
+      const row = `<div class="browser-toolbar__row">${renderToolbarGroup('Flags', renderBrowserFlagsControl(query.flags || [], { escapeHtml }), { escapeHtml })}</div>`;
+      if (config.collapseSecondary) secondaryRows.push(row);
+      else rows.push(row);
+    }
+
+    if (secondaryRows.length) {
+      const activeCount = countActiveFilters(query);
+      const activeText = activeCount ? `<span class="browser-toolbar__active-count">${activeCount} active</span>` : '';
+      rows.push(`
+        <details class="browser-toolbar__secondary" data-browser-secondary ${config.secondaryOpen === false ? '' : 'open'}>
+          <summary>Filters ${activeText}</summary>
+          <div class="browser-toolbar__secondary-content">${secondaryRows.join('')}</div>
+        </details>`);
     }
 
     if (config.summaryText) {

@@ -19,6 +19,9 @@ const BoxesView = (() => {
   let observer = null;
   const renderedBoxes = new Set();
   let unsubscribeStore = null;
+  let rovingSlot = { boxId: 0, slotIdx: 0 };
+  let toolbarMediaQuery = null;
+  let secondaryFiltersOpen = false;
 
   // ── Clipboard for copy/paste/cut ─────────────────────────
   // Unified clipboard: { items: [snapshots], isCut: bool, sources: [{boxId,slotIdx,instanceId}] | null }
@@ -119,7 +122,11 @@ const BoxesView = (() => {
     slotActionBar.querySelector('#slot-bar-remove').addEventListener('click', async () => {
       const entries = SlotSelection.entries();
       const count = entries.length;
-      const confirmed = await UIShared.showConfirm(`Remove ${count} Pokémon from their slots?`);
+      const confirmed = await UIShared.showConfirm(`Remove ${count} Pokémon from their slots?`, {
+        title: 'Remove from Boxes',
+        confirmLabel: 'Remove',
+        detail: 'This removes the selected Pokémon from your HOME inventory. Linked Library Builds are kept.',
+      });
       if (!confirmed) return;
       try {
         const affected = await DataManager.batchRemoveSlots(entries);
@@ -129,7 +136,7 @@ const BoxesView = (() => {
         UIShared.showToast(`Removed ${count} Pokémon`);
       } catch (err) {
         console.error('[Boxes] batchRemoveSlots failed:', err);
-        UIShared.showToast('Failed to remove — check console');
+        UIShared.showToast('Failed to remove the selected Pokémon.');
       }
     });
 
@@ -157,7 +164,9 @@ const BoxesView = (() => {
     container.querySelectorAll('.slot.occupied').forEach((slot) => {
       const boxId = parseInt(slot.dataset.boxId, 10);
       const slotIdx = parseInt(slot.dataset.slotIdx, 10);
-      slot.classList.toggle('selected', SlotSelection.has(boxId, slotIdx));
+      const selected = SlotSelection.has(boxId, slotIdx);
+      slot.classList.toggle('selected', selected);
+      slot.setAttribute('aria-selected', String(selected));
     });
     refreshSlotActionBar();
   }
@@ -171,22 +180,48 @@ const BoxesView = (() => {
 
   function mount(container) {
     containerEl = container;
+    rovingSlot = { boxId: 0, slotIdx: 0 };
+    const keySpriteUrl = UIShared.escapeHtml(DataManager.getSpriteUrl('pikachu'));
     container.innerHTML = `
       <div id="view-boxes">
-        <div class="preset-selector" id="preset-selector">
-          <label title="Auto-arrange your boxes into a Living Dex layout for a specific game">Preset:</label>
-          <select id="preset-gameset" class="preset-select" title="Choose a Living Dex preset to organize boxes by game">
-            <option value="">None</option>
-            <option value="home" title="National Dex order (Bulbasaur → Pecharunt)">HOME Living Dex</option>
-            <option value="sv" title="Paldean Pokédex order (SV-only species)">Scarlet / Violet</option>
-          </select>
-          <select id="preset-layout" class="preset-select" hidden></select>
+        <div class="boxes-control-strip">
+          <div class="preset-selector" id="preset-selector">
+            <label for="preset-gameset" title="Auto-arrange your boxes into a Living Dex layout for a specific game">Preset:</label>
+            <select id="preset-gameset" class="preset-select" title="Choose a Living Dex preset to organize boxes by game">
+              <option value="">None</option>
+              <option value="home" title="National Dex order (Bulbasaur → Pecharunt)">HOME Living Dex</option>
+              <option value="sv" title="Paldean Pokédex order (SV-only species)">Scarlet / Violet</option>
+            </select>
+            <select id="preset-layout" class="preset-select" aria-label="Preset layout" hidden></select>
+          </div>
+          <details class="boxes-state-key">
+            <summary>Key <span>slot states</span></summary>
+            <div class="boxes-state-key__content">
+              <div class="boxes-state-key__group">
+                <strong>Placement</strong>
+                <span><i class="slot boxes-state-key__sample" data-preset="match" aria-hidden="true"></i> Correct</span>
+                <span><i class="slot boxes-state-key__sample" data-preset="mismatch" aria-hidden="true"></i> Wrong slot</span>
+                <span><i class="slot empty preset-ghost boxes-state-key__sample" data-preset="owned-elsewhere" aria-hidden="true"><img class="ghost-sprite" src="${keySpriteUrl}" alt=""></i> Owned elsewhere</span>
+                <span><i class="slot empty preset-ghost boxes-state-key__sample" aria-hidden="true"><img class="ghost-sprite" src="${keySpriteUrl}" alt=""></i> Expected</span>
+              </div>
+              <div class="boxes-state-key__group">
+                <strong>Documentation</strong>
+                <span><i class="slot boxes-state-key__sample" data-border="complete" aria-hidden="true"></i> Complete</span>
+                <span><i class="slot boxes-state-key__sample" data-border="partial" aria-hidden="true"></i> Partial</span>
+              </div>
+              <div class="boxes-state-key__group">
+                <strong>Training</strong>
+                <span><i class="slot boxes-state-key__sample" data-trained="full" aria-hidden="true"><img src="${keySpriteUrl}" alt=""></i> Fully trained</span>
+                <span><i class="slot boxes-state-key__sample" data-trained="partial" aria-hidden="true"><img src="${keySpriteUrl}" alt=""></i> Ready to train</span>
+              </div>
+            </div>
+          </details>
         </div>
         <div id="boxes-browser-toolbar"></div>
         <div id="boxes-search-empty-anchor"></div>
         <div class="boxes-container" id="boxes-container"></div>
         <div class="inventory-placement-bar" id="placement-bar" hidden>
-          <label>Place Pokémon: </label>
+          <label for="placement-search">Place Pokémon: </label>
           <input type="text" id="placement-search" class="placement-search" placeholder="Search species..." autocomplete="off">
           <div class="placement-results" id="placement-results"></div>
           <button class="btn btn-sm btn-secondary" id="placement-cancel">Cancel</button>
@@ -200,6 +235,9 @@ const BoxesView = (() => {
       boxesContainer.addEventListener('contextmenu', handleBoxHeaderEvent);
     }
     wirePresetSelector();
+    toolbarMediaQuery = window.matchMedia('(max-width: 640px)');
+    secondaryFiltersOpen = !toolbarMediaQuery.matches;
+    toolbarMediaQuery.addEventListener('change', handleToolbarBreakpointChange);
     renderToolbar();
     ProgressIndicator.updateProgress();
 
@@ -255,6 +293,10 @@ const BoxesView = (() => {
   function unmount() {
     if (observer) { observer.disconnect(); observer = null; }
     if (unsubscribeStore) { unsubscribeStore(); unsubscribeStore = null; }
+    if (toolbarMediaQuery) {
+      toolbarMediaQuery.removeEventListener('change', handleToolbarBreakpointChange);
+      toolbarMediaQuery = null;
+    }
     if (unsubSlotSelection) { unsubSlotSelection(); unsubSlotSelection = null; }
     const boxesContainer = containerEl?.querySelector('#boxes-container');
     if (boxesContainer) {
@@ -294,10 +336,23 @@ const BoxesView = (() => {
   function renderToolbar() {
     const mount = document.getElementById('boxes-browser-toolbar');
     if (!mount) return;
+    const currentDisclosure = mount.querySelector('[data-browser-secondary]');
+    if (currentDisclosure) secondaryFiltersOpen = currentDisclosure.open;
+    const toolbarConfig = {
+      ...AppSelectors.selectBrowserToolbarConfig(AppRoutes.sections.boxes),
+      secondaryOpen: toolbarMediaQuery?.matches ? secondaryFiltersOpen : true,
+    };
     BrowserSurface.mountToolbar(
       mount,
-      AppSelectors.selectBrowserToolbarConfig(AppRoutes.sections.boxes)
+      toolbarConfig
     );
+  }
+
+  function handleToolbarBreakpointChange(event) {
+    secondaryFiltersOpen = !event.matches;
+    const currentDisclosure = document.querySelector('#boxes-browser-toolbar [data-browser-secondary]');
+    if (currentDisclosure) currentDisclosure.open = secondaryFiltersOpen;
+    renderToolbar();
   }
 
   function handleBoxHeaderEvent(event) {
@@ -315,6 +370,13 @@ const BoxesView = (() => {
   }
 
   // ── Lazy rendering with IntersectionObserver ──────────
+
+  function ensureBoxRendered(boxEl, boxId) {
+    if (!boxEl || renderedBoxes.has(boxId)) return;
+    renderBoxContent(boxEl, boxId);
+    renderedBoxes.add(boxId);
+    observer?.unobserve(boxEl);
+  }
 
   function renderAllBoxPlaceholders() {
     const container = document.getElementById('boxes-container');
@@ -336,6 +398,7 @@ const BoxesView = (() => {
 
       const header = document.createElement('div');
       header.className = 'box-header';
+      header.id = `box-header-${i}`;
       header.textContent = box ? box.name : `HOME ${i + 1}`;
       if (presetBox) {
         const presetLabel = document.createElement('span');
@@ -347,6 +410,10 @@ const BoxesView = (() => {
 
       const grid = document.createElement('div');
       grid.className = 'box-grid';
+      grid.setAttribute('role', 'grid');
+      grid.setAttribute('aria-labelledby', header.id);
+      grid.setAttribute('aria-rowcount', '5');
+      grid.setAttribute('aria-colcount', '6');
       boxEl.appendChild(grid);
 
       frag.appendChild(boxEl);
@@ -357,14 +424,14 @@ const BoxesView = (() => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
           const boxId = parseInt(entry.target.dataset.boxId, 10);
-          if (!renderedBoxes.has(boxId)) {
-            renderBoxContent(entry.target, boxId);
-            renderedBoxes.add(boxId);
-          }
+          ensureBoxRendered(entry.target, boxId);
           observer.unobserve(entry.target);
         }
       }
     }, { rootMargin: '200px' });
+
+    const rovingBoxEl = container.querySelector(`.box[data-box-id="${rovingSlot.boxId}"]`);
+    ensureBoxRendered(rovingBoxEl, rovingSlot.boxId);
 
     // Delay observe to next frame so browser has a layout pass —
     // otherwise observer won't fire for already-visible elements on re-render
@@ -378,13 +445,20 @@ const BoxesView = (() => {
   function populateBoxGrid(grid, box, boxId, presetBox) {
     if (!grid || !box) return;
     const fragment = document.createDocumentFragment();
+    let row = null;
     for (let i = 0; i < box.slots.length; i++) {
+      if (i % 6 === 0) {
+        row = document.createElement('div');
+        row.className = 'box-grid-row';
+        row.setAttribute('role', 'row');
+        fragment.appendChild(row);
+      }
       const occupant = box.slots[i];
       const target = presetBox && i < presetBox.pokemon.length ? presetBox.pokemon[i] : null;
       if (occupant && occupant.species_id) {
-        fragment.appendChild(createOccupiedSlot(occupant, boxId, i, target));
+        row.appendChild(createOccupiedSlot(occupant, boxId, i, target));
       } else {
-        fragment.appendChild(createEmptySlot(boxId, i, target));
+        row.appendChild(createEmptySlot(boxId, i, target));
       }
     }
     grid.appendChild(fragment);
@@ -692,6 +766,118 @@ const BoxesView = (() => {
     return FormMetadata.buildTooltipSuffix(state, resolvedSlug);
   }
 
+  function getSlotStateDetails(slot) {
+    const states = [];
+    const add = (label) => states.push(label);
+
+    switch (slot.dataset.preset) {
+      case 'match':
+        add('Correct preset placement');
+        break;
+      case 'mismatch':
+        add('Wrong preset slot');
+        break;
+      case 'owned-elsewhere':
+        add('Matching Pokémon is owned in another slot');
+        break;
+      default:
+        if (slot.classList.contains('preset-ghost')) {
+          add('Expected by the active preset');
+        }
+        break;
+    }
+
+    if (slot.dataset.border === 'complete') add('Documentation complete');
+    else if (slot.dataset.border === 'partial') add('Documentation partial');
+
+    if (slot.dataset.trained === 'full') add('Fully trained');
+    else if (slot.dataset.trained === 'partial') add('Ready to train');
+
+    return states;
+  }
+
+  function finalizeSlotAccessibility(slot, { boxId, slotIdx, name = '', occupied = false }) {
+    const states = getSlotStateDetails(slot);
+    const location = `Box ${boxId + 1}, slot ${slotIdx + 1}`;
+    const compactBadges = [
+      slot.querySelector('.slot-iv-badge'),
+      slot.querySelector('.slot-egg-badge'),
+    ].filter(Boolean);
+    const badgeDetails = compactBadges.map((badge) => badge.title).filter(Boolean);
+    compactBadges.forEach((badge) => badge.setAttribute('aria-hidden', 'true'));
+    slot.querySelectorAll('img').forEach((image) => {
+      image.alt = '';
+      image.setAttribute('aria-hidden', 'true');
+    });
+    let subject = occupied ? name : 'Empty';
+    let action = 'Press Enter to place a Pokémon.';
+    if (slot.classList.contains('preset-ghost')) {
+      subject = `Expected ${name}`;
+      action = 'Press Enter to place this Pokémon.';
+    } else if (occupied) {
+      action = 'Press Enter for details. Press Space to select.';
+    }
+
+    slot.setAttribute('role', 'gridcell');
+    slot.setAttribute('aria-rowindex', String(Math.floor(slotIdx / 6) + 1));
+    slot.setAttribute('aria-colindex', String((slotIdx % 6) + 1));
+    slot.setAttribute('aria-label', subject);
+    slot.setAttribute('aria-description', [location, ...badgeDetails, ...states, action].filter(Boolean).join('. '));
+    if (occupied) slot.setAttribute('aria-selected', String(SlotSelection.has(boxId, slotIdx)));
+    slot.tabIndex = rovingSlot.boxId === boxId && rovingSlot.slotIdx === slotIdx ? 0 : -1;
+
+  }
+
+  function focusRovingSlot(boxId, slotIdx) {
+    const boxCount = DataManager.getBoxCount();
+    if (boxId < 0 || boxId >= boxCount || slotIdx < 0 || slotIdx >= SLOTS_PER_BOX) return;
+    const container = document.getElementById('boxes-container');
+    const boxEl = container?.querySelector(`.box[data-box-id="${boxId}"]`);
+    if (!boxEl) return;
+
+    ensureBoxRendered(boxEl, boxId);
+
+    container.querySelector('.slot[tabindex="0"]')?.setAttribute('tabindex', '-1');
+    rovingSlot = { boxId, slotIdx };
+    const target = boxEl.querySelector(`.slot[data-slot-idx="${slotIdx}"]`);
+    if (!target) return;
+    target.tabIndex = 0;
+    target.focus();
+  }
+
+  function handleSlotKeydown(event) {
+    const slot = event.target.closest('.slot');
+    if (!slot) return;
+    const boxId = Number(slot.dataset.boxId);
+    const slotIdx = Number(slot.dataset.slotIdx);
+    const currentIndex = boxId * SLOTS_PER_BOX + slotIdx;
+    const lastIndex = DataManager.getBoxCount() * SLOTS_PER_BOX - 1;
+    let nextIndex = null;
+
+    if (event.key === 'ArrowLeft') nextIndex = currentIndex - 1;
+    else if (event.key === 'ArrowRight') nextIndex = currentIndex + 1;
+    else if (event.key === 'ArrowUp') nextIndex = currentIndex - 6;
+    else if (event.key === 'ArrowDown') nextIndex = currentIndex + 6;
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      nextIndex = Math.max(0, Math.min(lastIndex, nextIndex));
+      focusRovingSlot(Math.floor(nextIndex / SLOTS_PER_BOX), nextIndex % SLOTS_PER_BOX);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      slot.click();
+      return;
+    }
+
+    if (event.key === ' ' && slot.classList.contains('occupied')) {
+      event.preventDefault();
+      SlotSelection.toggle(boxId, slotIdx);
+    }
+  }
+
   // ── Delegated grid event handlers ─────────────────────
 
   /**
@@ -702,15 +888,21 @@ const BoxesView = (() => {
   function attachGridDelegation(grid) {
     if (grid.dataset.delegated) return;
     grid.dataset.delegated = '1';
+    grid.addEventListener('keydown', handleSlotKeydown);
 
     grid.addEventListener('click', async (e) => {
       const slot = e.target.closest('.slot');
       if (!slot) return;
       const boxId = Number(slot.dataset.boxId);
       const slotIdx = Number(slot.dataset.slotIdx);
+      rovingSlot = { boxId, slotIdx };
+      document.querySelector('#boxes-container .slot[tabindex="0"]')?.setAttribute('tabindex', '-1');
+      slot.tabIndex = 0;
 
       // Selection mode (Ctrl/Meta/Shift click)
       const inSelectionMode = SlotSelection.size() > 0;
+      const wantsSelection = e.ctrlKey || e.metaKey || e.shiftKey || inSelectionMode;
+      if (wantsSelection && !slot.classList.contains('occupied')) return;
       if (e.ctrlKey || e.metaKey || inSelectionMode) {
         if (e.shiftKey && SlotSelection.getLastClicked()) {
           SlotSelection.addRange(boxId, slotIdx);
@@ -903,6 +1095,7 @@ const BoxesView = (() => {
     attachDropTarget(slot, boxId, slotIdx);
 
     UIShared.applyEntryDecorations(slot, state);
+    finalizeSlotAccessibility(slot, { boxId, slotIdx, name: tooltip.textContent, occupied: true });
 
     return slot;
   }
@@ -974,6 +1167,8 @@ const BoxesView = (() => {
 
     // FR-2.4: empty slot is also a valid drop target
     attachDropTarget(slot, boxId, slotIdx);
+    const emptyName = slot.querySelector('.tooltip')?.textContent || '';
+    finalizeSlotAccessibility(slot, { boxId, slotIdx, name: emptyName, occupied: false });
 
     return slot;
   }
@@ -1087,11 +1282,13 @@ const BoxesView = (() => {
   }
 
   function closePlacement() {
+    const target = placementTarget;
     placementTarget = null;
     const bar = document.getElementById('placement-bar');
     bar.hidden = true;
     document.getElementById('placement-search').value = '';
     document.getElementById('placement-results').innerHTML = '';
+    if (target) focusRovingSlot(target.boxId, target.slotIdx);
   }
 
   function searchPlacement(query) {
@@ -1259,9 +1456,9 @@ const BoxesView = (() => {
       console.error('[Boxes] placeSlot failed:', err);
       UIShared.showToast('Failed to place Pokémon');
     }
-    closePlacement();
     refreshBox(boxId);
     ProgressIndicator.updateProgress();
+    closePlacement();
   }
 
   // ── Slot actions (remove/move) ────────────────────────
@@ -1336,10 +1533,23 @@ const BoxesView = (() => {
     });
 
     menu.querySelector('[data-action="remove"]').addEventListener('click', async () => {
-      await DataManager.removeFromSlot(boxId, slotIdx);
-      menu.remove();
-      refreshBox(boxId);
-      ProgressIndicator.updateProgress();
+      const confirmed = await UIShared.showConfirm(`Remove ${name} from Box ${boxId + 1}, slot ${slotIdx + 1}?`, {
+        title: 'Remove from Slot',
+        confirmLabel: 'Remove',
+        detail: 'This removes the Pokémon from your HOME inventory. Any linked Library Build is kept.',
+      });
+      if (!confirmed) return;
+      try {
+        await DataManager.removeFromSlot(boxId, slotIdx);
+        menu.remove();
+        refreshBox(boxId);
+        focusRovingSlot(boxId, slotIdx);
+        ProgressIndicator.updateProgress();
+        UIShared.showToast(`${name} removed from Box ${boxId + 1}.`);
+      } catch (err) {
+        console.error('[Boxes] removeFromSlot failed:', err);
+        UIShared.showToast(`Failed to remove ${name}.`);
+      }
     });
 
     menu.querySelector('[data-action="move"]').addEventListener('click', () => {
