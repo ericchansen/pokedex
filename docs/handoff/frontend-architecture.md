@@ -25,7 +25,8 @@ abilities, and natures are editor-only reference data and load once on demand. L
 and factory sets retain their own cached lazy loaders.
 
 Mutations persist through the repository layer, update the affected in-memory indexes, and then
-publish a precise `EntityStore` event. They must not call full application initialization.
+replace the current `EntityStore` slice with precise change metadata. They must not call full
+application initialization.
 
 `EntityStore` owns four versioned data slices:
 
@@ -37,8 +38,9 @@ publish a precise `EntityStore` event. They must not call full application initi
 | `inventory` | Boxes, slots, instances, and ownership indexes |
 
 Each event identifies the changed slice and, where applicable, entity IDs, boxes, or slots.
-Nested publications are queued to preserve listener order. Listener failures are logged and
-isolated after a committed mutation.
+Callers must always provide the current slice value, even when they mutate it in place. Nested
+events are queued to preserve listener order. Listener failures are logged and isolated after a
+committed mutation.
 
 ## Shell state
 
@@ -54,6 +56,8 @@ mounted views subscribe to the specific `AppStore` selectors and `EntityStore` s
 - Inventory, Builds, and Team collections reconcile children by stable entity key.
 - `ui/keyed-list.js` preserves unchanged nodes and listeners, performs in-place ordering, and
   restores equivalent keyboard focus when a changed item must be replaced.
+- `views/home.js` composes the Boxes route from focused grid, slot-rendering, drag/drop, placement,
+  and slot-action controllers under `views/boxes/`. Each stateful controller owns its cleanup.
 - The Boxes route responds to inventory metadata and slot events rather than remounting the route.
 - Query selectors cache derived results by normalized query and entity-slice version.
 - Existing pagination, lazy images, `content-visibility`, and box observation limit mounted work.
@@ -90,10 +94,10 @@ npm run lint
 npm run lint:py
 npm run typecheck
 npm run validate:modules
-npm run validate:phase5-contracts
+npm run validate:contracts
 npm run test:unit
 npm run test:frontend
-uv run --with pytest --with azure-functions pytest api/tests/ -v
+npm run test:py
 ```
 
 The frontend E2E suite launches Microsoft Edge and covers route loading, isolated route search,

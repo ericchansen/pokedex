@@ -1,4 +1,5 @@
 import { DataManager } from './data.js';
+import { createSubscriptionSet } from './state/subscription-set.js';
 
 /**
  * slot-selection.js — Multi-select state for box slots.
@@ -11,8 +12,7 @@ export const SlotSelection = (() => {
   /** @typedef {{boxId: number, slotIdx: number}} SlotLocation */
   /** @type {Map<string, SlotLocation>} */
   const selected = new Map(); // key "boxId:slotIdx" → {boxId, slotIdx}
-  /** @type {Array<() => void>} */
-  const subscribers = [];
+  const subscriptions = createSubscriptionSet('SlotSelection');
   /** @type {SlotLocation|null} */
   let lastClicked = null; // {boxId, slotIdx} for Shift+Click range
 
@@ -22,9 +22,7 @@ export const SlotSelection = (() => {
   }
 
   function notify() {
-    for (const fn of subscribers) {
-      try { fn(); } catch (e) { console.error('[SlotSelection] subscriber threw', e); }
-    }
+    subscriptions.notify();
   }
 
   /** @param {number} boxId @param {number} slotIdx */
@@ -127,12 +125,7 @@ export const SlotSelection = (() => {
 
   /** @param {() => void} fn */
   function subscribe(fn) {
-    if (typeof fn !== 'function') return () => {};
-    subscribers.push(fn);
-    return () => {
-      const idx = subscribers.indexOf(fn);
-      if (idx >= 0) subscribers.splice(idx, 1);
-    };
+    return subscriptions.subscribe(fn);
   }
 
   return { has, add, remove, toggle, addRange, clear, size, entries, getLastClicked, subscribe };

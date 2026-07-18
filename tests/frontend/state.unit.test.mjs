@@ -13,6 +13,31 @@ globalThis.window = {
 
 const { EntityStore } = await import('../../site/js/data/entity-store.js');
 const { AppStore } = await import('../../site/js/state/app-store.js');
+const { createSubscriptionSet } = await import('../../site/js/state/subscription-set.js');
+
+test('SubscriptionSet unsubscribes cleanly and isolates listener failures', () => {
+  const originalConsoleError = console.error;
+  const errors = [];
+  const delivered = [];
+  console.error = (...args) => errors.push(args);
+  const subscriptions = createSubscriptionSet('TestState');
+  const unsubscribeFailing = subscriptions.subscribe(() => {
+    throw new Error('listener failed');
+  });
+  const unsubscribeHealthy = subscriptions.subscribe(() => delivered.push('healthy'));
+
+  try {
+    subscriptions.notify();
+    unsubscribeHealthy();
+    subscriptions.notify();
+    assert.deepEqual(delivered, ['healthy']);
+    assert.equal(errors.length, 2);
+  } finally {
+    unsubscribeFailing();
+    unsubscribeHealthy();
+    console.error = originalConsoleError;
+  }
+});
 
 test('EntityStore notifies only the changed slice with precise metadata', () => {
   const inventoryEvents = [];
@@ -22,7 +47,7 @@ test('EntityStore notifies only the changed slice with precise metadata', () => 
 
   const inventory = { boxes: [] };
   EntityStore.replace('inventory', inventory);
-  EntityStore.publish('inventory', {
+  EntityStore.replace('inventory', inventory, {
     kind: 'upsert',
     boxes: [2],
     slots: [{ boxId: 2, slotIdx: 4 }],
@@ -43,14 +68,15 @@ test('EntityStore queues nested events until current delivery completes', () => 
   const unsubscribeFirst = EntityStore.subscribe('teams', (event) => {
     order.push(`first:${event.version}`);
     if (event.change.kind === 'outer') {
-      EntityStore.publish('teams', { kind: 'nested' });
+      EntityStore.replace('teams', teams, { kind: 'nested' });
     }
   });
   const unsubscribeSecond = EntityStore.subscribe('teams', (event) => {
     order.push(`second:${event.version}`);
   });
 
-  EntityStore.publish('teams', { kind: 'outer' });
+  const teams = [];
+  EntityStore.replace('teams', teams, { kind: 'outer' });
 
   assert.deepEqual(order, ['first:1', 'second:1', 'first:2', 'second:2']);
   unsubscribeFirst();
@@ -70,7 +96,7 @@ test('EntityStore isolates listener failures after a committed mutation', () => 
   });
 
   try {
-    assert.doesNotThrow(() => EntityStore.publish('builds', { kind: 'upsert' }));
+    assert.doesNotThrow(() => EntityStore.replace('builds', [], { kind: 'upsert' }));
     assert.equal(delivered, true);
     assert.equal(errors.length, 1);
   } finally {

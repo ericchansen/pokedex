@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  frontend-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,13 +19,22 @@ jobs:
 
       - run: npm ci
 
-      - name: ESLint
-        run: npx eslint site/js/
+      - name: JavaScript and CSS lint
+        run: npm run lint
 
-      - name: Stylelint
-        run: npx stylelint "site/css/**/*.css"
+      - name: Checked JavaScript
+        run: npm run typecheck
 
-  lint-python:
+      - name: Module architecture
+        run: npm run validate:modules
+
+      - name: Data and domain contracts
+        run: npm run validate:contracts
+
+      - name: Frontend unit tests
+        run: npm run test:unit
+
+  python-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,11 +42,20 @@ jobs:
       - uses: astral-sh/setup-uv@v6
 
       - name: Ruff
-        run: uvx ruff check .
+        run: npm run lint:py
 
-  validate:
+  backend-tests:
     runs-on: ubuntu-latest
-    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: API tests
+        run: npm run test:py
+
+  edge-e2e:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -46,7 +64,9 @@ jobs:
           node-version: 22
           cache: npm
 
+      - uses: astral-sh/setup-uv@v6
+
       - run: npm ci
 
-      - name: Contract validation
-        run: node tools/validate_phase5_contracts.mjs
+      - name: Microsoft Edge browser tests
+        run: npm run test:frontend

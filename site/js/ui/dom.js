@@ -35,3 +35,35 @@ export function titleCase(value) {
 export function pluralize(count, singular, plural = `${singular}s`) {
   return count === 1 ? singular : plural;
 }
+
+/** @param {ParentNode} root @param {string} selector */
+export function requireElement(root, selector) {
+  const element = root.querySelector(selector);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing element: ${selector}`);
+  return element;
+}
+
+/** @param {ParentNode} root @param {string} selector */
+export function requireInput(root, selector) {
+  const element = root.querySelector(selector);
+  if (!(element instanceof HTMLInputElement)) throw new Error(`Missing input: ${selector}`);
+  return element;
+}
+
+/** @param {ParentNode} root @param {string} selector */
+export function requireSelect(root, selector) {
+  const element = root.querySelector(selector);
+  if (!(element instanceof HTMLSelectElement)) throw new Error(`Missing select: ${selector}`);
+  return element;
+}
+
+/** @param {ParentNode} root @param {string} selector */
+export function requireFormField(root, selector) {
+  const element = root.querySelector(selector);
+  if (!(element instanceof HTMLInputElement)
+    && !(element instanceof HTMLTextAreaElement)
+    && !(element instanceof HTMLSelectElement)) {
+    throw new Error(`Missing form field: ${selector}`);
+  }
+  return element;
+}

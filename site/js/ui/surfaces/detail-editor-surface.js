@@ -32,7 +32,10 @@ export const DetailEditorSurface = (() => {
 
   /**
    * @param {string} html
-   * @param {{target?: HTMLElement|null, panelOptions?: {onBeforeClose?: (() => void|Promise<void>)|null}|null}} [options]
+   * @param {{
+   * target?: HTMLElement|null,
+   * panelOptions?: {onBeforeClose?: ((context: {reason: 'user'|'route-dispose'}) => void|Promise<void>)|null}|null
+   * }} [options]
    */
   function mount(html, options = {}) {
     const { target = null, panelOptions = null } = options;

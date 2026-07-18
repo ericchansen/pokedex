@@ -1,3 +1,5 @@
+import { createSubscriptionSet } from './state/subscription-set.js';
+
 /**
  * settings-state.js - Local UI preferences persisted in localStorage.
  */
@@ -14,8 +16,7 @@ export const SettingsState = (() => {
 
   /** @type {Settings} */
   let state = loadState();
-  /** @type {Set<SettingsListener>} */
-  const listeners = new Set();
+  const subscriptions = createSubscriptionSet('SettingsState');
 
   /** @param {unknown} value */
   function normalizeLanguageCode(value) {
@@ -54,14 +55,7 @@ export const SettingsState = (() => {
   }
 
   function emit() {
-    const snapshot = { ...state };
-    for (const listener of [...listeners]) {
-      try {
-        listener(snapshot);
-      } catch (err) {
-        console.error('[SettingsState] listener failed', err);
-      }
-    }
+    subscriptions.notify();
   }
 
   function get() {
@@ -106,8 +100,7 @@ export const SettingsState = (() => {
     if (typeof listener !== 'function') {
       return () => {};
     }
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+    return subscriptions.subscribe(() => listener(get()));
   }
 
   window.addEventListener('storage', (event) => {

@@ -5,6 +5,7 @@ import { TeamExportFormatter } from './team-export.js';
 import { UIModels } from './ui-models.js';
 import { UIShared } from './ui-shared.js';
 import { DetailSubjectVM } from './ui/detail/detail-subject-vm.js';
+import { requireElement } from './ui/dom.js';
 import { Feedback } from './ui/feedback.js';
 import { DetailHeroSection } from './ui/sections/detail-hero-section.js';
 import { InstanceMetadataSection } from './ui/sections/instance-metadata-section.js';
@@ -52,13 +53,6 @@ export const PokemonViewer = (() => {
    * exportSource?: import('./types/contracts.js').BuildState, searchText?: string
    * }} CardViewModel */
   /** @typedef {{label: string, weight: number, build: import('./types/contracts.js').BuildState|null}} FactoryBuildOption */
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireElement(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLElement)) throw new Error(`Missing element: ${selector}`);
-    return element;
-  }
 
   const {
     escapeHtml,

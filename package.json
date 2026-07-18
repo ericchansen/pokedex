@@ -10,13 +10,9 @@
     "test:unit": "node --test tests/frontend/*.unit.test.mjs",
     "typecheck": "tsc --project tsconfig.json",
     "visual:indicators": "node tools/capture_indicator_visuals.mjs --out=.scratch/indicator-visuals",
-    "validate:phase1-contracts": "node tools/validate_phase1_contracts.mjs",
-    "validate:phase2-contracts": "node tools/validate_phase2_contracts.mjs",
-    "validate:phase3-contracts": "node tools/validate_phase3_contracts.mjs",
-    "validate:phase4-contracts": "python tools/validate_contracts.py && node tools/validate_phase4_contracts.mjs && node tools/validate_browser_surface_contracts.mjs",
-    "validate:phase5-contracts": "python tools/validate_data_schema.py && node tools/validate_phase5_contracts.mjs",
+    "validate:contracts": "python tools/validate_deprecated_contracts.py && python tools/validate_data_schema.py && node tools/validate_domain_contracts.mjs",
     "validate:modules": "node tools/validate_module_graph.mjs",
-    "test:py": "cd api && python -m pytest tests/ -v"
+    "test:py": "uv run --with pytest --with azure-functions pytest api/tests/ -v"
   },
   "devDependencies": {
     "eslint": "^10.3.0",

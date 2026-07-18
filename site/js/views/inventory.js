@@ -70,7 +70,7 @@ function createInventoryBrowser(dataMode) {
     for (const unsubscribe of unsubscribeEntities) unsubscribe();
     unsubscribeEntities = [];
     if (unsubscribeSelection) { unsubscribeSelection(); unsubscribeSelection = null; }
-    DetailPanel.close();
+    void DetailPanel.close({ reason: 'route-dispose' });
   }
 
   /** @param {string} key @param {import('../types/contracts.js').BrowserEntry} entry */

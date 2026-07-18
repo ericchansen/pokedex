@@ -80,7 +80,7 @@ const TeamsView = (() => {
     if (unsubscribeSearch) { unsubscribeSearch(); unsubscribeSearch = null; }
     for (const unsubscribe of unsubscribeEntities) unsubscribe();
     unsubscribeEntities = [];
-    DetailPanel.close();
+    void DetailPanel.close({ reason: 'route-dispose' });
   }
 
   return { mount, unmount };
