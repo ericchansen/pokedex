@@ -14,7 +14,10 @@ export const DetailViewerSurface = (() => {
     return `${contextBadgeHtml}${heroHtml}${bodyHtml}`;
   }
 
-  /** @param {string} html @param {{onBeforeClose?: (() => void|Promise<void>)|null}|null} [panelOptions] */
+  /**
+   * @param {string} html
+   * @param {{onBeforeClose?: ((context: {reason: 'user'|'route-dispose'}) => void|Promise<void>)|null}|null} [panelOptions]
+   */
   function mount(html, panelOptions = null) {
     return DetailPanel.open(html, panelOptions || undefined);
   }

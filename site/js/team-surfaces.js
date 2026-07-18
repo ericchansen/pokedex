@@ -10,6 +10,12 @@ import { Selection } from './selection.js';
 import { ShowdownParser } from './showdown-parser.js';
 import { TeamExportFormatter } from './team-export.js';
 import { UIShared } from './ui-shared.js';
+import {
+  requireElement,
+  requireFormField as requireField,
+  requireInput,
+  requireSelect,
+} from './ui/dom.js';
 import { Feedback } from './ui/feedback.js';
 import { KeyedList } from './ui/keyed-list.js';
 import { DetailHeroSection } from './ui/sections/detail-hero-section.js';
@@ -26,38 +32,6 @@ import { StatEditorWidget } from './ui/widgets/stat-editor-widget.js';
 
 export const TeamSurfaces = (() => {
   /** @typedef {{target?: HTMLElement|null, onSaved?: (() => void)|null, onCancel?: (() => void)|null}} TeamFormOptions */
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireInput(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLInputElement)) throw new Error(`Missing input: ${selector}`);
-    return element;
-  }
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireSelect(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLSelectElement)) throw new Error(`Missing select: ${selector}`);
-    return element;
-  }
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireField(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLInputElement)
-      && !(element instanceof HTMLTextAreaElement)
-      && !(element instanceof HTMLSelectElement)) {
-      throw new Error(`Missing form field: ${selector}`);
-    }
-    return element;
-  }
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireElement(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLElement)) throw new Error(`Missing element: ${selector}`);
-    return element;
-  }
 
   const {
     STAT_NAMES,

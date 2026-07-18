@@ -150,7 +150,10 @@ test('updates Builds incrementally without reloading data or replacing unchanged
     await page.locator('[data-view="builds"]').click();
     await page.waitForSelector('#view-builds');
     const firstId = await page.evaluate(async () => {
-      const { DataManager } = await import('/js/data.js');
+      const [{ DataManager }, { EntityStore }] = await Promise.all([
+        import('/js/data.js'),
+        import('/js/data/entity-store.js'),
+      ]);
       const build = await DataManager.createBuild({
         species: 'Pikachu',
         slug: 'pikachu',
@@ -160,6 +163,9 @@ test('updates Builds incrementally without reloading data or replacing unchanged
         ev_system: 'classic',
         evs: { classic: { spa: 252, spe: 252 } },
       });
+      if (!EntityStore.get('builds')?.some((candidate) => candidate.id === build.id)) {
+        throw new Error('EntityStore did not expose the created build');
+      }
       return build.id;
     });
     const firstRow = page.locator('.inventory-row[data-search-text*="pikachu"]');
@@ -167,7 +173,10 @@ test('updates Builds incrementally without reloading data or replacing unchanged
     await firstRow.evaluate((row) => { row.dataset.nodeMarker = 'preserved'; });
 
     const secondId = await page.evaluate(async () => {
-      const { DataManager } = await import('/js/data.js');
+      const [{ DataManager }, { EntityStore }] = await Promise.all([
+        import('/js/data.js'),
+        import('/js/data/entity-store.js'),
+      ]);
       const build = await DataManager.createBuild({
         species: 'Bulbasaur',
         slug: 'bulbasaur',
@@ -177,6 +186,9 @@ test('updates Builds incrementally without reloading data or replacing unchanged
         ev_system: 'classic',
         evs: { classic: { hp: 252, spe: 252 } },
       });
+      if (!EntityStore.get('builds')?.some((candidate) => candidate.id === build.id)) {
+        throw new Error('EntityStore did not expose the created build');
+      }
       return build.id;
     });
     await page.waitForSelector('.inventory-row[data-search-text*="bulbasaur"]');
@@ -185,13 +197,184 @@ test('updates Builds incrementally without reloading data or replacing unchanged
     assert.equal(await page.locator('.inventory-row').count(), 2);
     assert.deepEqual(reloadRequests, []);
 
-    await page.evaluate(async ([firstBuildId, secondBuildId]) => {
-      const { DataManager } = await import('/js/data.js');
+    const storeState = await page.evaluate(async ([firstBuildId, secondBuildId]) => {
+      const [{ DataManager }, { EntityStore }] = await Promise.all([
+        import('/js/data.js'),
+        import('/js/data/entity-store.js'),
+      ]);
+      const current = DataManager.getBuild(firstBuildId);
+      await DataManager.updateBuild(firstBuildId, { ...current, nature: 'Jolly' });
+      const updated = EntityStore.get('builds')?.find((build) => build.id === firstBuildId);
       await DataManager.deleteBuild(firstBuildId);
       await DataManager.deleteBuild(secondBuildId);
+      const remainingIds = (EntityStore.get('builds') || []).map((build) => build.id);
+      return {
+        updatedNature: updated?.nature,
+        firstDeleted: !remainingIds.includes(firstBuildId),
+        secondDeleted: !remainingIds.includes(secondBuildId),
+      };
     }, [firstId, secondId]);
+    assert.deepEqual(storeState, {
+      updatedNature: 'Jolly',
+      firstDeleted: true,
+      secondDeleted: true,
+    });
   } finally {
     page.off('request', trackReloads);
+  }
+});
+
+test('closes an edited instance on route navigation without reopening stale details', async () => {
+  await page.locator('[data-view="boxes"]').click();
+  await page.waitForSelector('#view-boxes');
+  await page.locator('#preset-gameset').selectOption('');
+
+  try {
+    await page.evaluate(async () => {
+      const [{ DataManager }, { PokemonViewer }] = await Promise.all([
+        import('/js/data.js'),
+        import('/js/pokemon-viewer.js'),
+      ]);
+      await DataManager.placeInSlot(0, 0, 'pikachu', null, {
+        kind: 'instance',
+        notes: '',
+      });
+      await PokemonViewer.openPokemonViewer({
+        slug: 'pikachu',
+        boxId: 0,
+        slotIdx: 0,
+      });
+    });
+    await page.locator('#cb-edit-btn').click();
+    await page.waitForSelector('#build-form');
+    await page.locator('#bf-notes').fill('Saved while navigating');
+
+    await page.evaluate(() => {
+      location.hash = '#/settings';
+    });
+    await page.waitForSelector('.settings-page');
+    await page.waitForTimeout(700);
+
+    assert.equal(await page.locator('#detail-panel').getAttribute('aria-hidden'), 'true');
+    assert.equal(await page.locator('#build-form').count(), 0);
+    assert.equal(await page.evaluate(async () => {
+      const { DataManager } = await import('/js/data.js');
+      return DataManager.getSlot(0, 0)?.state?.notes;
+    }), 'Saved while navigating');
+  } finally {
+    await page.evaluate(async () => {
+      const [{ DataManager }, { DetailPanel }] = await Promise.all([
+        import('/js/data.js'),
+        import('/js/ui/surfaces/detail-panel.js'),
+      ]);
+      await DetailPanel.close({ skipBeforeClose: true });
+      if (DataManager.getSlot(0, 0)) await DataManager.removeFromSlot(0, 0);
+    });
+    await page.goto(server.url, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#view-boxes');
+  }
+});
+
+test('coalesces an active detail-panel close with route disposal', async () => {
+  const result = await page.evaluate(async () => {
+    const { DetailPanel } = await import('/js/ui/surfaces/detail-panel.js');
+    let releaseClose = () => {};
+    const closeGate = new Promise((resolve) => {
+      releaseClose = resolve;
+    });
+    let settledReason = null;
+    DetailPanel.open('<form id="pending-close-form"></form>', {
+      onBeforeClose: async (context) => {
+        await closeGate;
+        settledReason = context.reason;
+      },
+    });
+
+    const firstClose = DetailPanel.close();
+    const secondClose = DetailPanel.close({ reason: 'route-dispose' });
+    const retainedWhileClosing = Boolean(document.getElementById('pending-close-form'));
+    const hiddenWhileClosing = document.getElementById('detail-panel')?.getAttribute('aria-hidden');
+    releaseClose();
+    await Promise.all([firstClose, secondClose]);
+
+    return {
+      retainedWhileClosing,
+      hiddenWhileClosing,
+      settledReason,
+      clearedAfterClose: !document.getElementById('pending-close-form'),
+    };
+  });
+
+  assert.deepEqual(result, {
+    retainedWhileClosing: true,
+    hiddenWhileClosing: 'true',
+    settledReason: 'route-dispose',
+    clearedAfterClose: true,
+  });
+});
+
+test('preserves Boxes keyboard, placement, clipboard, drag, and teardown behavior', async () => {
+  await page.locator('[data-view="boxes"]').click();
+  await page.waitForSelector('#view-boxes');
+  await page.locator('#preset-gameset').selectOption('');
+  await page.locator('#search-input').fill('');
+
+  const slot = (index) => page.locator(`.box[data-box-id="0"] .slot[data-slot-idx="${index}"]`);
+  try {
+    await page.evaluate(async () => {
+      const { DataManager } = await import('/js/data.js');
+      await DataManager.placeInSlot(0, 0, 'pikachu', null, { kind: 'instance' });
+      await DataManager.placeInSlot(0, 1, 'bulbasaur', null, { kind: 'instance' });
+    });
+    await slot(0).waitFor();
+    await slot(1).waitFor();
+
+    await slot(0).focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('data-slot-idx')), '1');
+
+    await slot(0).click({ modifiers: ['Control'] });
+    await page.waitForSelector('.slot-action-bar:not(.hidden)');
+    await page.locator('#slot-bar-copy').click();
+
+    await page.locator('[data-view="settings"]').click();
+    await page.waitForSelector('.settings-page');
+    assert.equal(await page.locator('.slot-action-bar').count(), 0);
+    await page.locator('[data-view="boxes"]').click();
+    await page.waitForSelector('#view-boxes');
+    await page.locator('#preset-gameset').selectOption('');
+
+    await slot(2).click({ button: 'right' });
+    await page.locator('[data-action="paste"]').click();
+    await page.waitForFunction(() => document.querySelector(
+      '.box[data-box-id="0"] .slot[data-slot-idx="2"]'
+    )?.classList.contains('occupied'));
+
+    await slot(3).click();
+    await page.waitForSelector('#placement-bar:not([hidden])');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('data-slot-idx')), '3');
+
+    await slot(2).dragTo(slot(4));
+    await page.waitForFunction(() => {
+      const source = document.querySelector('.box[data-box-id="0"] .slot[data-slot-idx="2"]');
+      const destination = document.querySelector('.box[data-box-id="0"] .slot[data-slot-idx="4"]');
+      return source?.classList.contains('empty') && destination?.classList.contains('occupied');
+    });
+
+    await slot(2).click({ button: 'right' });
+    await page.locator('[data-action="clear-clipboard"]').click();
+    await page.locator('[data-view="settings"]').click();
+    await page.waitForSelector('.settings-page');
+    assert.equal(await page.locator('.slot-action-bar').count(), 0);
+  } finally {
+    await page.evaluate(async () => {
+      const { DataManager } = await import('/js/data.js');
+      const occupied = [0, 1, 2, 3, 4]
+        .filter((slotIdx) => DataManager.getSlot(0, slotIdx))
+        .map((slotIdx) => ({ boxId: 0, slotIdx }));
+      if (occupied.length) await DataManager.batchClearSlots(occupied);
+    });
   }
 });
 

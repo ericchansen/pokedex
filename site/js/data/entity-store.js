@@ -1,6 +1,6 @@
 /**
  * EntityStore owns the current data-slice references and precise change events.
- * Data services replace or mutate a slice, then publish the affected identities.
+ * Data services provide the current slice value with every precise change event.
  */
 export const EntityStore = (() => {
   /** @typedef {'reference'|'builds'|'teams'|'inventory'} EntitySlice */
@@ -80,11 +80,6 @@ export const EntityStore = (() => {
     return notify(slice, change);
   }
 
-  /** @param {EntitySlice} slice @param {EntityChange} change */
-  function publish(slice, change) {
-    return notify(slice, change);
-  }
-
   /** @param {EntitySlice} slice */
   function get(slice) {
     assertSlice(slice);
@@ -114,7 +109,6 @@ export const EntityStore = (() => {
   return {
     get,
     getVersion,
-    publish,
     replace,
     subscribe,
   };

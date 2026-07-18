@@ -119,7 +119,7 @@ async function main() {
   await runShowdownFixtures();
   await runDomainContracts();
   await runFingerprintFixtures();
-  console.log('Phase 5 contract validation passed.');
+  console.log('Domain contract validation passed.');
 }
 
 await main();

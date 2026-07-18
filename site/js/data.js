@@ -740,7 +740,7 @@ export const DataManager = (() => {
     if (inventory && inventory.boxes[boxId]) {
       inventory.boxes[boxId].slots[slotIdx] = result;
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'upsert',
         boxes: [boxId],
         slots: [{ boxId, slotIdx }],
@@ -781,7 +781,7 @@ export const DataManager = (() => {
     }
     if (affectedBoxes.size) hydrateSlotIndex();
     if (affectedBoxes.size) {
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'batch',
         boxes: [...affectedBoxes],
         slots: entries.map(({ boxId, slotIdx }) => ({ boxId, slotIdx })),
@@ -814,7 +814,7 @@ export const DataManager = (() => {
     }
     if (affectedBoxes.size) hydrateSlotIndex();
     if (affectedBoxes.size) {
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'batch',
         boxes: [...affectedBoxes],
         slots: entries.map(({ boxId, slotIdx }) => ({ boxId, slotIdx })),
@@ -864,7 +864,7 @@ export const DataManager = (() => {
         }
       }
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'batch',
         boxes: [...new Set(fixes.map(({ boxId }) => Number(boxId)))],
         slots: fixes.map(({ boxId, slotIdx }) => ({ boxId: Number(boxId), slotIdx })),
@@ -888,7 +888,7 @@ export const DataManager = (() => {
     if (inventory && inventory.boxes[boxId]) {
       inventory.boxes[boxId].slots[slotIdx] = result;
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'upsert',
         boxes: [boxId],
         slots: [{ boxId, slotIdx }],
@@ -929,7 +929,7 @@ export const DataManager = (() => {
     if (inventory && inventory.boxes[boxId]) {
       inventory.boxes[boxId].slots[slotIdx] = result;
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'upsert',
         boxes: [boxId],
         slots: [{ boxId, slotIdx }],
@@ -961,7 +961,7 @@ export const DataManager = (() => {
     if (inventory && inventory.boxes[boxId]) {
       inventory.boxes[boxId].slots[slotIdx] = result;
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'upsert',
         boxes: [boxId],
         slots: [{ boxId, slotIdx }],
@@ -983,7 +983,7 @@ export const DataManager = (() => {
     if (inventory && inventory.boxes[boxId]) {
       inventory.boxes[boxId].slots[slotIdx] = result;
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'upsert',
         boxes: [boxId],
         slots: [{ boxId, slotIdx }],
@@ -1108,7 +1108,7 @@ export const DataManager = (() => {
     if (inventory && inventory.boxes[boxId]) {
       inventory.boxes[boxId].slots[slotIdx] = null;
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'delete',
         boxes: [boxId],
         slots: [{ boxId, slotIdx }],
@@ -1132,7 +1132,7 @@ export const DataManager = (() => {
       if (inventory.boxes[fromResult.box]) inventory.boxes[fromResult.box].slots[fromResult.slot] = fromResult.occupant ?? null;
       if (inventory.boxes[toResult.box]) inventory.boxes[toResult.box].slots[toResult.slot] = toResult.occupant ?? null;
       hydrateSlotIndex();
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'move',
         boxes: [...new Set([fromBox, toBox])],
         slots: [
@@ -1213,7 +1213,7 @@ export const DataManager = (() => {
           }
         }
         hydrateSlotIndex();
-        EntityStore.publish('inventory', {
+        EntityStore.replace('inventory', inventory, {
           kind: 'batch-move',
           boxes: [...affectedBoxes],
           slots: [...grid.keys()].map((key) => {
@@ -1236,7 +1236,7 @@ export const DataManager = (() => {
     const result = await DataRepositories.inventory.renameBox(boxId, name);
     if (inventory && inventory.boxes[boxId]) {
       inventory.boxes[boxId].name = result.name;
-      EntityStore.publish('inventory', {
+      EntityStore.replace('inventory', inventory, {
         kind: 'rename',
         boxes: [boxId],
         slots: [],
@@ -1267,7 +1267,7 @@ export const DataManager = (() => {
     if (!result.id) throw new Error('Created build response is missing an id');
     builds.push(result);
     rebuildBuildIndexes();
-    EntityStore.publish('builds', { kind: 'upsert', ids: [result.id] });
+    EntityStore.replace('builds', builds, { kind: 'upsert', ids: [result.id] });
     EntityStore.replace('teams', teams, { kind: 'build-links-updated', ids: [result.id] });
     return builds[builds.length - 1];
   }
@@ -1342,7 +1342,7 @@ export const DataManager = (() => {
     const idx = builds.findIndex(b => b.id === id);
     if (idx >= 0) builds[idx] = flat;
     rebuildBuildIndexes();
-    EntityStore.publish('builds', { kind: 'upsert', ids: [id] });
+    EntityStore.replace('builds', builds, { kind: 'upsert', ids: [id] });
     EntityStore.replace('teams', teams, { kind: 'build-links-updated', ids: [id] });
     return flat;
   }
@@ -1371,7 +1371,7 @@ export const DataManager = (() => {
             if (inventory?.boxes[r.box]) inventory.boxes[r.box].slots[r.slot] = r.occupant;
           }
           hydrateSlotIndex();
-          EntityStore.publish('inventory', {
+          EntityStore.replace('inventory', inventory, {
             kind: 'batch',
             boxes: [...new Set(orphans.map(({ box }) => box))],
             slots: orphans.map(({ box, slot }) => ({ boxId: box, slotIdx: slot })),

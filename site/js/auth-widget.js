@@ -1,4 +1,5 @@
 import { ApiClient } from './data/api-client.js';
+import { escapeHtml } from './ui/dom.js';
 
 /**
  * auth-widget.js — Login/logout button for SWA Easy Auth.
@@ -30,13 +31,6 @@ export const AuthWidget = (() => {
         <a href="/.auth/login/github" class="auth-btn auth-login">Login with GitHub</a>
       `;
     }
-  }
-
-  /** @param {string} str */
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 
   return { init };

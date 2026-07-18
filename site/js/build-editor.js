@@ -7,6 +7,12 @@ import { Router } from './router.js';
 import { ShowdownParser } from './showdown-parser.js';
 import { UIShared } from './ui-shared.js';
 import { DetailSubjectVM } from './ui/detail/detail-subject-vm.js';
+import {
+  requireElement,
+  requireFormField as requireField,
+  requireInput,
+  requireSelect,
+} from './ui/dom.js';
 import { Feedback } from './ui/feedback.js';
 import { InstanceMetadataSection } from './ui/sections/instance-metadata-section.js';
 import { DetailPanel } from './ui/surfaces/detail-panel.js';
@@ -37,38 +43,6 @@ export const BuildEditor = (() => {
    * collectValues: (speciesSlug?: string) => Record<string, import('./types/contracts.js').InputValue>,
    * populate: (state: object, options?: {onlyIfEmpty?: boolean}) => void
    * }} MetadataSectionHandle */
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireInput(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLInputElement)) throw new Error(`Missing input: ${selector}`);
-    return element;
-  }
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireSelect(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLSelectElement)) throw new Error(`Missing select: ${selector}`);
-    return element;
-  }
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireField(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLInputElement)
-      && !(element instanceof HTMLTextAreaElement)
-      && !(element instanceof HTMLSelectElement)) {
-      throw new Error(`Missing form field: ${selector}`);
-    }
-    return element;
-  }
-
-  /** @param {ParentNode} root @param {string} selector */
-  function requireElement(root, selector) {
-    const element = root.querySelector(selector);
-    if (!(element instanceof HTMLElement)) throw new Error(`Missing element: ${selector}`);
-    return element;
-  }
 
   const {
     ALL_TYPES,
@@ -470,8 +444,10 @@ export const BuildEditor = (() => {
       bodyHtml,
     });
 
-    const panelCloseHandler = async () => {
+    /** @param {{reason: 'user'|'route-dispose'}} context */
+    const panelCloseHandler = async (context) => {
       if (isEdit) await flushAutoSave();
+      if (context.reason === 'route-dispose') return;
       if (onSaved) onSaved();
       else if (onCancel) onCancel();
     };

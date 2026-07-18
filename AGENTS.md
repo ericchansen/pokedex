@@ -185,8 +185,8 @@ npm run lint:py       # Ruff (Python) via uvx
 
 Contract validation scripts (run by CI):
 ```powershell
-npm run validate:phase5-contracts   # Data schema + browser surface contracts
-npm run validate:modules            # One entry, acyclic imports, no app globals
+npm run validate:contracts   # Deprecated API scan + data schema + domain round trips
+npm run validate:modules     # One entry, acyclic imports, no app globals
 ```
 
 ## Testing
