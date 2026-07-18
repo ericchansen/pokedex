@@ -2,20 +2,22 @@
 name: "Pokémon HOME Tracker"
 description: "Bill's PC for a focused, nostalgic, and precise collection workflow."
 colors:
-  night-canvas: "#0f1923"
-  deep-shell: "#162231"
-  box-surface: "#1e2d3d"
-  slate-header: "#2a3f55"
-  slate-hover: "#2a4060"
-  detail-surface: "#1a2838"
-  ink-primary: "#e8edf2"
-  ink-secondary: "#8899aa"
-  ink-muted: "#9aa9b8"
+  night-canvas: "#09141e"
+  deep-shell: "#101f2d"
+  box-surface: "#142838"
+  slate-header: "#1b3a50"
+  slate-hover: "#21465f"
+  detail-surface: "#0d1d2a"
+  slot-well: "#0b1924"
+  cabinet-edge: "#3a617c"
+  ink-primary: "#edf5fb"
+  ink-secondary: "#a8bdcd"
+  ink-muted: "#91a7b8"
   control-ink: "#07131f"
   danger-control-ink: "#210909"
-  pc-blue: "#4a9eff"
-  pc-blue-hover: "#72b3ff"
-  completion-gold: "#f0c040"
+  pc-blue: "#54a9ff"
+  pc-blue-hover: "#82c0ff"
+  completion-gold: "#f4ca5b"
   ready-green: "#4ade80"
   warning-red: "#f87171"
   warning-red-hover: "#ff9595"
@@ -143,7 +145,7 @@ The default theme is a dark PokéPC workspace for sustained scanning. The option
 
 ## Colors
 
-The default palette is a cool, low-luminance PC cabinet punctuated by bright game-state colors; the Gen III palette translates the same roles into a warm cartridge-era screen.
+The default palette is a cool, low-luminance PC cabinet punctuated by bright game-state colors. Inset slot wells, compact controls, and reinforced cabinet edges make the theme feel like a modern storage terminal rather than a generic dark dashboard. The Gen III palette translates the same roles into a warm cartridge-era screen.
 
 ### Primary
 - **Link Cable Blue:** The principal interactive color for active tabs, focus, links, and primary actions.
@@ -158,9 +160,11 @@ The default palette is a cool, low-luminance PC cabinet punctuated by bright gam
 - **Pokémon Type Palette:** Type colors remain data, not decoration. Use the committed per-type tokens for badges and matchup context.
 
 ### Neutral
-- **PC Night:** The default page canvas.
+- **PC Night:** The quiet, solid default page canvas.
 - **Deep Cabinet:** The default shell and elevated menu layer.
 - **Box Interior:** The default working surface for boxes, controls, and cards.
+- **Slot Well:** The inset background shared by storage slots, search, and progress tracks.
+- **Cabinet Edge:** The stronger neutral line used on the shell and signature storage boxes.
 - **Header Slate:** Separates headers and secondary controls from their parent surface.
 - **Primary, Secondary, and Muted LCD Text:** Establish a strict three-level text hierarchy.
 - **Gen III Parchment, Menu Gray, Panel Lavender, and Cream:** Form the alternate theme's canvas, controls, dialogs, and detail surface.
@@ -248,7 +252,7 @@ Components are compact and unmistakable. They use restrained dimensions, explici
 
 ### Box Grid
 
-The 290px box is the signature component: six 44px slots per row, compact gaps, a distinct title strip, pixel-rendered sprites, and layered state channels. Search, selection, placement, training, and game badges must coexist without moving the grid or obscuring the Pokémon.
+The 290px box is the signature component: six 44px inset slot wells per row, compact gaps, a reinforced cabinet frame, a labeled title strip, pixel-rendered sprites, and layered state channels. Search, selection, placement, training, and game badges must coexist without moving the grid or obscuring the Pokémon.
 
 ## Do's and Don'ts
 

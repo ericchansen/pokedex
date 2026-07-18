@@ -11,6 +11,19 @@ uv run serve.py              # http://127.0.0.1:8138/
 uv run serve.py --port 8080  # custom port
 ```
 
+Local user data lives in the canonical checkout's gitignored `userdata/` directory.
+Linked Git worktrees find that directory automatically, so each preview opens with the
+same Builds, HOME boxes, and Teams. To run against a disposable or test dataset instead,
+set an explicit directory before starting the server:
+
+```powershell
+$env:USERDATA_DIR = "$PWD\.preview-userdata"
+uv run serve.py
+```
+
+Only run one writable local server against the shared directory at a time. Each write
+still creates a rolling backup under `userdata/backups/`.
+
 ## Linting
 
 ```powershell
@@ -22,10 +35,12 @@ npm run lint:py      # Ruff (Python)
 ## Project layout
 
 ```
-data/                  Single source of truth for app data
+userdata/              Gitignored local user data shared by linked worktrees
 ├── builds.json        Library of reusable Builds (competitive ideals, factory sets)
 ├── inventory.json     200-box HOME grid; each occupied slot is a Pokémon Instance with its own Current Build
 ├── teams.json         Team compositions (FK to builds)
+├── backups/           Rolling timestamped backups
+data/                  Reference data and empty user-data templates
 ├── champions_pokemon.json   Species + Megas available in Pokémon Champions
 ├── champions_filter.json    Derived lookup table for Champions availability
 ├── sv_filter.json     Derived lookup for Scarlet/Violet

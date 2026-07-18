@@ -14,8 +14,11 @@ const {
   PokemonViewer,
 } = globalThis;
 
+const RESULTS_PAGE_SIZE = 120;
+
 function createInventoryBrowser(dataMode) {
   let unsubscribeStore = null;
+  let visibleLimit = RESULTS_PAGE_SIZE;
   // Instance selection is local to the inventory tab (keyed by entry._key).
   // The builds tab uses the global Selection module for build-keyed export.
   const instanceSelection = dataMode === 'inventory' ? new Map() : null;
@@ -23,6 +26,7 @@ function createInventoryBrowser(dataMode) {
   function mount(container) {
     container.innerHTML = `<div id="view-${dataMode}"></div>`;
     if (unsubscribeStore) unsubscribeStore();
+    visibleLimit = RESULTS_PAGE_SIZE;
     let previousQuery = AppStore.getBrowserQuery(dataMode);
     let previousRevision = AppStore.getRouteRevision();
     unsubscribeStore = AppStore.subscribe(() => {
@@ -31,6 +35,7 @@ function createInventoryBrowser(dataMode) {
       if (nextRevision === previousRevision && AppStore.browserQueryEquals(previousQuery, nextQuery)) return;
       previousQuery = nextQuery;
       previousRevision = nextRevision;
+      visibleLimit = RESULTS_PAGE_SIZE;
       render();
     });
     render();
@@ -96,9 +101,33 @@ function createInventoryBrowser(dataMode) {
       return;
     }
 
+    const totalEntries = browser.visibleEntries.length;
+    const renderedEntries = browser.visibleEntries.slice(0, visibleLimit);
     root.appendChild(browser.query.mode === 'card'
-      ? renderCards(browser.visibleEntries)
-      : renderTable(browser.visibleEntries, browser.query, browser.route));
+      ? renderCards(renderedEntries)
+      : renderTable(renderedEntries, browser.query, browser.route));
+    if (renderedEntries.length < totalEntries) {
+      root.appendChild(renderMoreResults(renderedEntries.length, totalEntries));
+    }
+  }
+
+  function renderMoreResults(renderedCount, totalCount) {
+    const wrap = document.createElement('div');
+    wrap.className = 'browser-results-more';
+    const nextCount = Math.min(RESULTS_PAGE_SIZE, totalCount - renderedCount);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-secondary';
+    button.textContent = `Show ${nextCount.toLocaleString()} more (${renderedCount.toLocaleString()} of ${totalCount.toLocaleString()})`;
+    button.addEventListener('click', () => {
+      visibleLimit = Math.min(totalCount, visibleLimit + RESULTS_PAGE_SIZE);
+      render();
+      requestAnimationFrame(() => {
+        document.querySelector(`#view-${dataMode} .browser-results-more .btn`)?.focus();
+      });
+    });
+    wrap.appendChild(button);
+    return wrap;
   }
 
   function toggleSelection(buildId) {
