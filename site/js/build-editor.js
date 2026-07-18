@@ -1,25 +1,87 @@
+import { AppRoutes } from './app-routes.js';
+import { BuildUIHelpers } from './build-ui-helpers.js';
+import { DataManager } from './data.js';
+import { DomainMappers } from './domain-mappers.js';
+import { EvConvert } from './ev-convert.js';
+import { Router } from './router.js';
+import { ShowdownParser } from './showdown-parser.js';
+import { UIShared } from './ui-shared.js';
+import { DetailSubjectVM } from './ui/detail/detail-subject-vm.js';
+import { Feedback } from './ui/feedback.js';
+import { InstanceMetadataSection } from './ui/sections/instance-metadata-section.js';
+import { DetailPanel } from './ui/surfaces/detail-panel.js';
+import { DetailEditorSurface } from './ui/surfaces/detail-editor-surface.js';
+import { BallPicker } from './ui/widgets/ball-picker.js';
+import { FormErrors } from './ui/widgets/form-errors.js';
+import { MoveEditorWidget } from './ui/widgets/move-editor-widget.js';
+import { StatEditorWidget } from './ui/widgets/stat-editor-widget.js';
+
 /**
  * build-editor.js - Build creation/editing UI and build delete actions.
  */
 
 export const BuildEditor = (() => {
+  /** @typedef {{input?: HTMLElement|null, message: string}} EditorFormError */
+  /** @typedef {{
+   * target?: HTMLElement|null, onSaved?: (() => void)|null, onCancel?: (() => void)|null,
+   * onSubmit?: ((build: import('./types/contracts.js').BuildState) => void|Promise<void>)|null,
+   * saveButtonLabel?: string, editContext?: 'library'|'instance', requestRevision?: number|null
+   * }} BuildFormOptions */
+  /** @typedef {{
+   * nature?: string|null, ability?: string|null, item?: string|null, teraType?: string|null, tera_type?: string|null,
+   * ball?: string|null, evs?: import('./types/contracts.js').StatSpread|import('./types/contracts.js').StructuredEvs,
+   * ivs?: import('./types/contracts.js').IvSpread, moves?: string[], egg_moves?: string[]
+   * }} FormPopulationData */
+  /** @typedef {{errors: EditorFormError[]}|import('./types/contracts.js').BuildState|null} BuildFormResult */
+  /** @typedef {{
+   * collectValues: (speciesSlug?: string) => Record<string, import('./types/contracts.js').InputValue>,
+   * populate: (state: object, options?: {onlyIfEmpty?: boolean}) => void
+   * }} MetadataSectionHandle */
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireInput(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLInputElement)) throw new Error(`Missing input: ${selector}`);
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireSelect(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLSelectElement)) throw new Error(`Missing select: ${selector}`);
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireField(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLInputElement)
+      && !(element instanceof HTMLTextAreaElement)
+      && !(element instanceof HTMLSelectElement)) {
+      throw new Error(`Missing form field: ${selector}`);
+    }
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireElement(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLElement)) throw new Error(`Missing element: ${selector}`);
+    return element;
+  }
+
   const {
     ALL_TYPES,
     STAT_NAMES,
     renderNatureOptions,
-    renderLanguageOptions,
-    renderMovePills,
-    getDefaultLanguageCode,
-    getLanguageName,
     formatSpeciesItem,
     formatMoveItem,
     syncAbilitySelect,
     validateEvSpread,
     escapeHtml,
     createAutocomplete,
-    openPanel,
-    closePanel,
   } = UIShared;
+  const { close: closePanel } = DetailPanel;
   const { showFormErrors, showFormApiBanner } = FormErrors;
 
   const { NATURE_BOOSTS, calcChampionsStat } = BuildUIHelpers;
@@ -39,7 +101,7 @@ export const BuildEditor = (() => {
     CHAMPIONS_TOTAL_CAP = 66,
     CLASSIC_PER_STAT_CAP = 252,
     CLASSIC_TOTAL_CAP = 510,
-  } = window.EvConvert || {};
+  } = EvConvert || {};
   const MAX_MOVES = 4;
   const MOVE_SLOT_INDEXES = Array.from({ length: MAX_MOVES }, (_, index) => index);
   const EGG_MOVE_REFRESH_INPUT_DEBOUNCE_MS = 120;
@@ -47,7 +109,11 @@ export const BuildEditor = (() => {
   const AUTOSAVE_POLL_INTERVAL_MS = 50;
 
   // ── Extracted: Form HTML generation (pure function) ──────
-  function _renderFormHtml(build, { isLibrary, isEdit, defaultLanguageName, saveButtonLabel }) {
+  /**
+   * @param {import('./types/contracts.js').BuildState} build
+   * @param {{isLibrary: boolean, isEdit: boolean, saveButtonLabel?: string}} options
+   */
+  function _renderFormHtml(build, { isLibrary, isEdit, saveButtonLabel }) {
     return `
       <form id="build-form" class="build-form" novalidate>
         <div class="build-form-toolbar">
@@ -70,7 +136,7 @@ export const BuildEditor = (() => {
           <span class="comp-label">Nature</span>
           <span class="comp-value">
             <select id="bf-nature">
-              ${renderNatureOptions(build.nature)}
+              ${renderNatureOptions(build.nature || '')}
             </select>
           </span>
         </div>
@@ -143,8 +209,16 @@ export const BuildEditor = (() => {
   }
 
   // ── Extracted: Showdown paste overlay ───────────────────
+  /**
+   * @param {HTMLElement} content
+   * @param {{
+   * build: import('./types/contracts.js').BuildState,
+   * populateFormFields: (data: FormPopulationData) => void,
+   * markDirty: () => void
+   * }} options
+   */
   function _wireShowdownPaste(content, { build, populateFormFields, markDirty }) {
-    content.querySelector('#bf-paste-showdown').addEventListener('click', () => {
+    requireElement(content, '#bf-paste-showdown').addEventListener('click', () => {
       const overlay = document.createElement('div');
       overlay.className = 'showdown-paste-overlay';
       overlay.innerHTML = `
@@ -158,23 +232,23 @@ export const BuildEditor = (() => {
         </div>
       `;
       document.body.appendChild(overlay);
-      const textarea = overlay.querySelector('#bf-paste-textarea');
+      const textarea = /** @type {HTMLTextAreaElement} */ (requireField(overlay, '#bf-paste-textarea'));
       textarea.focus();
-      overlay.querySelector('#bf-paste-cancel').addEventListener('click', () => overlay.remove());
+      requireElement(overlay, '#bf-paste-cancel').addEventListener('click', () => overlay.remove());
       overlay.addEventListener('click', (event) => {
         if (event.target === overlay) overlay.remove();
       });
-      overlay.querySelector('#bf-paste-apply').addEventListener('click', () => {
+      requireElement(overlay, '#bf-paste-apply').addEventListener('click', () => {
         const text = textarea.value.trim();
         if (!text) return;
         const parsed = ShowdownParser.parseSet(text);
         if (!parsed || !parsed.species) {
-          UIShared.showToast('Could not parse Showdown text.');
+          Feedback.showToast('Could not parse Showdown text.');
           return;
         }
-        content.querySelector('#bf-species').value = parsed.species;
+        requireInput(content, '#bf-species').value = parsed.species;
         const matches = DataManager.searchSpecies(parsed.species);
-        if (matches.length) build.slug = matches[0].slug;
+        if (matches[0]?.slug) build.slug = matches[0].slug;
         populateFormFields(parsed);
         overlay.remove();
         markDirty();
@@ -183,22 +257,27 @@ export const BuildEditor = (() => {
   }
 
   // ── Extracted: Stat editor wiring ──────────────────────
+  /**
+   * @param {HTMLElement} content
+   * @param {{getCurrentSpeciesSlug: () => string}} options
+   */
   function _wireStatEditor(content, { getCurrentSpeciesSlug }) {
-    const statEditor = content.querySelector('#bf-stat-editor');
-    const natureSelect = content.querySelector('#bf-nature');
-    const statKeys = Object.keys(STAT_NAMES);
-    const cevInputs = statKeys.map((key) => content.querySelector(`#bf-cev-${key}`));
-    const xevInputs = statKeys.map((key) => content.querySelector(`#bf-xev-${key}`));
-    const civInputs = statKeys.map((key) => content.querySelector(`#bf-civ-${key}`));
+    const statEditor = requireElement(content, '#bf-stat-editor');
+    const natureSelect = requireSelect(content, '#bf-nature');
+    const statKeys = /** @type {import('./types/contracts.js').StatKey[]} */ (Object.keys(STAT_NAMES));
+    const cevInputs = statKeys.map((key) => requireInput(content, `#bf-cev-${key}`));
+    const xevInputs = statKeys.map((key) => requireInput(content, `#bf-xev-${key}`));
+    const civInputs = statKeys.map((key) => requireInput(content, `#bf-civ-${key}`));
 
     statEditor.querySelectorAll('.stat-editor__tab').forEach((tab) => {
+      if (!(tab instanceof HTMLElement)) return;
       tab.addEventListener('click', () => {
         statEditor.querySelectorAll('.stat-editor__tab').forEach((c) => c.classList.remove('active'));
         tab.classList.add('active');
         const system = tab.dataset.system;
         statEditor.dataset.system = system;
-        content.querySelector('#bf-panel-classic').classList.toggle('hidden', system !== 'classic');
-        content.querySelector('#bf-panel-champions').classList.toggle('hidden', system !== 'champions');
+        requireElement(content, '#bf-panel-classic').classList.toggle('hidden', system !== 'classic');
+        requireElement(content, '#bf-panel-champions').classList.toggle('hidden', system !== 'champions');
       });
     });
 
@@ -212,6 +291,7 @@ export const BuildEditor = (() => {
       const nature = natureSelect.value;
       const boosts = NATURE_BOOSTS[nature];
       statEditor.querySelectorAll('.stat-editor__name').forEach((element) => {
+        if (!(element instanceof HTMLElement)) return;
         element.classList.remove('nature-plus', 'nature-minus');
         const stat = element.dataset.stat;
         if (boosts && boosts.plus === stat) element.classList.add('nature-plus');
@@ -219,23 +299,33 @@ export const BuildEditor = (() => {
       });
     }
 
-    const baseStatEls = Array.from(statEditor.querySelectorAll('.stat-editor__base'));
-    const _statEls = {};
+    const baseStatEls = Array.from(statEditor.querySelectorAll('.stat-editor__base'))
+      .filter((element) => element instanceof HTMLElement);
+    /** @type {Record<import('./types/contracts.js').StatKey, {
+     * cev: HTMLInputElement, civ: HTMLInputElement, calcClassic: HTMLElement,
+     * xev: HTMLInputElement, calcChamp: HTMLElement
+     * }>} */
+    const _statEls = /** @type {Record<import('./types/contracts.js').StatKey, {
+     * cev: HTMLInputElement, civ: HTMLInputElement, calcClassic: HTMLElement,
+     * xev: HTMLInputElement, calcChamp: HTMLElement
+     * }>} */ ({});
     for (const stat of statKeys) {
       _statEls[stat] = {
-        cev: content.querySelector(`#bf-cev-${stat}`),
-        civ: content.querySelector(`#bf-civ-${stat}`),
-        calcClassic: content.querySelector(`#bf-calc-classic-${stat}`),
-        xev: content.querySelector(`#bf-xev-${stat}`),
-        calcChamp: content.querySelector(`#bf-calc-champ-${stat}`),
+        cev: requireInput(content, `#bf-cev-${stat}`),
+        civ: requireInput(content, `#bf-civ-${stat}`),
+        calcClassic: requireElement(content, `#bf-calc-classic-${stat}`),
+        xev: requireInput(content, `#bf-xev-${stat}`),
+        calcChamp: requireElement(content, `#bf-calc-champ-${stat}`),
       };
     }
 
     function recalcAllStats() {
       const baseStats = getCurrentBaseStats();
       const nature = natureSelect.value;
-      const classicEvs = {};
-      const classicIvs = {};
+      /** @type {import('./types/contracts.js').NumericStatSpread} */
+      const classicEvs = /** @type {import('./types/contracts.js').NumericStatSpread} */ ({});
+      /** @type {import('./types/contracts.js').NumericStatSpread} */
+      const classicIvs = /** @type {import('./types/contracts.js').NumericStatSpread} */ ({});
       for (const stat of statKeys) {
         const els = _statEls[stat];
         classicEvs[stat] = parseInt(els.cev.value, 10) || 0;
@@ -246,7 +336,7 @@ export const BuildEditor = (() => {
       for (const stat of statKeys) {
         const calcEl = _statEls[stat].calcClassic;
         const base = baseStats[stat] || 0;
-        calcEl.textContent = base ? classicFinal[stat] : '–';
+        calcEl.textContent = String(base ? classicFinal[stat] : '–');
       }
       for (const stat of statKeys) {
         const els = _statEls[stat];
@@ -254,28 +344,28 @@ export const BuildEditor = (() => {
         const sp = parseInt(els.xev.value, 10) || 0;
         const calcEl = els.calcChamp;
         if (!base) { calcEl.textContent = '–'; continue; }
-        calcEl.textContent = calcChampionsStat(stat, base, sp, nature);
+        calcEl.textContent = String(calcChampionsStat(stat, base, sp, nature));
       }
       baseStatEls.forEach((element) => {
-        const stat = element.dataset.stat;
-        element.textContent = baseStats[stat] || '–';
+        const stat = /** @type {import('./types/contracts.js').StatKey} */ (element.dataset.stat);
+        element.textContent = String(baseStats[stat] || '–');
       });
     }
 
     const updateClassicEvTotal = createBudgetUpdater(cevInputs, {
       maxPerStat: CLASSIC_PER_STAT_CAP,
       maxTotal: CLASSIC_TOTAL_CAP,
-      remainingEl: content.querySelector('#bf-cev-remaining'),
-      badgeEl: content.querySelector('#bf-cev-badge'),
-      sliders: statKeys.map((key) => content.querySelector(`#bf-cev-slider-${key}`)),
+      remainingEl: requireElement(content, '#bf-cev-remaining'),
+      badgeEl: requireElement(content, '#bf-cev-badge'),
+      sliders: statKeys.map((key) => requireInput(content, `#bf-cev-slider-${key}`)),
       onUpdate: () => recalcAllStats(),
     });
     const updateChampEvTotal = createBudgetUpdater(xevInputs, {
       maxPerStat: CHAMPIONS_PER_STAT_CAP,
       maxTotal: CHAMPIONS_TOTAL_CAP,
-      remainingEl: content.querySelector('#bf-xev-remaining'),
-      badgeEl: content.querySelector('#bf-xev-badge'),
-      sliders: statKeys.map((key) => content.querySelector(`#bf-xev-slider-${key}`)),
+      remainingEl: requireElement(content, '#bf-xev-remaining'),
+      badgeEl: requireElement(content, '#bf-xev-badge'),
+      sliders: statKeys.map((key) => requireInput(content, `#bf-xev-slider-${key}`)),
       onUpdate: () => recalcAllStats(),
     });
     cevInputs.forEach((input) => input.addEventListener('input', updateClassicEvTotal));
@@ -284,12 +374,12 @@ export const BuildEditor = (() => {
 
     bindSliderPairs([
       ...statKeys.map((key) => ({
-        slider: content.querySelector(`#bf-cev-slider-${key}`),
-        input: content.querySelector(`#bf-cev-${key}`),
+        slider: requireInput(content, `#bf-cev-slider-${key}`),
+        input: requireInput(content, `#bf-cev-${key}`),
       })),
       ...statKeys.map((key) => ({
-        slider: content.querySelector(`#bf-xev-slider-${key}`),
-        input: content.querySelector(`#bf-xev-${key}`),
+        slider: requireInput(content, `#bf-xev-slider-${key}`),
+        input: requireInput(content, `#bf-xev-${key}`),
       })),
     ]);
 
@@ -298,13 +388,13 @@ export const BuildEditor = (() => {
     const convertToClassicBtn = content.querySelector('#bf-convert-champ-to-classic');
     if (convertToChampBtn) {
       convertToChampBtn.addEventListener('click', () => {
-        const classicEvs = {};
-        for (const key of statKeys) classicEvs[key] = parseInt(content.querySelector(`#bf-cev-${key}`).value, 10) || 0;
+        /** @type {import('./types/contracts.js').NumericStatSpread} */
+        const classicEvs = /** @type {import('./types/contracts.js').NumericStatSpread} */ ({});
+        for (const key of statKeys) classicEvs[key] = parseInt(requireInput(content, `#bf-cev-${key}`).value, 10) || 0;
         const champEvs = EvConvert.classicToChampions(classicEvs);
         for (const key of statKeys) {
-          content.querySelector(`#bf-xev-${key}`).value = champEvs[key] || 0;
-          const slider = content.querySelector(`#bf-xev-slider-${key}`);
-          if (slider) slider.value = champEvs[key] || 0;
+          requireInput(content, `#bf-xev-${key}`).value = String(champEvs[key] || 0);
+          requireInput(content, `#bf-xev-slider-${key}`).value = String(champEvs[key] || 0);
         }
         updateChampEvTotal();
         recalcAllStats();
@@ -312,13 +402,13 @@ export const BuildEditor = (() => {
     }
     if (convertToClassicBtn) {
       convertToClassicBtn.addEventListener('click', () => {
-        const champEvs = {};
-        for (const key of statKeys) champEvs[key] = parseInt(content.querySelector(`#bf-xev-${key}`).value, 10) || 0;
+        /** @type {import('./types/contracts.js').NumericStatSpread} */
+        const champEvs = /** @type {import('./types/contracts.js').NumericStatSpread} */ ({});
+        for (const key of statKeys) champEvs[key] = parseInt(requireInput(content, `#bf-xev-${key}`).value, 10) || 0;
         const classicEvs = EvConvert.championsToClassic(champEvs);
         for (const key of statKeys) {
-          content.querySelector(`#bf-cev-${key}`).value = classicEvs[key] || 0;
-          const slider = content.querySelector(`#bf-cev-slider-${key}`);
-          if (slider) slider.value = classicEvs[key] || 0;
+          requireInput(content, `#bf-cev-${key}`).value = String(classicEvs[key] || 0);
+          requireInput(content, `#bf-cev-slider-${key}`).value = String(classicEvs[key] || 0);
         }
         updateClassicEvTotal();
         recalcAllStats();
@@ -328,12 +418,26 @@ export const BuildEditor = (() => {
     return { statEditor, natureSelect, recalcAllStats, updateNatureLabels, updateClassicEvTotal, updateChampEvTotal };
   }
 
-  function openBuildForm(existingBuild, speciesSlug, opts = {}) {
-    const { target, onSaved, onCancel, onSubmit, saveButtonLabel, editContext, instanceLocation } = opts;
-    const isInstance = editContext === 'instance';
+  /**
+   * @param {import('./types/contracts.js').BuildState|null|undefined} existingBuild
+   * @param {string|null|undefined} speciesSlug
+   * @param {BuildFormOptions} [opts]
+   */
+  async function openBuildForm(existingBuild, speciesSlug, opts = {}) {
+    try {
+      await DataManager.ensureEditorData();
+    } catch (error) {
+      if (opts.requestRevision != null && !DetailPanel.isRequestCurrent(opts.requestRevision)) return;
+      console.error('[BuildEditor] failed to load editor data', error);
+      Feedback.showToast('Build editor data could not be loaded.');
+      return;
+    }
+    if (opts.requestRevision != null && !DetailPanel.isRequestCurrent(opts.requestRevision)) return;
+    const { target, onSaved, onCancel, onSubmit, saveButtonLabel, editContext } = opts;
     const isLibrary = editContext === 'library';
     const isEdit = !!(existingBuild && existingBuild.id);
     const isFullPage = !!target;
+    /** @type {import('./types/contracts.js').BuildState} */
     const build = existingBuild ? { ...existingBuild } : {
       species: '',
       form: '',
@@ -356,9 +460,7 @@ export const BuildEditor = (() => {
       if (subject.speciesEntry) build.species = subject.speciesName;
     }
 
-    const defaultLanguageName = getLanguageName(getDefaultLanguageCode());
-
-    const bodyHtml = _renderFormHtml(build, { isLibrary, isEdit, defaultLanguageName, saveButtonLabel });
+    const bodyHtml = _renderFormHtml(build, { isLibrary, isEdit, saveButtonLabel });
 
     const html = DetailEditorSurface.render({
       isFullPage,
@@ -372,7 +474,6 @@ export const BuildEditor = (() => {
       if (isEdit) await flushAutoSave();
       if (onSaved) onSaved();
       else if (onCancel) onCancel();
-      else AppStore.markRouteDirty();
     };
     const content = DetailEditorSurface.mount(html, {
       target: isFullPage ? target : null,
@@ -386,15 +487,16 @@ export const BuildEditor = (() => {
       });
     }
 
-    const speciesInput = content.querySelector('#bf-species');
-    const abilitySelect = content.querySelector('#bf-ability');
-    const moveInputs = MOVE_SLOT_INDEXES.map((index) => content.querySelector(`#bf-move-${index}`));
-    const eggMoveInputs = MOVE_SLOT_INDEXES.map((index) => content.querySelector(`#bf-egg-move-${index}`));
+    const speciesInput = requireInput(content, '#bf-species');
+    const abilitySelect = requireSelect(content, '#bf-ability');
+    const moveInputs = MOVE_SLOT_INDEXES.map((index) => requireInput(content, `#bf-move-${index}`));
+    const eggMoveInputs = MOVE_SLOT_INDEXES.map((index) => requireInput(content, `#bf-egg-move-${index}`));
     const eggCountEl = content.querySelector('#bf-egg-count');
     const eggPreviewEl = content.querySelector('#bf-egg-preview');
     const eggAutoNoteEl = content.querySelector('#bf-egg-auto-note');
     let eggRefreshToken = 0;
-    let eggRefreshTimer = null;
+    /** @type {number|undefined} */
+    let eggRefreshTimer;
     let eggRemovedNote = '';
 
     function getCurrentSpeciesSlug() {
@@ -441,6 +543,7 @@ export const BuildEditor = (() => {
           }).join('');
           eggPreviewEl.innerHTML = `<div class="viewer-build-card-moves">${pillsHtml}</div>`;
           eggPreviewEl.querySelectorAll('[data-remove-egg]').forEach((btn) => {
+            if (!(btn instanceof HTMLElement)) return;
             btn.addEventListener('click', () => {
               const key = normalizeMoveKey(btn.dataset.removeEgg);
               eggMoveInputs.forEach((input) => {
@@ -486,7 +589,8 @@ export const BuildEditor = (() => {
       }, delay);
     }
 
-    createAutocomplete(speciesInput, (query) => DataManager.searchSpecies(query), {
+    createAutocomplete(speciesInput, (query) => DataManager.searchSpecies(query)
+      .filter((entry) => entry != null), {
       onSelect: async (item) => {
         // Snapshot surviving fields before re-rendering section for new species
         const prevSlug = build.slug;
@@ -500,12 +604,14 @@ export const BuildEditor = (() => {
         // Re-render section for new species (registry locks/controls may change)
         if (metaSection && !isLibrary) {
           const host = content.querySelector('#bf-identity-section-host');
-          if (host) {
+          if (host instanceof HTMLElement) {
             host.innerHTML = InstanceMetadataSection.render({ state: build, speciesSlug: item.slug, mode: 'edit' });
-            metaSection = InstanceMetadataSection.mount(host, { mode: 'edit', onChange: () => markDirty() });
+            metaSection = /** @type {MetadataSectionHandle|null} */ (
+              InstanceMetadataSection.mount(host, { mode: 'edit', onChange: () => markDirty() })
+            );
             // Restore surviving fields (nickname, OT, level, language, shiny, flags)
             // Species-specific fields (form, cream, sweet) reset to new species defaults
-            metaSection.populate(snapshot, { onlyIfEmpty: false });
+            metaSection?.populate(snapshot, { onlyIfEmpty: false });
           }
         }
 
@@ -514,7 +620,7 @@ export const BuildEditor = (() => {
             const defaults = await DataManager.getDefaultSet(item.slug)
               || await DataManager.getDefaultSet(item.name);
             if (defaults) populateFormFields(defaults, { onlyIfEmpty: true });
-          } catch (_) {
+          } catch {
             // factory sets unavailable
           }
         }
@@ -531,7 +637,7 @@ export const BuildEditor = (() => {
               });
               eggRemovedNote = `Removed ${check.invalidExplicit.join(', ')} — not egg moves for ${item.name}.`;
             }
-          } catch (_) { /* learnset unavailable */ }
+          } catch { /* learnset unavailable */ }
         }
 
         scheduleEggMoveRefresh();
@@ -540,7 +646,7 @@ export const BuildEditor = (() => {
       formatItem: formatSpeciesItem,
     });
 
-    createAutocomplete(content.querySelector('#bf-item'), (query) => DataManager.searchItems(query), {
+    createAutocomplete(requireInput(content, '#bf-item'), (query) => DataManager.searchItems(query), {
       onSelect: () => markDirty(),
     });
     refreshAbilitySelect(build.ability || '');
@@ -558,12 +664,15 @@ export const BuildEditor = (() => {
     });
 
     content.querySelectorAll('.input-clear-btn').forEach((button) => {
+      if (!(button instanceof HTMLElement)) return;
       button.addEventListener('click', () => {
-        const input = content.querySelector(`#${button.dataset.clear}`);
-        if (input) {
+        const clearId = button.dataset.clear;
+        if (!clearId) return;
+        const input = content.querySelector(`#${clearId}`);
+        if (input instanceof HTMLInputElement) {
           input.value = '';
           input.focus();
-          if (button.dataset.clear.startsWith('bf-move-') || button.dataset.clear.startsWith('bf-egg-move-')) {
+          if (clearId.startsWith('bf-move-') || clearId.startsWith('bf-egg-move-')) {
             scheduleEggMoveRefresh();
           }
           markDirty();
@@ -573,17 +682,20 @@ export const BuildEditor = (() => {
 
     const ballDefault = build.ball || 'Poke';
     const ballPicker = isLibrary
-      ? BallPicker.createBallPicker(content.querySelector('#bf-ball'), ballDefault)
+      ? BallPicker.createBallPicker(requireElement(content, '#bf-ball'), ballDefault, null)
       : null;
 
     // Render and mount the unified metadata section into the host div
+    /** @type {MetadataSectionHandle|null} */
     let metaSection = null;
     if (!isLibrary) {
       const host = content.querySelector('#bf-identity-section-host');
-      if (host) {
+      if (host instanceof HTMLElement) {
         const initSlug = speciesSlug || build.slug || '';
         host.innerHTML = InstanceMetadataSection.render({ state: build, speciesSlug: initSlug, mode: 'edit' });
-        metaSection = InstanceMetadataSection.mount(host, { mode: 'edit', onChange: () => markDirty() });
+        metaSection = /** @type {MetadataSectionHandle|null} */ (
+          InstanceMetadataSection.mount(host, { mode: 'edit', onChange: () => markDirty() })
+        );
       }
     }
 
@@ -619,47 +731,56 @@ export const BuildEditor = (() => {
     recalcAllStats();
     scheduleEggMoveRefresh();
 
+    /**
+     * @param {FormPopulationData} data
+     * @param {{onlyIfEmpty?: boolean}} [options]
+     */
     function populateFormFields(data, { onlyIfEmpty = false } = {}) {
-      const isTextEmpty = (selector) => !String(content.querySelector(selector)?.value || '').trim();
+      /** @param {string} selector */
+      const isTextEmpty = (selector) => !String(requireField(content, selector).value || '').trim();
+      /** @param {string} selector */
       const isZeroOrBlank = (selector) => {
-        const value = content.querySelector(selector)?.value;
+        const value = requireField(content, selector).value;
         return value === '' || Number(value || 0) === 0;
       };
       const teraType = data.teraType ?? data.tera_type;
 
-      if (data.nature && (!onlyIfEmpty || isTextEmpty('#bf-nature'))) content.querySelector('#bf-nature').value = data.nature;
+      if (data.nature && (!onlyIfEmpty || isTextEmpty('#bf-nature'))) requireSelect(content, '#bf-nature').value = data.nature;
       const currentAbility = abilitySelect.value.trim();
       refreshAbilitySelect(onlyIfEmpty && currentAbility ? currentAbility : (data.ability || ''));
-      if (data.item && (!onlyIfEmpty || isTextEmpty('#bf-item'))) content.querySelector('#bf-item').value = data.item;
-      if (teraType && (!onlyIfEmpty || isTextEmpty('#bf-tera'))) content.querySelector('#bf-tera').value = teraType;
+      if (data.item && (!onlyIfEmpty || isTextEmpty('#bf-item'))) requireInput(content, '#bf-item').value = data.item;
+      if (teraType && (!onlyIfEmpty || isTextEmpty('#bf-tera'))) requireSelect(content, '#bf-tera').value = teraType;
       if (data.ball && ballPicker && (!onlyIfEmpty || !ballPicker.getValue())) ballPicker.setValue(data.ball);
       // Instance identity + metadata fields delegated to section
       if (metaSection) metaSection.populate(data, { onlyIfEmpty });
-      if (data.evs && Object.keys(data.evs).length) {
-        for (const [key, value] of Object.entries(data.evs)) {
+      const formEvs = data.evs && ('classic' in data.evs || 'champions' in data.evs)
+        ? data.evs.classic
+        : data.evs;
+      if (formEvs && Object.keys(formEvs).length) {
+        for (const [key, value] of Object.entries(formEvs)) {
           const shouldPopulate = !onlyIfEmpty || isZeroOrBlank(`#bf-cev-${key}`);
-          const evInput = content.querySelector(`#bf-cev-${key}`);
-          if (evInput && shouldPopulate) evInput.value = value;
-          const slider = content.querySelector(`#bf-cev-slider-${key}`);
-          if (slider && shouldPopulate) slider.value = value;
+          const evInput = requireInput(content, `#bf-cev-${key}`);
+          if (shouldPopulate) evInput.value = String(value ?? '');
+          const slider = requireInput(content, `#bf-cev-slider-${key}`);
+          if (shouldPopulate) slider.value = String(value ?? '');
         }
       }
       if (data.ivs && Object.keys(data.ivs).length) {
         for (const [key, value] of Object.entries(data.ivs)) {
-          const ivInput = content.querySelector(`#bf-civ-${key}`);
-          if (ivInput && (!onlyIfEmpty || !ivInput.value.trim())) ivInput.value = value;
+          const ivInput = requireInput(content, `#bf-civ-${key}`);
+          if (!onlyIfEmpty || !ivInput.value.trim()) ivInput.value = String(value ?? '');
         }
       }
       if (data.moves && data.moves.length) {
         data.moves.slice(0, MAX_MOVES).forEach((move, index) => {
-          const moveInput = content.querySelector(`#bf-move-${index}`);
-          if (moveInput && (!onlyIfEmpty || !moveInput.value.trim())) moveInput.value = move;
+          const moveInput = requireInput(content, `#bf-move-${index}`);
+          if (!onlyIfEmpty || !moveInput.value.trim()) moveInput.value = move;
         });
       }
       if (data.egg_moves && data.egg_moves.length) {
         [...data.egg_moves].sort((a, b) => a.localeCompare(b)).slice(0, MAX_MOVES).forEach((move, index) => {
-          const eggMoveInput = content.querySelector(`#bf-egg-move-${index}`);
-          if (eggMoveInput && (!onlyIfEmpty || !eggMoveInput.value.trim())) eggMoveInput.value = move;
+          const eggMoveInput = requireInput(content, `#bf-egg-move-${index}`);
+          if (!onlyIfEmpty || !eggMoveInput.value.trim()) eggMoveInput.value = move;
         });
       }
       refreshAllFormState();
@@ -667,37 +788,41 @@ export const BuildEditor = (() => {
 
     _wireShowdownPaste(content, { build, populateFormFields, markDirty });
 
-    if (build.slug && !isEdit) {
+    const factorySlug = build.slug;
+    if (factorySlug && !isEdit) {
       (async () => {
         try {
-          const defaults = await DataManager.getDefaultSet(build.slug)
-            || await DataManager.getDefaultSet(build.species);
+          const defaults = await DataManager.getDefaultSet(factorySlug)
+            || await DataManager.getDefaultSet(build.species || factorySlug);
           if (defaults) populateFormFields(defaults, { onlyIfEmpty: true });
-        } catch (_) {
+        } catch {
           // factory sets unavailable
         }
       })();
     }
 
     // ── Payload collection (shared by auto-save and manual submit) ───
+    /** @returns {Promise<BuildFormResult>} */
     async function buildPayloadFromForm() {
-      const form = content.querySelector('#build-form');
-      const speciesEl = content.querySelector('#bf-species');
+      const speciesEl = requireInput(content, '#bf-species');
       const speciesVal = speciesEl.value.trim();
       if (!speciesVal) return null; // species required — skip save
 
+      /** @type {EditorFormError[]} */
       const errors = [];
       const matchedSpecies = DataManager.searchSpecies(speciesVal);
       const slug = getCurrentSpeciesSlug() || matchedSpecies[0]?.slug || speciesVal.toLowerCase().replace(/\s+/g, '');
 
-      const classicResult = validateEvSpread((key) => content.querySelector(`#bf-cev-${key}`), 'classic');
+      const classicResult = validateEvSpread((key) => requireInput(content, `#bf-cev-${key}`), 'classic');
       const classicEvs = classicResult.evs;
       errors.push(...classicResult.errors);
 
+      /** @type {import('./types/contracts.js').IvSpread} */
       const classicIvs = {};
       let hasAnyIv = false;
       for (const key of Object.keys(STAT_NAMES)) {
-        const ivEl = content.querySelector(`#bf-civ-${key}`);
+        const statKey = /** @type {import('./types/contracts.js').StatKey} */ (key);
+        const ivEl = requireInput(content, `#bf-civ-${statKey}`);
         const raw = ivEl.value.trim();
         if (raw === '') continue;
         const ivVal = parseInt(raw, 10);
@@ -705,36 +830,37 @@ export const BuildEditor = (() => {
           errors.push({ input: ivEl, message: 'Must be 0-31 or empty' });
           continue;
         }
-        classicIvs[key] = ivVal;
+        classicIvs[statKey] = ivVal;
         hasAnyIv = true;
       }
 
-      const champResult = validateEvSpread((key) => content.querySelector(`#bf-xev-${key}`), 'champions');
+      const champResult = validateEvSpread((key) => requireInput(content, `#bf-xev-${key}`), 'champions');
       const champEvs = champResult.evs;
       errors.push(...champResult.errors);
 
       if (errors.length) return { errors };
 
-      const hasClassic = Object.values(classicEvs).some((value) => value > 0);
-      const hasChamp = Object.values(champEvs).some((value) => value > 0);
+      const hasClassic = Object.values(classicEvs).some((value) => Number(value) > 0);
+      const hasChamp = Object.values(champEvs).some((value) => Number(value) > 0);
+      /** @type {import('./types/contracts.js').StructuredEvs} */
       const structuredEvs = {};
       if (hasClassic) structuredEvs.classic = classicEvs;
       if (hasChamp) structuredEvs.champions = champEvs;
       if (hasAnyIv) structuredEvs.classic_ivs = classicIvs;
 
-      const evSystem = statEditor.dataset.system || 'classic';
-      const moves = MOVE_SLOT_INDEXES.map((index) => content.querySelector(`#bf-move-${index}`).value.trim()).filter(Boolean);
+      const evSystem = /** @type {import('./types/contracts.js').EvSystem} */ (statEditor.dataset.system || 'classic');
+      const moves = MOVE_SLOT_INDEXES.map((index) => requireInput(content, `#bf-move-${index}`).value.trim()).filter(Boolean);
       const moveDupKeys = moves.map(normalizeMoveKey);
       if (moveDupKeys.length !== new Set(moveDupKeys).size) {
         return { errors: [{ message: 'A Pokémon cannot know the same move twice.' }] };
       }
-      const manualEggMoves = MOVE_SLOT_INDEXES.map((index) => content.querySelector(`#bf-egg-move-${index}`).value.trim()).filter(Boolean);
+      const manualEggMoves = MOVE_SLOT_INDEXES.map((index) => requireInput(content, `#bf-egg-move-${index}`).value.trim()).filter(Boolean);
 
       let eggMoveState;
       try {
         eggMoveState = await DataManager.mergeKnownEggMoves(slug, manualEggMoves, moves);
       } catch (err) {
-        return { errors: [{ message: err?.message || 'Unable to validate egg moves.' }] };
+        return { errors: [{ message: err instanceof Error ? err.message : 'Unable to validate egg moves.' }] };
       }
       if (eggMoveState.invalidExplicit?.length) {
         return { errors: [{ message: `Not egg moves for ${speciesVal}: ${eggMoveState.invalidExplicit.join(', ')}` }] };
@@ -743,17 +869,17 @@ export const BuildEditor = (() => {
       const payload = {
         species: speciesVal,
         slug,
-        item: content.querySelector('#bf-item').value.trim(),
+        item: requireInput(content, '#bf-item').value.trim(),
         ability: abilitySelect.value.trim(),
-        nature: content.querySelector('#bf-nature').value,
+        nature: requireSelect(content, '#bf-nature').value,
         ball: ballPicker?.getValue() || '',
-        tera_type: content.querySelector('#bf-tera').value,
+        tera_type: requireSelect(content, '#bf-tera').value,
         ev_system: evSystem,
         evs: structuredEvs,
         ivs: hasAnyIv ? classicIvs : {},
         moves,
         egg_moves: eggMoveState.eggMoves || [],
-        notes: content.querySelector('#bf-notes').value.trim(),
+        notes: requireField(content, '#bf-notes').value.trim(),
       };
 
       if (!isLibrary) {
@@ -769,11 +895,13 @@ export const BuildEditor = (() => {
     }
 
     // ── Auto-save machinery (edit mode only) ──────────────────────
-    let autoSaveTimer = null;
+    /** @type {number|undefined} */
+    let autoSaveTimer;
     let saving = false;
     let dirty = false;
     const indicatorEl = content.querySelector('#bf-autosave');
 
+    /** @param {string} text @param {string} cls */
     function setIndicator(text, cls) {
       if (!indicatorEl) return;
       indicatorEl.textContent = text;
@@ -787,26 +915,12 @@ export const BuildEditor = (() => {
       autoSaveTimer = setTimeout(autoSave, AUTOSAVE_DEBOUNCE_MS);
     }
 
-    // Fields that affect box grid rendering (sprites, ghost matching, completion, badges)
-    const GRID_FIELDS = ['species', 'form', 'gender', 'gigantamax', 'shiny', 'ability', 'nature', 'item', 'egg_moves'];
-    let lastGridSnapshot = GRID_FIELDS.map(f => {
-      const v = build[f];
-      return Array.isArray(v) ? JSON.stringify(v) : (v ?? '');
-    }).join('|');
-
-    function gridSnapshot(payload) {
-      return GRID_FIELDS.map(f => {
-        const v = payload[f];
-        return Array.isArray(v) ? JSON.stringify(v) : (v ?? '');
-      }).join('|');
-    }
-
     async function autoSave() {
       if (saving) { dirty = true; return; } // re-queue
       dirty = false;
       const result = await buildPayloadFromForm();
       if (!result) return; // no species yet
-      if (result.errors) {
+      if ('errors' in result) {
         setIndicator('Unsaved', 'error');
         return;
       }
@@ -816,22 +930,11 @@ export const BuildEditor = (() => {
         if (onSubmit) {
           await onSubmit(result);
         } else {
-          await DataManager.updateBuild(build.id, result);
+          if (build.id) await DataManager.updateBuild(build.id, result);
         }
         setIndicator('', '');
-        // Only refresh boxes when grid-relevant fields changed
-        if (onSubmit) {
-          const snap = gridSnapshot(result);
-          if (snap !== lastGridSnapshot) {
-            lastGridSnapshot = snap;
-            document.dispatchEvent(new CustomEvent('instance-saved', {
-              detail: instanceLocation?.boxId != null
-                ? { boxId: instanceLocation.boxId, slotIdx: instanceLocation.slotIdx }
-                : undefined,
-            }));
-          }
-        }
       } catch (err) {
+        console.error('[BuildEditor] auto-save failed', err);
         setIndicator('Save failed', 'error');
       }
       saving = false;
@@ -846,11 +949,10 @@ export const BuildEditor = (() => {
     }
 
     if (isEdit) {
-      const form = content.querySelector('#build-form');
+      const form = requireElement(content, '#build-form');
       form.addEventListener('change', markDirty);
       form.addEventListener('input', (e) => {
-        if (e.target.type === 'range' || e.target.type === 'number'
-            || e.target.type === 'text' || e.target.tagName === 'TEXTAREA') {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
           markDirty();
         }
       });
@@ -870,17 +972,17 @@ export const BuildEditor = (() => {
     }
 
     // ── Manual submit (create-only; edit mode auto-saves) ─────────
-    content.querySelector('#build-form').addEventListener('submit', async (event) => {
+    requireElement(content, '#build-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       if (isEdit) return; // auto-save handles edits
 
-      const form = content.querySelector('#build-form');
+      const form = requireElement(content, '#build-form');
       const result = await buildPayloadFromForm();
       if (!result) {
-        showFormErrors(form, [{ input: content.querySelector('#bf-species'), message: 'Species is required.' }]);
+        showFormErrors(form, [{ input: requireInput(content, '#bf-species'), message: 'Species is required.' }]);
         return;
       }
-      if (result.errors) {
+      if ('errors' in result) {
         showFormErrors(form, result.errors);
         return;
       }
@@ -891,7 +993,6 @@ export const BuildEditor = (() => {
         } else {
           await DataManager.createBuild(result);
         }
-        await DataManager.init();
         if (isFullPage) {
           if (onSaved) onSaved();
           else Router.navigate(AppRoutes.hashes.inventory);
@@ -899,26 +1000,21 @@ export const BuildEditor = (() => {
           await closePanel();
         }
       } catch (err) {
-        showFormApiBanner(form, `Save failed: ${err.message}`);
+        showFormApiBanner(form, `Save failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     });
   }
 
+  /** @param {string} buildId */
   async function deleteBuild(buildId) {
-    if (!await UIShared.showConfirm('Delete this build? This cannot be undone.', { title: 'Delete Build', confirmLabel: 'Delete' })) return;
+    if (!await Feedback.showConfirm('Delete this build? This cannot be undone.', { title: 'Delete Build', confirmLabel: 'Delete' })) return;
     try {
       await DataManager.deleteBuild(buildId);
       await closePanel({ skipBeforeClose: true });
-      await DataManager.init();
-      AppStore.markRouteDirty();
     } catch (err) {
-      UIShared.showToast(`Delete failed: ${err.message}`);
+      Feedback.showToast(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
   return { openBuildForm, deleteBuild };
 })();
-
-if (typeof window !== 'undefined') {
-  window.BuildEditor = BuildEditor;
-}

@@ -1,10 +1,15 @@
+import { DomainMappers } from './domain-mappers.js';
+import { EvConvert } from './ev-convert.js';
+import { TeamExportFormatter } from './team-export.js';
+
 /**
  * export-ui.js - Bulk export UI decoupled from route renderers.
  */
+import { flashCopyFeedback } from './ui/clipboard.js';
+import { escapeHtml } from './ui/dom.js';
 
 export const ExportUI = (() => {
-  const { escapeHtml } = UIShared;
-
+  /** @param {import('./types/contracts.js').BuildState[]} builds @param {{title?: string}} [opts] */
   function openBulkExportModal(builds, opts) {
     const list = (builds || []).filter(Boolean);
     if (!list.length) return;
@@ -15,6 +20,7 @@ export const ExportUI = (() => {
       const systems = DomainMappers.getEvSystems(build);
       return systems.length === 1 && systems[0] === 'champions';
     });
+    /** @type {import('./types/contracts.js').EvSystem} */
     let target = allChampionsNative ? 'champions' : 'classic';
 
     const overlay = document.createElement('div');
@@ -51,6 +57,15 @@ export const ExportUI = (() => {
     const warnBox = overlay.querySelector('#bulk-export-warnings');
     const copyBtn = overlay.querySelector('#bulk-export-copy');
     const downloadBtn = overlay.querySelector('#bulk-export-download');
+    if (!(textarea instanceof HTMLTextAreaElement)
+      || !(warnBox instanceof HTMLElement)
+      || !(copyBtn instanceof HTMLButtonElement)
+      || !(downloadBtn instanceof HTMLButtonElement)) {
+      overlay.remove();
+      throw new Error('Bulk export modal controls are missing');
+    }
+    const output = textarea;
+    const warningBox = warnBox;
 
     function rebuild() {
       try {
@@ -64,24 +79,25 @@ export const ExportUI = (() => {
             warnings.push({ name, note: conversion.note });
           }
         }
-        textarea.value = blocks.join('\n\n');
+        output.value = blocks.join('\n\n');
 
         if (!warnings.length) {
-          warnBox.innerHTML = '';
+          warningBox.innerHTML = '';
           return;
         }
 
         const items = warnings
           .map((warning) => `<li><strong>${escapeHtml(warning.name)}</strong>: ${escapeHtml(warning.note)}</li>`)
           .join('');
-        warnBox.innerHTML = `
+        warningBox.innerHTML = `
           <div class="bulk-export-warning-banner">
             <p class="bulk-export-warning-title">⚠ ${warnings.length} build${warnings.length === 1 ? '' : 's'} converted between scales</p>
             <ul class="bulk-export-warning-list">${items}</ul>
           </div>`;
       } catch (err) {
         console.error('[Export] rebuild failed:', err);
-        warnBox.innerHTML = `<div class="bulk-export-warning-banner"><p class="bulk-export-warning-title">⚠ Export error: ${escapeHtml(err.message)}</p></div>`;
+        const message = err instanceof Error ? err.message : String(err);
+        warningBox.innerHTML = `<div class="bulk-export-warning-banner"><p class="bulk-export-warning-title">⚠ Export error: ${escapeHtml(message)}</p></div>`;
       }
     }
 
@@ -89,7 +105,8 @@ export const ExportUI = (() => {
 
     overlay.querySelectorAll('input[name="bulk-export-target"]').forEach((radio) => {
       radio.addEventListener('change', (event) => {
-        target = event.target.value;
+        if (!(event.target instanceof HTMLInputElement)) return;
+        target = /** @type {import('./types/contracts.js').EvSystem} */ (event.target.value);
         rebuild();
       });
     });
@@ -98,14 +115,14 @@ export const ExportUI = (() => {
       overlay.remove();
     }
 
-    overlay.querySelector('.bulk-export-close').addEventListener('click', close);
-    overlay.querySelector('#bulk-export-cancel').addEventListener('click', close);
+    overlay.querySelector('.bulk-export-close')?.addEventListener('click', close);
+    overlay.querySelector('#bulk-export-cancel')?.addEventListener('click', close);
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) close();
     });
 
     copyBtn.addEventListener('click', async () => {
-      await UIShared.flashCopyFeedback(textarea.value, copyBtn, { successText: '✓ Copied', cssClass: 'copied' });
+      await flashCopyFeedback(textarea.value, copyBtn, { successText: '✓ Copied', cssClass: 'copied' });
     });
 
     downloadBtn.addEventListener('click', () => {
@@ -124,7 +141,3 @@ export const ExportUI = (() => {
 
   return { openBulkExportModal };
 })();
-
-if (typeof window !== 'undefined') {
-  window.ExportUI = ExportUI;
-}

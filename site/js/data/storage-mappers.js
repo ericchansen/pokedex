@@ -1,3 +1,5 @@
+import { DomainMappers } from '../domain-mappers.js';
+
 /**
  * data/storage-mappers.js - Storage/in-memory projection helpers for builds and instances.
  */
@@ -20,6 +22,10 @@ export const StorageMappers = (() => {
     return `b-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
   }
 
+  /**
+   * @param {import('../types/contracts.js').StoredBuild} entry
+   * @returns {import('../types/contracts.js').BuildState}
+   */
   function flattenStoredBuild(entry) {
     if (!entry) return entry;
     const inner = entry.build || {};
@@ -36,14 +42,20 @@ export const StorageMappers = (() => {
     return flat;
   }
 
+  /**
+   * @param {import('../types/contracts.js').BuildState} flat
+   * @returns {import('../types/contracts.js').StoredBuild}
+   */
   function unflattenStoredBuild(flat) {
     if (!flat) return flat;
+    /** @type {import('../types/contracts.js').BuildState} */
     const inner = {};
     if (flat.species != null) inner.species = flat.species;
     for (const key of BUILD_STATE_FIELDS) {
-      if (flat[key] !== undefined) inner[key] = flat[key];
+      if (flat[key] !== undefined) Object.assign(inner, { [key]: flat[key] });
     }
 
+    /** @type {import('../types/contracts.js').StoredBuild} */
     const out = {
       id: flat.id,
       slug: flat.slug,
@@ -57,8 +69,12 @@ export const StorageMappers = (() => {
     return out;
   }
 
+  /**
+   * @param {import('../types/contracts.js').SlotStorage|null|undefined} slot
+   * @returns {import('../types/contracts.js').BuildState|null}
+   */
   function slotStateFromStorage(slot) {
-    if (!slot || !slot.build) return slot;
+    if (!slot || !slot.build) return null;
     const build = slot.build || {};
     const identity = slot.identity || {};
     return DomainMappers.createEditableBuildDraft({
@@ -69,8 +85,13 @@ export const StorageMappers = (() => {
     }, { kind: 'instance', evSystem: build.ev_system });
   }
 
+  /**
+   * @param {import('../types/contracts.js').SlotStorage|null|undefined} slot
+   * @param {{normalizeHyphenSlug?: (value: string) => string}} [options]
+   * @returns {import('../types/contracts.js').SlotView|null}
+   */
   function slotViewFromStorage(slot, options = {}) {
-    if (!slot || !slot.build) return slot;
+    if (!slot || !slot.build) return null;
     const build = slot.build || {};
     // Form-preserving: use normalizeHyphenSlug to keep form suffixes intact
     // (e.g. "Floette-Yellow" → "floette-yellow", not collapsed to "floette").
@@ -78,35 +99,44 @@ export const StorageMappers = (() => {
     const normalizeHyphenSlug = typeof options.normalizeHyphenSlug === 'function'
       ? options.normalizeHyphenSlug
       : null;
-    const speciesId = normalizeHyphenSlug
+    const speciesId = normalizeHyphenSlug && build.species
       ? (normalizeHyphenSlug(build.species) || build.species)
       : build.species;
     return {
       species_id: speciesId,
       target_build_id: typeof slot.target_build_id === 'string' ? slot.target_build_id : null,
-      state: slotStateFromStorage(slot),
+      state: slotStateFromStorage(slot) || {},
     };
   }
 
+  /**
+   * @param {string|number} speciesId
+   * @param {string|null|undefined} targetBuildId
+   * @param {import('../types/contracts.js').BuildState|null|undefined} stateInput
+   * @param {{speciesNameFromKey?: (speciesId: string|number) => string|null}} [options]
+   */
   function storageSlotFromState(speciesId, targetBuildId, stateInput, options = {}) {
     const state = stateInput || {};
     const speciesNameFromKey = typeof options.speciesNameFromKey === 'function'
       ? options.speciesNameFromKey
       : () => null;
+    /** @type {import('../types/contracts.js').BuildState} */
     const build = {};
     const speciesName = speciesNameFromKey(speciesId);
     if (speciesName) build.species = speciesName;
     for (const key of BUILD_STATE_FIELDS) {
-      if (state[key] !== undefined) build[key] = state[key];
+      if (state[key] !== undefined) Object.assign(build, { [key]: state[key] });
     }
     if (state.id) build.id = state.id;
     build.kind = state.kind || 'instance';
 
+    /** @type {import('../types/contracts.js').BuildState} */
     const identity = {};
     for (const key of Object.keys(state)) {
       if (IDENTITY_EXCLUDE.has(key)) continue;
-      if (key === 'egg_moves' && Array.isArray(state[key]) && state[key].length === 0) continue;
-      if (state[key] !== undefined) identity[key] = state[key];
+      const value = state[/** @type {keyof import('../types/contracts.js').BuildState} */ (key)];
+      if (key === 'egg_moves' && Array.isArray(value) && value.length === 0) continue;
+      if (value !== undefined) Object.assign(identity, { [key]: value });
     }
 
     return {
@@ -125,7 +155,3 @@ export const StorageMappers = (() => {
     storageSlotFromState,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.StorageMappers = StorageMappers;
-}

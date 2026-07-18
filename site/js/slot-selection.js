@@ -1,3 +1,5 @@
+import { DataManager } from './data.js';
+
 /**
  * slot-selection.js — Multi-select state for box slots.
  *
@@ -6,10 +8,15 @@
  * Separate from the build Selection module (which is for export).
  */
 export const SlotSelection = (() => {
+  /** @typedef {{boxId: number, slotIdx: number}} SlotLocation */
+  /** @type {Map<string, SlotLocation>} */
   const selected = new Map(); // key "boxId:slotIdx" → {boxId, slotIdx}
+  /** @type {Array<() => void>} */
   const subscribers = [];
+  /** @type {SlotLocation|null} */
   let lastClicked = null; // {boxId, slotIdx} for Shift+Click range
 
+  /** @param {number} boxId @param {number} slotIdx */
   function key(boxId, slotIdx) {
     return `${boxId}:${slotIdx}`;
   }
@@ -20,10 +27,12 @@ export const SlotSelection = (() => {
     }
   }
 
+  /** @param {number} boxId @param {number} slotIdx */
   function has(boxId, slotIdx) {
     return selected.has(key(boxId, slotIdx));
   }
 
+  /** @param {number} boxId @param {number} slotIdx */
   function add(boxId, slotIdx) {
     const k = key(boxId, slotIdx);
     if (selected.has(k)) return false;
@@ -33,6 +42,7 @@ export const SlotSelection = (() => {
     return true;
   }
 
+  /** @param {number} boxId @param {number} slotIdx */
   function remove(boxId, slotIdx) {
     const k = key(boxId, slotIdx);
     if (!selected.has(k)) return false;
@@ -41,6 +51,7 @@ export const SlotSelection = (() => {
     return true;
   }
 
+  /** @param {number} boxId @param {number} slotIdx */
   function toggle(boxId, slotIdx) {
     if (has(boxId, slotIdx)) {
       remove(boxId, slotIdx);
@@ -54,6 +65,7 @@ export const SlotSelection = (() => {
    * Select a contiguous range of occupied slots between two endpoints.
    * Walks box-by-box, slot-by-slot in grid order.
    */
+  /** @param {number} toBoxId @param {number} toSlotIdx */
   function addRange(toBoxId, toSlotIdx) {
     if (!lastClicked) {
       add(toBoxId, toSlotIdx);
@@ -113,6 +125,7 @@ export const SlotSelection = (() => {
     return lastClicked;
   }
 
+  /** @param {() => void} fn */
   function subscribe(fn) {
     if (typeof fn !== 'function') return () => {};
     subscribers.push(fn);
@@ -124,5 +137,3 @@ export const SlotSelection = (() => {
 
   return { has, add, remove, toggle, addRange, clear, size, entries, getLastClicked, subscribe };
 })();
-
-if (typeof window !== 'undefined') window.SlotSelection = SlotSelection;

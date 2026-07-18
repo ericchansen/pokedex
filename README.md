@@ -30,6 +30,9 @@ still creates a rolling backup under `userdata/backups/`.
 npm install          # first time only
 npm run lint         # ESLint (JS) + Stylelint (CSS)
 npm run lint:py      # Ruff (Python)
+npm run typecheck    # Strict checked-JavaScript contracts
+npm run test:unit    # Frontend state/unit tests
+npm run test:frontend # Microsoft Edge E2E tests
 ```
 
 ## Project layout
@@ -62,6 +65,7 @@ The functional spec and schema live under [`docs/handoff/`](docs/handoff/):
 
 - [`functional-spec.md`](docs/handoff/functional-spec.md) — what the app does (FR-* requirements)
 - [`schema.md`](docs/handoff/schema.md) — JSON contracts for every data file
+- [`frontend-architecture.md`](docs/handoff/frontend-architecture.md) — native modules, state ownership, loading, and rendering
 - [`legality-notes.md`](docs/handoff/legality-notes.md), [`showdown-format.md`](docs/handoff/showdown-format.md) — domain references
 
 Anything in this README that contradicts the spec is wrong; the spec wins.

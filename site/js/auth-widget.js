@@ -1,3 +1,5 @@
+import { ApiClient } from './data/api-client.js';
+
 /**
  * auth-widget.js — Login/logout button for SWA Easy Auth.
  *
@@ -30,6 +32,7 @@ export const AuthWidget = (() => {
     }
   }
 
+  /** @param {string} str */
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
@@ -38,7 +41,3 @@ export const AuthWidget = (() => {
 
   return { init };
 })();
-
-if (typeof window !== 'undefined') {
-  window.AuthWidget = AuthWidget;
-}

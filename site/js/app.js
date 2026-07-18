@@ -1,24 +1,19 @@
+import { AppRoutes } from './app-routes.js';
+import { AuthWidget } from './auth-widget.js';
+import { DataManager } from './data.js';
+import { ProgressIndicator } from './progress-indicator.js';
+import { SearchState } from './search-state.js';
+import { SelectionBar } from './selection-bar.js';
+import { SettingsState } from './settings-state.js';
+import { AppStore } from './state/app-store.js';
+import { DetailPanel } from './ui/surfaces/detail-panel.js';
+
 /**
  * app.js — Main application logic
  * Router-driven initialization, event binding, global state coordination
  */
 
 import { Router } from './router.js';
-import { BoxesView } from './views/home.js';
-import { InventoryView, BuildsView } from './views/inventory.js';
-import { TeamsView } from './views/teams.js';
-import { SettingsView } from './views/settings.js';
-
-const {
-  DataManager,
-  AppRoutes,
-  UIShared,
-  SearchState,
-  ProgressIndicator,
-  AppStore,
-  AppSelectors,
-  SettingsState,
-} = globalThis;
 
 // Apply saved theme immediately (before any render)
 if (typeof SettingsState !== 'undefined') {
@@ -28,8 +23,12 @@ if (typeof SettingsState !== 'undefined') {
 (async function () {
   const container = document.getElementById('main-content');
   const searchInput = document.getElementById('search-input');
+  if (!(container instanceof HTMLElement) || !(searchInput instanceof HTMLInputElement)) {
+    throw new Error('Application shell is missing required elements');
+  }
   const SEARCH_DEBOUNCE_MS = 150;
-  let searchDebounce = null;
+  /** @type {number|undefined} */
+  let searchDebounce;
 
   // Show skeleton placeholder while data loads
   container.innerHTML = `
@@ -45,10 +44,11 @@ if (typeof SettingsState !== 'undefined') {
     await DataManager.init();
   } catch (err) {
     console.error('[App] DataManager.init() failed:', err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
     container.innerHTML = `
       <div style="padding:2rem;text-align:center">
         <h2>Failed to load data</h2>
-        <p style="color:var(--text-secondary)">${err.message || 'Unknown error'}</p>
+        <p style="color:var(--text-secondary)">${message}</p>
         <button class="btn btn-primary" onclick="location.reload()">Retry</button>
       </div>`;
     return;
@@ -58,17 +58,26 @@ if (typeof SettingsState !== 'undefined') {
   DataManager.enforceGenderLocks().catch(e => console.warn('[App] Gender lock enforcement failed:', e));
 
   // Register routes
-  Router.register(AppRoutes.hashes.boxes, BoxesView);
-  Router.register(AppRoutes.hashes.inventory, InventoryView);
-  Router.register(AppRoutes.hashes.builds, BuildsView);
-  Router.register(AppRoutes.hashes.teams, TeamsView);
-  Router.register(AppRoutes.hashes.settings, SettingsView);
+  Router.register(AppRoutes.hashes.boxes, async () => (await import('./views/home.js')).BoxesView);
+  Router.register(AppRoutes.hashes.inventory, async () => {
+    await DataManager.ensureEditorData();
+    return (await import('./views/inventory.js')).InventoryView;
+  });
+  Router.register(AppRoutes.hashes.builds, async () => {
+    await DataManager.ensureEditorData();
+    return (await import('./views/inventory.js')).BuildsView;
+  });
+  Router.register(AppRoutes.hashes.teams, async () => {
+    await DataManager.ensureEditorData();
+    return (await import('./views/teams.js')).TeamsView;
+  });
+  Router.register(AppRoutes.hashes.settings, async () => (await import('./views/settings.js')).SettingsView);
 
   // Detail panel close
-  document.getElementById('detail-close').addEventListener('click', UIShared.closePanel);
-  document.getElementById('detail-overlay').addEventListener('click', UIShared.closePanel);
+  document.getElementById('detail-close')?.addEventListener('click', () => void DetailPanel.close());
+  document.getElementById('detail-overlay')?.addEventListener('click', () => void DetailPanel.close());
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
     // Clear active search from anywhere on the page
     if (searchInput.value || SearchState.getQuery()) {
       clearTimeout(searchDebounce);
@@ -76,28 +85,33 @@ if (typeof SettingsState !== 'undefined') {
       SearchState.clear();
       searchInput.blur();
     }
-    UIShared.closePanel();
+    DetailPanel.close();
   });
 
   // Viewer layout toggle (FR-1.0a): side-panel ↔ overlay
   const layoutToggle = document.getElementById('detail-layout-toggle');
+  /** @param {import('./types/contracts.js').DetailState['layout']} mode */
   function applyViewerLayout(mode) {
-    document.body.classList.toggle('viewer-overlay', mode === 'overlay');
+    const isOverlay = mode === 'overlay';
+    document.body.classList.toggle('viewer-overlay', isOverlay);
+    const detailPanel = document.getElementById('detail-panel');
+    if (detailPanel) {
+      if (isOverlay) detailPanel.setAttribute('aria-modal', 'true');
+      else detailPanel.removeAttribute('aria-modal');
+    }
     if (layoutToggle) {
-      layoutToggle.textContent = mode === 'overlay' ? 'Side panel' : 'Overlay';
-      layoutToggle.title = mode === 'overlay'
+      layoutToggle.textContent = isOverlay ? 'Side panel' : 'Overlay';
+      layoutToggle.title = isOverlay
         ? 'Switch to side-panel layout'
         : 'Switch to overlay layout';
+      layoutToggle.setAttribute('aria-pressed', String(isOverlay));
     }
   }
-  let currentViewerLayout = AppStore.getDetailState().layout;
-  applyViewerLayout(currentViewerLayout);
-  AppStore.subscribe((state) => {
-    const { layout } = AppSelectors.selectDetail(state);
-    if (layout === currentViewerLayout) return;
-    currentViewerLayout = layout;
-    applyViewerLayout(layout);
-  });
+  applyViewerLayout(AppStore.getDetailState().layout);
+  AppStore.subscribe(
+    (state) => state.detail.layout,
+    applyViewerLayout
+  );
   if (layoutToggle) {
     layoutToggle.addEventListener('click', () => {
       const next = document.body.classList.contains('viewer-overlay') ? 'panel' : 'overlay';
@@ -129,7 +143,11 @@ if (typeof SettingsState !== 'undefined') {
 
   // Tab click → hash navigation
   for (const tab of document.querySelectorAll('.view-tab')) {
-    tab.addEventListener('click', () => Router.navigate(AppRoutes.hashForSection(tab.dataset.view)));
+    if (!(tab instanceof HTMLElement)) continue;
+    tab.addEventListener('click', () => {
+      const section = /** @type {import('./types/contracts.js').RouteSection} */ (tab.dataset.view);
+      Router.navigate(AppRoutes.hashForSection(section));
+    });
   }
 
   // Start router (dispatches to initial view + wires hashchange)

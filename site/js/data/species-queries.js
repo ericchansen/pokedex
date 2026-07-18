@@ -1,9 +1,13 @@
+import { SpeciesResolver } from '../species-resolver.js';
+
 /**
  * data/species-queries.js - Species lookup, compatibility, and sprite queries.
  */
 export const SpeciesQueries = (() => {
+  /** @type {Partial<import('../types/contracts.js').SpeciesQueriesContext>|null} */
   let _ctx = null;
 
+  /** @param {import('../types/contracts.js').SpeciesQueriesContext} ctx */
   function init(ctx) {
     if (ctx && !Array.isArray(ctx.searchIndex)) {
       const resolver = ctx.SpeciesResolver || SpeciesResolver;
@@ -22,42 +26,53 @@ export const SpeciesQueries = (() => {
     return getContext().SpeciesResolver || SpeciesResolver;
   }
 
+  /** @returns {import('../types/contracts.js').PokedexEntry[]} */
   function getPokedexEntries() {
-    return Array.isArray(getContext().pokedexEntries) ? getContext().pokedexEntries : [];
+    const entries = getContext().pokedexEntries;
+    return Array.isArray(entries) ? entries : [];
   }
 
+  /** @returns {Map<number, import('../types/contracts.js').PokedexEntry>} */
   function getPokedexByNum() {
     return getContext().pokedexByNum || new Map();
   }
 
+  /** @returns {Map<string, import('../types/contracts.js').PokedexEntry>} */
   function getPokedexBySlug() {
     return getContext().pokedexBySlug || new Map();
   }
 
+  /** @returns {Map<string, string>} */
   function getPokedexByAlias() {
     return getContext().pokedexByAlias || new Map();
   }
 
+  /** @returns {Map<string|number, Array<{box: number, slot: number}>>} */
   function getSlotsBySpecies() {
     return getContext().slotsBySpecies || new Map();
   }
 
+  /** @returns {Set<number>} */
   function getChampionsIds() {
     return getContext().championsFilter?.ids || new Set();
   }
 
+  /** @returns {Set<string>} */
   function getChampionsSlugs() {
     return getContext().championsFilter?.slugs || new Set();
   }
 
+  /** @returns {Set<string>} */
   function getSvFilter() {
     return getContext().svFilter || new Set();
   }
 
+  /** @returns {Set<string>} */
   function getLegendsArceusFilter() {
     return getContext().legendsArceusFilter || new Set();
   }
 
+  /** @returns {Set<string>} */
   function getLegendsZAFilter() {
     return getContext().legendsZAFilter || new Set();
   }
@@ -66,6 +81,7 @@ export const SpeciesQueries = (() => {
     return getContext().spriteBase || '';
   }
 
+  /** @returns {import('../types/contracts.js').SpeciesResolverContext} */
   function getResolverContext() {
     return {
       entries: getPokedexEntries(),
@@ -76,6 +92,7 @@ export const SpeciesQueries = (() => {
     };
   }
 
+  /** @param {number} num */
   function dexNumToGen(num) {
     if (num <= 151) return 1;
     if (num <= 251) return 2;
@@ -88,6 +105,7 @@ export const SpeciesQueries = (() => {
     return 9;
   }
 
+  /** @param {number} num */
   function dexNumToRegion(num) {
     if (num <= 151) return 'Kanto';
     if (num <= 251) return 'Johto';
@@ -100,6 +118,10 @@ export const SpeciesQueries = (() => {
     return 'Paldea';
   }
 
+  /**
+   * @param {import('../types/contracts.js').PokedexEntry|null|undefined} entry
+   * @returns {import('../types/contracts.js').PokedexEntry|null}
+   */
   function toPublicPokedexEntry(entry) {
     if (!entry) return null;
     return {
@@ -122,28 +144,38 @@ export const SpeciesQueries = (() => {
     };
   }
 
+  /** @param {import('../types/contracts.js').InputValue} species */
   function speciesSlug(species) {
     return getResolver().normalizeHyphenSlug(species);
   }
 
+  /** @param {import('../types/contracts.js').SpeciesInput|import('../types/contracts.js').SpeciesResolution|null|undefined} speciesOrId */
   function getSpriteCandidates(speciesOrId) {
-    if (Array.isArray(speciesOrId?.spriteCandidates)) {
+    if (speciesOrId && typeof speciesOrId === 'object'
+      && 'spriteCandidates' in speciesOrId
+      && Array.isArray(speciesOrId.spriteCandidates)) {
       return speciesOrId.spriteCandidates.filter(Boolean);
     }
-    return getResolver().getSpriteCandidates(speciesOrId, getResolverContext());
+    return getResolver().getSpriteCandidates(
+      /** @type {import('../types/contracts.js').SpeciesInput|null|undefined} */ (speciesOrId),
+      getResolverContext()
+    );
   }
 
+  /** @param {string|null|undefined} slug */
   function getSpriteUrl(slug) {
     const candidates = getSpriteCandidates(slug);
     const preferred = candidates.find(Boolean) || speciesSlug(String(slug || ''));
     return `${getSpriteBase()}/${preferred}.png`;
   }
 
+  /** @param {import('../types/contracts.js').SpeciesInput|null|undefined} dexIdOrSlug */
   function getPokedexEntry(dexIdOrSlug) {
     const resolved = getResolver().resolve(dexIdOrSlug, getResolverContext());
     return toPublicPokedexEntry(resolved.entry);
   }
 
+  /** @param {import('../types/contracts.js').SpeciesInput|null|undefined} speciesOrId */
   function resolveSpecies(speciesOrId) {
     const resolved = getResolver().resolve(speciesOrId, getResolverContext());
     return {
@@ -176,34 +208,40 @@ export const SpeciesQueries = (() => {
     };
   }
 
+  /** @param {number} dexId */
   function isInChampions(dexId) {
     if (getChampionsIds().has(dexId)) return true;
     const entry = getPokedexByNum().get(dexId);
     return entry ? getChampionsSlugs().has(entry.slug) : false;
   }
 
+  /** @param {string|number} slugOrDexId */
   function isInSV(slugOrDexId) {
     if (typeof slugOrDexId === 'string') return getSvFilter().has(slugOrDexId);
     const entry = getPokedexByNum().get(slugOrDexId);
     return entry ? getSvFilter().has(entry.slug) : false;
   }
 
+  /** @param {string|number} slugOrDexId */
   function slugFor(slugOrDexId) {
     if (typeof slugOrDexId === 'string') return slugOrDexId;
     const entry = getPokedexByNum().get(slugOrDexId);
     return entry ? entry.slug : null;
   }
 
+  /** @param {string|number} slugOrDexId */
   function isInLegendsArceus(slugOrDexId) {
     const slug = slugFor(slugOrDexId);
     return slug ? getLegendsArceusFilter().has(slug) : false;
   }
 
+  /** @param {string|number} slugOrDexId */
   function isInLegendsZA(slugOrDexId) {
     const slug = slugFor(slugOrDexId);
     return slug ? getLegendsZAFilter().has(slug) : false;
   }
 
+  /** @param {string|number} slugOrDexId @param {string} game */
   function isInGame(slugOrDexId, game) {
     const value = (typeof slugOrDexId === 'string' && /^\d+$/.test(slugOrDexId))
       ? Number(slugOrDexId)
@@ -215,6 +253,7 @@ export const SpeciesQueries = (() => {
     return false;
   }
 
+  /** @param {string} query */
   function searchSpecies(query) {
     if (!query || query.length < 1) return [];
     return getResolver().search(query, getResolverContext())
@@ -226,6 +265,7 @@ export const SpeciesQueries = (() => {
    * Get available forms for a species slug. Returns array of
    * { slug, name, forme } for each alternate form (excludes megas, totems, gmax).
    */
+  /** @param {import('../types/contracts.js').SpeciesInput} slugOrName */
   function getFormsForSpecies(slugOrName) {
     const resolved = getResolver().resolve(slugOrName, getResolverContext());
     const entry = resolved.entry;
@@ -238,6 +278,7 @@ export const SpeciesQueries = (() => {
     // Gather forms from otherFormes or formeOrder
     const formNames = baseEntry.otherFormes || [];
     if (!formNames.length && (!baseEntry.formeOrder || baseEntry.formeOrder.length <= 1)) return [];
+    /** @type {Array<{slug: string, name: string, forme: string|null}>} */
     const forms = [];
     // Include base form first
     forms.push({ slug: baseSlug, name: baseEntry.name, forme: null });
@@ -268,6 +309,7 @@ export const SpeciesQueries = (() => {
   }
 
   /** Check if a species is Gigantamax-eligible (has a -Gmax form in pokedex). */
+  /** @param {import('../types/contracts.js').SpeciesInput} slugOrName */
   function isGmaxEligible(slugOrName) {
     const resolved = getResolver().resolve(slugOrName, getResolverContext());
     const entry = resolved.entry;
@@ -301,7 +343,3 @@ export const SpeciesQueries = (() => {
     dexNumToRegion,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.SpeciesQueries = SpeciesQueries;
-}

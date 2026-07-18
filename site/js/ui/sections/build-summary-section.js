@@ -1,8 +1,13 @@
+import { DataManager } from '../../data.js';
+import { DomainMappers } from '../../domain-mappers.js';
+import { UIShared } from '../../ui-shared.js';
+
 /**
  * ui/sections/build-summary-section.js - Shared build summary rendering section.
  */
 export const BuildSummarySection = (() => {
   const STAT_KEYS = DomainMappers.STAT_KEYS;
+  /** @type {Record<string, {plus: import('../../types/contracts.js').StatKey, minus: import('../../types/contracts.js').StatKey}>} */
   const NATURE_BOOSTS = {
     Adamant: { plus: 'atk', minus: 'spa' },
     Bold: { plus: 'def', minus: 'atk' },
@@ -26,13 +31,20 @@ export const BuildSummarySection = (() => {
     Timid: { plus: 'spe', minus: 'spa' },
   };
 
+  /**
+   * @param {import('../../types/contracts.js').StatSpread} baseStats
+   * @param {import('../../types/contracts.js').StatSpread} evs
+   * @param {import('../../types/contracts.js').IvSpread|null|undefined} ivs
+   * @param {string} nature
+   */
   function calcFinalStats(baseStats, evs, ivs, nature) {
-    const result = {};
+    /** @type {import('../../types/contracts.js').NumericStatSpread} */
+    const result = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
     const boost = NATURE_BOOSTS[nature];
     for (const stat of STAT_KEYS) {
-      const base = baseStats[stat] || 0;
-      const ev = evs[stat] || 0;
-      const iv = ivs ? (ivs[stat] ?? 31) : 31;
+      const base = Number(baseStats[stat] || 0);
+      const ev = Number(evs[stat] || 0);
+      const iv = Number(ivs ? (ivs[stat] ?? 31) : 31);
       if (stat === 'hp') {
         if (base === 1) {
           result[stat] = 1;
@@ -52,11 +64,17 @@ export const BuildSummarySection = (() => {
     return result;
   }
 
+  /** @param {import('../../types/contracts.js').StatSpread|null|undefined} baseStats */
   function renderBaseStats(baseStats) {
     if (!baseStats || !Object.keys(baseStats).length) return '';
     return '<h3 class="stat-heading">Base Stats</h3>' + UIShared.renderStatBars(baseStats, 'base');
   }
 
+  /**
+   * @param {import('../../types/contracts.js').BuildState} build
+   * @param {string} blockId
+   * @param {import('../../types/contracts.js').EvSystem|null|undefined} evSystemOverride
+   */
   function renderBuildShowdownBlock(build, blockId, evSystemOverride) {
     const exportSystem = evSystemOverride || DomainMappers.getPreferredEvSystem(build, 'classic');
     return `
@@ -66,6 +84,10 @@ export const BuildSummarySection = (() => {
       </div>`;
   }
 
+  /**
+   * @param {import('../../types/contracts.js').BuildState} build
+   * @param {{instanceFields?: boolean, showEvBars?: boolean, compact?: boolean, showMoves?: boolean, showFinalStats?: boolean}} [opts]
+   */
   function renderBuildSummary(build, opts = {}) {
     const {
       instanceFields = false,
@@ -75,10 +97,12 @@ export const BuildSummarySection = (() => {
       showFinalStats = false,
     } = opts;
 
+    /** @param {string} label @param {import('../../types/contracts.js').InputValue} value */
     const row = (label, value) => {
       if (compact && (value == null || value === '')) return '';
       return `<div class="comp-row"><span class="comp-label">${UIShared.escapeHtml(label)}</span><span class="comp-value">${value == null || value === '' ? '<span class="muted">not set</span>' : UIShared.escapeHtml(String(value))}</span></div>`;
     };
+    /** @param {string} label @param {string} htmlValue */
     const rowHtml = (label, htmlValue) => `<div class="comp-row"><span class="comp-label">${UIShared.escapeHtml(label)}</span><span class="comp-value">${htmlValue}</span></div>`;
 
     let html = '';
@@ -124,7 +148,8 @@ export const BuildSummarySection = (() => {
       for (const system of evSystems) {
         const systemEvs = DomainMappers.getEvsForSystem(build, system);
         if (!systemEvs) continue;
-        const evTotal = Object.values(systemEvs).reduce((sum, value) => sum + Number(value || 0), 0);
+        let evTotal = 0;
+        for (const value of Object.values(systemEvs)) evTotal += Number(value || 0);
         const threshold = evNearMax[system] ?? evMaxSummary[system] ?? 510;
         const trainedLabel = evTotal >= threshold ? ' <span class="ev-trained-badge">EV Trained ✓</span>' : '';
         const systemLabel = evSystems.length > 1
@@ -155,7 +180,7 @@ export const BuildSummarySection = (() => {
         const evObj = DomainMappers.getEvsForSystem(build, evSystems[0] || 'classic') || {};
         const ivs = DomainMappers.getIvsForSystem(build, evSystems[0] || 'classic') || {};
         html += '<h3 class="stat-heading stat-heading--final">Final Stats</h3>';
-        html += UIShared.renderStatBars(calcFinalStats(speciesData.baseStats, evObj, ivs, build.nature), 'final');
+        html += UIShared.renderStatBars(calcFinalStats(speciesData.baseStats, evObj, ivs, build.nature || ''), 'final');
       }
     }
 
@@ -193,7 +218,3 @@ export const BuildSummarySection = (() => {
     renderBuildSummary,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.BuildSummarySection = BuildSummarySection;
-}

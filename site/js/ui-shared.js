@@ -1,10 +1,44 @@
+import { DataManager } from './data.js';
+import { DomainMappers } from './domain-mappers.js';
+import { ExportUI } from './export-ui.js';
+import { SettingsState } from './settings-state.js';
+import { TeamExportFormatter } from './team-export.js';
+import { UIModels } from './ui-models.js';
+import { FilterToolbarSection } from './ui/sections/filter-toolbar.js';
+import { AutocompleteWidget } from './ui/widgets/autocomplete-widget.js';
+import { BallPicker } from './ui/widgets/ball-picker.js';
+import { FormFields } from './ui/widgets/form-fields.js';
+
 /**
  * ui-shared.js — Shared UI utilities, components, and constants.
  * Used by all view modules (home, builds, teams, editor).
  * Must be loaded after data.js and team-export.js.
  */
+import { copyText, flashCopyFeedback } from './ui/clipboard.js';
+import { escapeHtml, normalizeDisplayText, pluralize, titleCase } from './ui/dom.js';
 
 export const UIShared = (() => {
+  /** @typedef {{
+   * compact?: boolean, transferredToChampions?: boolean, shiny?: boolean, genned?: boolean,
+   * eventOrigin?: boolean, fromGo?: boolean, gigantamax?: boolean, alpha?: boolean,
+   * language?: string|null, defaultLanguage?: string|null, slug?: string,
+   * inChampions?: boolean, compatibleGames?: string[]
+   * }} BadgeOptions */
+  /** @typedef {{
+   * status?: import('./types/contracts.js').BuildStatus,
+   * transferredToChampions?: boolean, transferred_to_champions?: boolean,
+   * decorations?: {
+   * status?: import('./types/contracts.js').BuildStatus,
+   * transferred?: boolean,
+   * flags?: Array<{variant: string, label: string}>,
+   * badgeEntry?: EntryBadgeSource
+   * }
+   * } & import('./types/contracts.js').BuildState} DecorationSource */
+  /** @typedef {DecorationSource & {
+   * slug?: string, compatibleGames?: string[], eventOrigin?: boolean, fromGo?: boolean,
+   * language?: string|null
+   * }} EntryBadgeSource */
+  /** @typedef {{shiny?: boolean, cls?: string, width?: string|number, height?: string|number, loading?: string}} SpriteOptions */
   // ── Constants ──────────────────────────────────────────
 
   const STAT_NAMES = DomainMappers.STAT_LABELS;
@@ -29,6 +63,10 @@ export const UIShared = (() => {
 
   // ── Normalize decoration state from any input shape ────
   // Accepts either an inventory entry VM (camelCase) or raw slot state (snake_case).
+  /**
+   * @param {DecorationSource|null|undefined} source
+   * @returns {{status: Partial<import('./types/contracts.js').BuildStatus>, transferred: boolean}}
+   */
   function getDecorationState(source) {
     if (!source) return { status: {}, transferred: false };
     const status = source.decorations?.status
@@ -43,6 +81,7 @@ export const UIShared = (() => {
   // ── Game compatibility badges (ONE implementation) ────
   // Used by: inventory cards, detail viewer.
   // opts.transferredToChampions → show 🏆 transferred badge
+  /** @param {string} slug @param {BadgeOptions & {games?: string[]}} [opts] */
   function renderGameBadgesHtml(slug, opts = {}) {
     const compact = !!opts.compact;
     const sizeAttr = compact ? ' data-badge-size="compact"' : '';
@@ -57,6 +96,7 @@ export const UIShared = (() => {
   // Renders identity + flag badges as uniform colored dots.
   // opts.transferredToChampions, opts.eventOrigin, opts.language,
   // opts.shiny, opts.genned, opts.gigantamax, opts.alpha
+  /** @param {BadgeOptions} [opts] */
   function renderBadgeDotsHtml(opts = {}) {
     const dots = [];
 
@@ -81,6 +121,7 @@ export const UIShared = (() => {
     return dots.join('');
   }
 
+  /** @param {unknown} value */
   function normalizeLanguageCode(value) {
     return String(value || '').trim().toUpperCase();
   }
@@ -90,21 +131,25 @@ export const UIShared = (() => {
     return normalizeLanguageCode(stored) || DEFAULT_LANGUAGE_CODE;
   }
 
+  /** @param {unknown} code */
   function getLanguageInfo(code) {
     const normalized = normalizeLanguageCode(code);
     return normalized ? (LANGUAGE_LOOKUP.get(normalized) || null) : null;
   }
 
+  /** @param {unknown} code */
   function getLanguageName(code) {
     const info = getLanguageInfo(code);
     return info ? info.label : (normalizeLanguageCode(code) || 'Unknown');
   }
 
+  /** @param {unknown} code */
   function getLanguageBadgeText(code) {
     const info = getLanguageInfo(code);
     return info ? info.badge : (normalizeLanguageCode(code) || '');
   }
 
+  /** @param {unknown} selectedLanguage @param {{includeBlank?: boolean, blankLabel?: string}} [opts] */
   function renderLanguageOptions(selectedLanguage, opts = {}) {
     const selected = normalizeLanguageCode(selectedLanguage);
     const includeBlank = opts.includeBlank !== false;
@@ -122,6 +167,7 @@ export const UIShared = (() => {
     return options.join('');
   }
 
+  /** @param {BadgeOptions} [opts] */
   function renderIdentityBadgesHtml(opts = {}) {
     const compact = !!opts.compact;
     const sizeAttr = compact ? ' data-badge-size="compact"' : '';
@@ -150,21 +196,25 @@ export const UIShared = (() => {
 
   // ── Nature <option> HTML (ONE implementation) ─────────
   // Used by: build form, team member form.
+  /** @param {string} selectedNature */
   function renderNatureOptions(selectedNature) {
     return FormFields.renderNatureOptions(selectedNature, { escapeHtml });
   }
 
   // ── Autocomplete formatters (ONE implementation each) ─
+  /** @param {import('./types/contracts.js').PokedexEntry} item */
   function formatSpeciesItem(item) {
     return FormFields.formatSpeciesItem(item, { escapeHtml });
   }
 
+  /** @param {import('./types/contracts.js').ReferenceItem} item */
   function formatMoveItem(item) {
     return FormFields.formatMoveItem(item, { escapeHtml });
   }
 
   // ── Ability <select> sync (ONE implementation) ────────
   // Used by: build form, team member form.
+  /** @param {HTMLSelectElement|null} selectEl @param {import('./types/contracts.js').InputValue} speciesRef @param {string} [selectedAbility] */
   function syncAbilitySelect(selectEl, speciesRef, selectedAbility = '') {
     return FormFields.syncAbilitySelect(selectEl, speciesRef, selectedAbility, { escapeHtml });
   }
@@ -173,11 +223,16 @@ export const UIShared = (() => {
   // system: 'classic' | 'champions'
   // statInputGetter: (statKey) => HTMLInputElement
   // Returns { evs: {hp:N,...}, total:N, errors: [{input, message}] }
+  /**
+   * @param {(key: import('./types/contracts.js').StatKey) => HTMLInputElement} statInputGetter
+   * @param {import('./types/contracts.js').EvSystem} system
+   */
   function validateEvSpread(statInputGetter, system) {
     return FormFields.validateEvSpread(statInputGetter, system, { statNames: STAT_NAMES });
   }
 
   // ── Sprite rendering (ONE implementation) ──────────────
+  /** @param {import('./types/contracts.js').SpeciesInput|null|undefined} speciesRef @param {string} alt @param {{shiny?: boolean}} [opts] */
   function getSpriteUrls(speciesRef, alt, opts = {}) {
     const candidates = (DataManager.getSpriteCandidates
       ? DataManager.getSpriteCandidates(speciesRef || alt)
@@ -203,6 +258,7 @@ export const UIShared = (() => {
     return "(function(img){const list=(img.dataset.fallbackSrcs||'').split('|').filter(Boolean);if(list.length){img.src=list.shift();img.dataset.fallbackSrcs=list.join('|');}else{img.style.display='none';}})(this)";
   }
 
+  /** @param {import('./types/contracts.js').SpeciesInput|null|undefined} speciesRef @param {string} alt @param {SpriteOptions} [opts] */
   function spriteImgHtml(speciesRef, alt, opts = {}) {
     const urls = getSpriteUrls(speciesRef, alt, { shiny: opts.shiny });
     const src = urls[0] || DataManager.getSpriteUrl(String(speciesRef || ''));
@@ -217,6 +273,12 @@ export const UIShared = (() => {
   // Sprite + badge dots as siblings — no wrapper needed.
   // Dots use position:absolute, anchored to nearest positioned ancestor.
   // Callers in flex/grid contexts (slots, table cells) should have position:relative.
+  /**
+   * @param {import('./types/contracts.js').SpeciesInput|null|undefined} speciesRef
+   * @param {string} alt
+   * @param {SpriteOptions|null|undefined} spriteOpts
+   * @param {BadgeOptions|null|undefined} dotOpts
+   */
   function spriteWithDotsHtml(speciesRef, alt, spriteOpts, dotOpts) {
     const effectiveOpts = { ...(spriteOpts || {}) };
     if (!('shiny' in effectiveOpts) && dotOpts?.shiny) effectiveOpts.shiny = true;
@@ -227,173 +289,24 @@ export const UIShared = (() => {
     return `${img}<span class="slot-badge-grid">${dots}</span>`;
   }
 
-  // ── Toast notification (ONE implementation) ───────────
-  function showToast(message, durationMs = 3000) {
-    const toast = document.createElement('div');
-    toast.className = 'toast-notification';
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add('toast-visible'));
-    setTimeout(() => {
-      toast.classList.remove('toast-visible');
-      setTimeout(() => toast.remove(), 300);
-    }, durationMs);
-  }
-
-  // ── Confirm dialog ────────────────────────────────────
-  function showConfirm(message, opts = {}) {
-    const { title = '', confirmLabel = 'Confirm', cancelLabel = 'Cancel', detail = '' } = opts;
-    return new Promise((resolve) => {
-      const overlay = document.createElement('div');
-      overlay.className = 'dialog-backdrop';
-
-      const modal = document.createElement('div');
-      modal.className = 'dialog-modal';
-      modal.setAttribute('role', 'alertdialog');
-      modal.setAttribute('aria-modal', 'true');
-
-      let html = '';
-      if (title) html += `<div class="dialog-title">${escapeHtml(title)}</div>`;
-      html += `<div class="dialog-body">`;
-      html += `<p class="dialog-message">${escapeHtml(message)}</p>`;
-      if (detail) html += `<p class="dialog-detail">${escapeHtml(detail)}</p>`;
-      html += `</div>`;
-      html += `<div class="dialog-actions">
-        <button class="btn dialog-cancel">${escapeHtml(cancelLabel)}</button>
-        <button class="btn btn-primary dialog-confirm">${escapeHtml(confirmLabel)}</button>
-      </div>`;
-      modal.innerHTML = html;
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-
-      requestAnimationFrame(() => overlay.classList.add('dialog-backdrop--visible'));
-
-      const confirmBtn = modal.querySelector('.dialog-confirm');
-      const cancelBtn = modal.querySelector('.dialog-cancel');
-      confirmBtn.focus();
-
-      function close(result) {
-        overlay.classList.remove('dialog-backdrop--visible');
-        setTimeout(() => overlay.remove(), 200);
-        resolve(result);
-      }
-
-      confirmBtn.addEventListener('click', () => close(true));
-      cancelBtn.addEventListener('click', () => close(false));
-      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
-      overlay.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') { close(false); return; }
-        if (e.key === 'Tab') {
-          const focusable = [...modal.querySelectorAll('button')];
-          const first = focusable[0], last = focusable[focusable.length - 1];
-          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
-      });
-    });
-  }
-
-  // ── Prompt dialog ─────────────────────────────────────
-  function showPrompt(message, defaultValue = '', opts = {}) {
-    const { placeholder = '', label = '' } = opts;
-    return new Promise((resolve) => {
-      const inputId = `dialog-input-${Date.now()}`;
-      const overlay = document.createElement('div');
-      overlay.className = 'dialog-backdrop';
-
-      const modal = document.createElement('div');
-      modal.className = 'dialog-modal';
-      modal.setAttribute('role', 'dialog');
-      modal.setAttribute('aria-modal', 'true');
-
-      let html = `<div class="dialog-body">`;
-      if (label) html += `<label for="${escapeHtml(inputId)}" class="dialog-label">${escapeHtml(label)}</label>`;
-      else html += `<p class="dialog-message">${escapeHtml(message)}</p>`;
-      html += `<input id="${escapeHtml(inputId)}" class="dialog-input" type="text" value="${escapeHtml(defaultValue)}" placeholder="${escapeHtml(placeholder)}" autocomplete="off">`;
-      html += `</div>`;
-      html += `<div class="dialog-actions">
-        <button class="btn dialog-cancel">Cancel</button>
-        <button class="btn btn-primary dialog-confirm">OK</button>
-      </div>`;
-      modal.innerHTML = html;
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-
-      requestAnimationFrame(() => overlay.classList.add('dialog-backdrop--visible'));
-
-      const input = modal.querySelector('.dialog-input');
-      const confirmBtn = modal.querySelector('.dialog-confirm');
-      const cancelBtn = modal.querySelector('.dialog-cancel');
-      input.focus();
-      input.select();
-
-      function close(result) {
-        overlay.classList.remove('dialog-backdrop--visible');
-        setTimeout(() => overlay.remove(), 200);
-        resolve(result);
-      }
-
-      confirmBtn.addEventListener('click', () => close(input.value));
-      cancelBtn.addEventListener('click', () => close(null));
-      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(null); });
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') close(input.value);
-        if (e.key === 'Escape') close(null);
-      });
-      overlay.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') close(null);
-      });
-    });
-  }
-
   // ── Ball picker wrappers ───────────────────────────────
 
+  /** @param {string} ballName */
   function ballSpriteUrl(ballName) {
     return BallPicker.ballSpriteUrl(ballName);
   }
 
+  /** @param {HTMLElement} container @param {string|null|undefined} selectedBall @param {((ball: string) => void)|null|undefined} onChange */
   function createBallPicker(container, selectedBall, onChange) {
     return BallPicker.createBallPicker(container, selectedBall, onChange);
   }
 
-  // ── Text utilities ─────────────────────────────────────
-
-  function normalizeDisplayText(value) {
-    return String(value ?? '')
-      .replace(/\u00e2\u20ac\u201d/g, '\u2014')
-      .replace(/\u00e2\u20ac\u201c/g, '\u2013')
-      .replace(/\u00e2\u20ac\u0153/g, '\u201c')
-      .replace(/\u00e2\u20ac\u009d/g, '\u201d')
-      .replace(/\u00e2\u20ac\u2122/g, '\u2019');
-  }
-
-  function escapeHtml(value) {
-    return normalizeDisplayText(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function titleCase(value) {
-    return String(value || '')
-      .split(/[\s_-]+/)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
-  }
-
-  function pluralize(count, singular, plural = `${singular}s`) {
-    return count === 1 ? singular : plural;
-  }
-
   // ── Stat formatting ────────────────────────────────────
 
+  /** @param {import('./types/contracts.js').StatSpread|null|undefined} stats @param {string} [fallback] */
   function formatCompactStatSpread(stats, fallback = 'Not provided') {
-    const parts = Object.entries(STAT_NAMES)
+    const statEntries = /** @type {Array<[import('./types/contracts.js').StatKey, string]>} */ (Object.entries(STAT_NAMES));
+    const parts = statEntries
       .map(([key, label]) => {
         const value = Number(stats?.[key] ?? 0);
         return value > 0 ? `${value} ${label}` : null;
@@ -403,17 +316,20 @@ export const UIShared = (() => {
     return parts.length ? parts.join(' / ') : fallback;
   }
 
+  /** @param {import('./types/contracts.js').StatSpread|null|undefined} stats @param {string} [kind] */
   function renderStatBars(stats, kind = 'ev') {
     const cssClass = kind === 'champions-ev' ? 'ev' : kind;
     const maxValue = kind === 'iv' ? 31 : kind === 'base' ? 255 : kind === 'final' ? 300 : kind === 'champions-ev' ? 32 : 252;
     const isEvKind = kind === 'ev' || kind === 'champions-ev';
     // EVs use all-or-nothing unknown: if every stat is 0/null/undefined, the whole spread is unknown
-    const allEvsUnknown = isEvKind && Object.keys(STAT_NAMES).every(k => {
+    const statKeys = /** @type {import('./types/contracts.js').StatKey[]} */ (Object.keys(STAT_NAMES));
+    const statEntries = /** @type {Array<[import('./types/contracts.js').StatKey, string]>} */ (Object.entries(STAT_NAMES));
+    const allEvsUnknown = isEvKind && statKeys.every(k => {
       const v = stats?.[k];
       return v === null || v === undefined || v === 0;
     });
     let html = '<div class="stat-bars">';
-    for (const [key, label] of Object.entries(STAT_NAMES)) {
+    for (const [key, label] of statEntries) {
       const rawValue = stats?.[key];
       const isUnknown = rawValue === null || rawValue === undefined;
       const perStatClass = `stat-bar-${key}`;
@@ -437,7 +353,8 @@ export const UIShared = (() => {
       }
     }
     if (kind === 'base' || kind === 'final') {
-      const bst = Object.values(stats || {}).reduce((s, v) => s + Number(v || 0), 0);
+      let bst = 0;
+      for (const value of Object.values(stats || {})) bst += Number(value || 0);
       const totalLabel = kind === 'final' ? 'Total' : 'BST';
       html += `<div class="stat-row stat-row--total"><span class="stat-label">${totalLabel}</span><div class="stat-bar-bg"></div><span class="stat-value">${bst}</span></div>`;
     }
@@ -451,21 +368,26 @@ export const UIShared = (() => {
     hp: '#ff5959', atk: '#f5ac78', def: '#fae078',
     spa: '#9db7f5', spd: '#a7db8d', spe: '#fa92b2',
   });
+  /** @type {Record<import('./types/contracts.js').StatKey, string>|null} */
   let _statColorCache = null;
 
+  /** @param {import('./types/contracts.js').StatKey} stat */
   function getStatColor(stat) {
     if (!_statColorCache) {
       const styles = getComputedStyle(document.documentElement);
-      _statColorCache = {};
+      _statColorCache = { ...DEFAULT_STAT_COLORS };
       for (const [key, fallback] of Object.entries(DEFAULT_STAT_COLORS)) {
-        _statColorCache[key] = styles.getPropertyValue(`--stat-${key}`).trim() || fallback;
+        const statKey = /** @type {import('./types/contracts.js').StatKey} */ (key);
+        _statColorCache[statKey] = styles.getPropertyValue(`--stat-${key}`).trim() || fallback;
       }
     }
     return _statColorCache[stat] || DEFAULT_STAT_COLORS[stat];
   }
 
+  /** @param {import('./types/contracts.js').StatSpread|null|undefined} stats @param {string} [kind] */
   function renderStatRadar(stats, kind = 'ev') {
     // In-game hexagon order: HP, Atk, Def, Spe, SpD, SpA (clockwise from top)
+    /** @type {import('./types/contracts.js').StatKey[]} */
     const keys = ['hp', 'atk', 'def', 'spe', 'spd', 'spa'];
     const labels = keys.map(k => STAT_NAMES[k]);
     const maxVal = kind === 'iv' ? 31 : kind === 'champions-ev' ? 32
@@ -483,9 +405,13 @@ export const UIShared = (() => {
     const R = 68;
     const n = 6;
 
+    /** @param {number} i */
     const ang = i => (2 * Math.PI * i) / n - Math.PI / 2;
+    /** @param {number} a @param {number} r @returns {[number, number]} */
     const xy = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    /** @param {number} a @param {number} r */
     const pt = (a, r) => { const [x, y] = xy(a, r); return `${x.toFixed(1)},${y.toFixed(1)}`; };
+    /** @param {number} r */
     const hexPts = r => Array.from({ length: n }, (_, i) => pt(ang(i), r)).join(' ');
 
     let svg = `<svg viewBox="0 0 ${W} ${H}" class="stat-radar stat-radar--${kind}">`;
@@ -539,6 +465,7 @@ export const UIShared = (() => {
 
   // ── Move rendering ─────────────────────────────────────
 
+  /** @param {string[]} moves @param {{eggMoves?: string[]}} [opts] */
   function renderMovePills(moves, opts = {}) {
     const eggMoveKeys = new Set((opts.eggMoves || []).map(normalizeMoveToken));
     return (moves || [])
@@ -550,6 +477,7 @@ export const UIShared = (() => {
       .join('');
   }
 
+  /** @param {string[]} moves @param {string} [emptyMessage] @param {{eggMoves?: string[]}} [opts] */
   function renderMovesList(moves, emptyMessage = 'No moves imported.', opts = {}) {
     if (!moves?.length) {
       return `<p class="detail-panel-note">${escapeHtml(emptyMessage)}</p>`;
@@ -570,8 +498,11 @@ export const UIShared = (() => {
 
   // ── Showdown Preview with PokePaste highlighting ───────
 
+  /** @param {import('./types/contracts.js').BuildState|import('./types/contracts.js').ExportMember} build */
   function renderShowdownPreview(build) {
-    const text = TeamExportFormatter.formatMember(build);
+    const text = TeamExportFormatter.formatMember(
+      /** @type {import('./types/contracts.js').BuildState} */ (build)
+    );
     const lines = text.split('\n');
     const entry = DataManager.resolveSpecies(build).entry;
     const primaryType = entry?.types?.[0]?.toLowerCase() || '';
@@ -603,97 +534,19 @@ export const UIShared = (() => {
 
   // ── Autocomplete widget ────────────────────────────────
 
+  /**
+   * @template {string|{name?: string}} T
+   * @param {HTMLInputElement} input
+   * @param {(query: string) => T[]|Promise<T[]>} searchFn
+   * @param {{onSelect?: (item: T) => void, formatItem?: (item: T) => string}} [options]
+   */
   function createAutocomplete(input, searchFn, { onSelect, formatItem } = {}) {
     return AutocompleteWidget.create(input, searchFn, { onSelect, formatItem, escapeHtml });
   }
 
-  // ── Clipboard utilities ────────────────────────────────
-
-  async function copyText(text, textarea) {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-
-    textarea.focus();
-    textarea.select();
-    textarea.setSelectionRange(0, textarea.value.length);
-    if (!document.execCommand('copy')) {
-      throw new Error('Clipboard copy failed');
-    }
-  }
-
-  /**
-   * Copy text to clipboard and flash feedback on a button.
-   * @param {string} text - Text to copy.
-   * @param {HTMLElement} button - Button element to flash.
-   * @param {object} [opts] - Options: successText, failText, cssClass, errorClass, duration, textarea, onError, onSuccess.
-   */
-  async function flashCopyFeedback(text, button, opts = {}) {
-    const {
-      successText = 'Copied!',
-      failText = 'Failed',
-      cssClass = 'is-copied',
-      errorClass = 'is-error',
-      duration = 1500,
-      textarea = document.createElement('textarea'),
-      onError = null,
-      onSuccess = null,
-    } = opts;
-    const original = button.textContent;
-    button.classList.remove(cssClass, errorClass);
-    try {
-      await copyText(text, textarea);
-      button.textContent = successText;
-      button.classList.add(cssClass);
-      if (typeof onSuccess === 'function') onSuccess();
-    } catch (error) {
-      button.textContent = failText;
-      button.classList.add(errorClass);
-      if (typeof onError === 'function') onError(error);
-    }
-    window.clearTimeout(button._resetTimer);
-    button._resetTimer = setTimeout(() => {
-      button.textContent = original;
-      button.classList.remove(cssClass, errorClass);
-    }, duration);
-  }
-
-  // ── Panel management ───────────────────────────────────
-
-  let _panelBeforeClose = null;
-  let _panelReturnFocus = null;
-
-  function openPanel(html, opts = {}) {
-    const panel = document.getElementById('detail-panel');
-    const overlay = document.getElementById('detail-overlay');
-    const content = document.getElementById('detail-content');
-
-    if (!panel.classList.contains('open')) _panelReturnFocus = document.activeElement;
-    _panelBeforeClose = opts.onBeforeClose || null;
-    content.innerHTML = html;
-    panel.classList.add('open');
-    overlay.classList.add('open');
-    if (typeof AppStore !== 'undefined') AppStore.setDetailOpen(true);
-    return content;
-  }
-
-  async function closePanel({ skipBeforeClose = false } = {}) {
-    if (!skipBeforeClose && _panelBeforeClose) {
-      try { await _panelBeforeClose(); } catch (err) { console.error('Panel beforeClose error', err); }
-    }
-    const returnFocus = _panelReturnFocus;
-    _panelBeforeClose = null;
-    _panelReturnFocus = null;
-    document.getElementById('detail-panel').classList.remove('open');
-    document.getElementById('detail-overlay').classList.remove('open');
-    document.getElementById('detail-content').innerHTML = '';
-    if (typeof AppStore !== 'undefined') AppStore.setDetailOpen(false);
-    if (returnFocus?.isConnected && typeof returnFocus.focus === 'function') returnFocus.focus();
-  }
-
   // ── Export surface utilities ────────────────────────────
 
+  /** @param {string} exportText */
   function summarizeImportable(exportText) {
     const blocks = exportText
       .split(/\n\s*\n/)
@@ -703,11 +556,12 @@ export const UIShared = (() => {
     return blocks.length > 1 ? `${firstLine} + ${blocks.length - 1} more` : firstLine;
   }
 
+  /** @param {HTMLElement} container @param {boolean} isOpen @param {string} [closedLabel] */
   function setImportablePanelOpen(container, isOpen, closedLabel = 'View importable') {
     container.classList.toggle('is-open', isOpen);
     const panel = container.querySelector('.team-export-panel');
     const toggleButton = container.querySelector('.team-export-toggle');
-    if (panel) {
+    if (panel instanceof HTMLElement) {
       panel.hidden = !isOpen;
     }
     if (toggleButton) {
@@ -715,14 +569,16 @@ export const UIShared = (() => {
     }
   }
 
+  /** @param {HTMLElement} container @param {{exportText: string, copyLabel: string, toggleLabel: string}} options */
   function wireImportableSurface(container, { exportText, copyLabel, toggleLabel }) {
     const textarea = container.querySelector('.team-export-text');
     const copyButton = container.querySelector('.team-export-copy');
     const toggleButton = container.querySelector('.team-export-toggle');
-    if (!textarea || !copyButton) return;
+    if (!(textarea instanceof HTMLTextAreaElement) || !(copyButton instanceof HTMLButtonElement)) return;
 
     textarea.value = exportText;
-    if (toggleButton) {
+    copyButton.textContent = copyLabel;
+    if (toggleButton instanceof HTMLButtonElement) {
       setImportablePanelOpen(container, false, toggleLabel);
       toggleButton.addEventListener('click', () => {
         setImportablePanelOpen(container, !container.classList.contains('is-open'), toggleLabel);
@@ -745,6 +601,7 @@ export const UIShared = (() => {
     });
   }
 
+  /** @param {string} exportText */
   function highlightShowdownText(exportText) {
     const lines = exportText.split('\n');
     return lines.map(line => {
@@ -770,6 +627,7 @@ export const UIShared = (() => {
     }).join('\n');
   }
 
+  /** @param {import('./types/contracts.js').Team} team */
   function createTeamExportSurface(team) {
     const exportText = TeamExportFormatter.formatTeam(team);
     const exportMeta = TeamExportFormatter.getExportMeta(team);
@@ -825,6 +683,7 @@ export const UIShared = (() => {
 
   // ── Search empty state ─────────────────────────────────
 
+  /** @param {string} containerId @param {string} search @param {boolean} isVisible @param {string} message */
   function updateSearchEmptyState(containerId, search, isVisible, message) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -848,22 +707,24 @@ export const UIShared = (() => {
 
   // ── Form validation ─────────────────────────────────────
 
+  /** @param {HTMLElement} input @param {string} message */
   function showFieldError(input, message) {
     clearFieldError(input);
     input.classList.add('field-error');
     const err = document.createElement('div');
     err.className = 'field-error-msg';
     err.textContent = message;
-    input.parentElement.appendChild(err);
+    input.parentElement?.appendChild(err);
     // Auto-clear on next input/change
     const handler = () => { clearFieldError(input); input.removeEventListener('input', handler); input.removeEventListener('change', handler); };
     input.addEventListener('input', handler);
     input.addEventListener('change', handler);
   }
 
+  /** @param {HTMLElement} input */
   function clearFieldError(input) {
     input.classList.remove('field-error');
-    const existing = input.parentElement.querySelector('.field-error-msg');
+    const existing = input.parentElement?.querySelector('.field-error-msg');
     if (existing) existing.remove();
   }
 
@@ -871,6 +732,7 @@ export const UIShared = (() => {
   // Renders flag pill badges: shiny, genned, champions, gmax, alpha, event.
   // Used by: inventory cards, inventory table, build summary, detail viewer.
   // state = any object with shiny/genned/transferred_to_champions/gigantamax/alpha/event_origin flags.
+  /** @param {DecorationSource|null|undefined} state */
   function renderFlagBadgesHtml(state) {
     if (!state) return '';
     if (Array.isArray(state.decorations?.flags)) {
@@ -892,11 +754,12 @@ export const UIShared = (() => {
   // ── Entry badge composition (ONE implementation) ──────
   // Composes game + identity + flag badges for an entry view model.
   // Used by: inventory cards, detail viewer.
+  /** @param {EntryBadgeSource|null|undefined} entry @param {{compact?: boolean}} [opts] */
   function renderEntryBadgesHtml(entry, opts = {}) {
     const compact = !!opts.compact;
     const badgeEntry = entry?.decorations?.badgeEntry || entry || {};
     const parts = [
-      renderGameBadgesHtml(badgeEntry.slug, {
+      renderGameBadgesHtml(badgeEntry.slug || '', {
         compact,
         games: badgeEntry.compatibleGames,
         transferredToChampions: badgeEntry.transferredToChampions,
@@ -916,17 +779,19 @@ export const UIShared = (() => {
   // Applies all CSS-based decorations to a rendered element in one call.
   // Accepts any input shape: inventory entry VM or raw slot state.
   // Used by: inventory table rows, inventory cards, box slots.
+  /** @param {HTMLElement} el @param {DecorationSource} source */
   function applyEntryDecorations(el, source) {
     const { status, transferred } = getDecorationState(source);
     if (status.isComplete) el.dataset.border = 'complete';
     else if (status.isPartial) el.dataset.border = 'partial';
     else delete el.dataset.border;
-    if (status.fullTrainedSystems?.length > 0) el.dataset.trained = 'full';
-    else if (status.readySystems?.length > 0) el.dataset.trained = 'partial';
+    if ((status.fullTrainedSystems?.length || 0) > 0) el.dataset.trained = 'full';
+    else if ((status.readySystems?.length || 0) > 0) el.dataset.trained = 'partial';
     else delete el.dataset.trained;
     el.classList.toggle('transferred', transferred);
   }
 
+  /** @param {Partial<import('./types/contracts.js').BrowserToolbarModel> & {secondaryOpen?: boolean}} [config] */
   function renderBrowserToolbar(config = {}) {
     return FilterToolbarSection.renderBrowserToolbar(config, {
       escapeHtml,
@@ -936,6 +801,7 @@ export const UIShared = (() => {
 
   // ── EV system badge ────────────────────────────────────
 
+  /** @param {import('./types/contracts.js').EvSystem} evSystem */
   function renderEvSystemBadge(evSystem) {
     return evSystem === 'champions'
       ? '<span class="ev-badge champions">Champions</span>'
@@ -952,20 +818,14 @@ export const UIShared = (() => {
     renderFlagBadgesHtml, renderEntryBadgesHtml, applyEntryDecorations,
     renderNatureOptions, renderLanguageOptions,
     formatSpeciesItem, formatMoveItem, syncAbilitySelect,
-    validateEvSpread, spriteImgHtml, spriteWithDotsHtml, showToast,
+    validateEvSpread, spriteImgHtml, spriteWithDotsHtml,
     normalizeDisplayText, escapeHtml, titleCase, pluralize,
     normalizeLanguageCode, getDefaultLanguageCode, getLanguageInfo, getLanguageName, getLanguageBadgeText,
     formatCompactStatSpread, renderStatBars, renderStatRadar, renderMovesList, renderMovePills, renderShowdownPreview,
     createAutocomplete, copyText, flashCopyFeedback,
-    openPanel, closePanel,
     summarizeImportable, setImportablePanelOpen, wireImportableSurface, createTeamExportSurface,
     highlightShowdownText, updateSearchEmptyState,
     renderBrowserToolbar,
     showFieldError, clearFieldError,
-    showConfirm, showPrompt,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.UIShared = UIShared;
-}

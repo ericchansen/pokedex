@@ -1,20 +1,25 @@
+import { DomainMappers } from './domain-mappers.js';
+import { EvConvert } from './ev-convert.js';
+
 /**
  * showdown-parser.js — Parse Showdown importable text into structured data.
  * Inverse of team-export.js formatMember().
  */
 
 export const ShowdownParser = (() => {
-  const STAT_KEYS = Object.fromEntries(
+  const STAT_KEYS = /** @type {Record<string, import('./types/contracts.js').StatKey>} */ (Object.fromEntries(
     Object.entries(DomainMappers.STAT_LABELS).map(([k, label]) => [label, k])
-  );
+  ));
   const {
     CHAMPIONS_PER_STAT_CAP = 32,
     CLASSIC_PER_STAT_CAP = 252,
-  } = window.EvConvert || {};
+  } = EvConvert || {};
   const DEFAULT_SPREAD_MAX = CLASSIC_PER_STAT_CAP;
   const IV_MAX = 31;
 
+  /** @param {string} text @param {number} [maxValue] */
   function parseSpread(text, maxValue = DEFAULT_SPREAD_MAX) {
+    /** @type {import('./types/contracts.js').StatSpread} */
     const spread = {};
     const parts = text.split('/').map(p => p.trim());
     for (const part of parts) {
@@ -31,7 +36,8 @@ export const ShowdownParser = (() => {
   /**
    * Parse a single Showdown set text block into structured data.
    * @param {string} text - Raw Showdown text for one Pokémon
-   * @returns {object|null} Parsed set or null if empty
+   * @param {{maxValue?: number|'champions', championsMaxValue?: number}} [opts]
+   * @returns {import('./types/contracts.js').ParsedShowdownSet|null} Parsed set or null if empty
    */
   function parseSet(text, opts = {}) {
     const {
@@ -42,6 +48,7 @@ export const ShowdownParser = (() => {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length === 0) return null;
 
+    /** @type {import('./types/contracts.js').ParsedShowdownSet} */
     const result = {
       species: '', item: '', ability: '', nature: '',
       evs: {}, ivs: {}, moves: [], teraType: '', level: 50,
@@ -138,7 +145,7 @@ export const ShowdownParser = (() => {
     // Showdown convention: omitted IVs default to 31 (perfect).
     // Only fill defaults when at least one IV was explicitly set, OR when
     // no IVs line appeared at all (implying all perfect).
-    const STAT_KEY_LIST = Object.keys(DomainMappers.STAT_LABELS);
+    const STAT_KEY_LIST = /** @type {import('./types/contracts.js').StatKey[]} */ (Object.keys(DomainMappers.STAT_LABELS));
     const hasAnyIv = Object.keys(result.ivs).length > 0;
     if (!hasAnyIv) {
       // No IVs line → all 31
@@ -156,13 +163,13 @@ export const ShowdownParser = (() => {
   /**
    * Parse a full team (multiple sets separated by blank lines).
    * @param {string} text - Raw Showdown text for a full team
-   * @returns {object[]} Array of parsed sets
+   * @param {{maxValue?: number|'champions', championsMaxValue?: number}} [opts]
+   * @returns {import('./types/contracts.js').ParsedShowdownSet[]} Array of parsed sets
    */
   function parseTeam(text, opts = {}) {
     const sets = text.split(/\n\s*\n/).filter(s => s.trim().length > 0);
-    return sets.map((setText) => parseSet(setText, opts)).filter(Boolean);
+    return sets.map((setText) => parseSet(setText, opts)).filter((set) => set !== null);
   }
 
   return { parseSet, parseTeam };
 })();
-window.ShowdownParser = ShowdownParser;

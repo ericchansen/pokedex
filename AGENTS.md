@@ -51,14 +51,15 @@ site/                  SPA frontend (vanilla HTML/CSS/JS)
 ├── css/               Stylesheets
 ├── js/
 │   ├── app.js              App bootstrap + navigation
-│   ├── data.js             Data loading + PATCH persistence
+│   ├── data.js             Data facade + mutation orchestration
+│   ├── data/               Repositories, mappers, reference loaders, entity store
+│   ├── state/              Selector-based shell state and derived selectors
 │   ├── build-editor.js     Build creation/editing surfaces
 │   ├── pokemon-viewer.js   Species/build detail viewer + build cards
 │   ├── team-surfaces.js    Team list/detail/import/editor surfaces
 │   ├── export-ui.js        Bulk export modal
 │   ├── build-ui-helpers.js Shared build stat/render helpers
 │   ├── progress-indicator.js Header progress UI
-│   ├── route-refresh.js    Route remount helper after mutations
 │   ├── router.js           Hash-based SPA router
 │   ├── ev-convert.js       Champions SP ↔ Classic EV conversion
 │   ├── team-export.js      Showdown paste export formatting
@@ -66,7 +67,8 @@ site/                  SPA frontend (vanilla HTML/CSS/JS)
 │   ├── buildFingerprint.js Build deduplication via fingerprints
 │   ├── selection.js        Multi-select state management
 │   ├── selection-bar.js    Floating action bar for selections
-│   ├── ui-shared.js        Shared UI utilities
+│   ├── ui/                 Reusable widgets, surfaces, DOM, dialog, panel, keyed list
+│   ├── ui-shared.js        Domain presentation helpers
 │   └── views/              Per-tab view modules
 userdata/              User data (gitignored — never touched by git)
 ├── builds.json        Library of reusable competitive Builds
@@ -100,8 +102,8 @@ serve.py               Local-only dev server (single user, no auth)
 ## Conventions
 
 ### Tech Stack
-- **No frameworks, no bundler** — vanilla JS with ES modules loaded via `<script>` tags
-- Runtime/dev server tooling is Python via `uv`; Node is dev-test-only for Playwright visual verification
+- **No frameworks, no bundler** — vanilla JS with one module entry and explicit ES module imports
+- Runtime/dev server tooling is Python via `uv`; Node is dev-test-only for linting, checked JavaScript, and Edge tests
 - Sprites: use Showdown sprites (`play.pokemonshowdown.com/sprites/gen5/{slug}.png`), not PokéSprite (missing Gen 9)
 
 ### Data Model
@@ -184,11 +186,16 @@ npm run lint:py       # Ruff (Python) via uvx
 Contract validation scripts (run by CI):
 ```powershell
 npm run validate:phase5-contracts   # Data schema + browser surface contracts
+npm run validate:modules            # One entry, acyclic imports, no app globals
 ```
 
 ## Testing
 
 - `ev-convert.js` has inline self-tests that run on page load (check browser console for `[EvConvert] self-test passed`)
+- `npm run typecheck` checks JavaScript and shared contracts without emitting files
+- `npm run test:unit` runs frontend state and infrastructure tests
+- `npm run test:frontend` runs critical browser flows in Microsoft Edge
+- `uv run --with pytest --with azure-functions pytest api/tests/ -v` runs backend tests
 - Verify changes visually by running the dev server and checking the browser
 - Check browser console for errors after any JS changes
 

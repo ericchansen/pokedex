@@ -14,12 +14,10 @@
  *   That's it. Storage roundtrip, matching, tooltips, sprites, and
  *   placement UI all derive from this registry.
  */
-export const FormMetadata = (() => {
-  // Species whose sprites differ by gender (cosmetic dimorphism).
-  // Exported from SpeciesResolver but also needed here for tooltip/sprite logic.
-  const GENDER_SPRITE_SPECIES = (typeof SpeciesResolver !== 'undefined' && SpeciesResolver.GENDER_SPRITE_SPECIES)
-    || new Set();
+import { GENDER_SPRITE_SPECIES } from './species-constants.js';
 
+export const FormMetadata = (() => {
+  /** @param {import('./types/contracts.js').InputValue} v */
   function formatValue(v) {
     return String(v).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
@@ -31,7 +29,8 @@ export const FormMetadata = (() => {
    *   sprite?(v, slug)     — returns sprite candidate slug(s) or null
    *   placement?(slug)     — returns { type, options, labels? } or null if not applicable
    */
-  const REGISTRY = Object.freeze({
+  /** @type {Record<import('./types/contracts.js').FormMetadataKey, import('./types/contracts.js').FormMetadataDefinition>} */
+  const registry = {
     gender: {
       normalize: (v) => String(v).toUpperCase().charAt(0),
       tooltip: (v) => {
@@ -42,14 +41,14 @@ export const FormMetadata = (() => {
         return null;
       },
       sprite: (v, slug) => v === 'F' && GENDER_SPRITE_SPECIES.has(slug) ? [`${slug}-f`] : null,
-      lock: (slug) => {
-        const g = typeof DataManager !== 'undefined' ? DataManager.getSpeciesGender(slug) : null;
+      lock: (_slug, context = {}) => {
+        const g = context.speciesGender || null;
         if (g === 'M') return { value: 'M', display: '♂', reason: 'This species is always male' };
         if (g === 'F') return { value: 'F', display: '♀', reason: 'This species is always female' };
         if (g === 'N') return { value: 'N', display: '—', reason: 'This species is genderless' };
         return null;
       },
-      placement: (slug) => {
+      placement: () => {
         return { type: 'toggle', options: ['M', 'F'], labels: ['♂', '♀'] };
       },
     },
@@ -92,13 +91,15 @@ export const FormMetadata = (() => {
         options: ['Strawberry', 'Berry', 'Love', 'Star', 'Clover', 'Flower', 'Ribbon'],
       } : null,
     },
-  });
+  };
+  const REGISTRY = Object.freeze(registry);
 
   /** All registry keys — used to derive FORM_EXTRA_FIELDS and copyFields. */
-  const KEYS = Object.keys(REGISTRY);
+  const KEYS = /** @type {import('./types/contracts.js').FormMetadataKey[]} */ (Object.keys(REGISTRY));
 
   /** Build normalizer map for matchesPreset. */
   function getNormalizers() {
+    /** @type {Record<string, (value: import('./types/contracts.js').InputValue) => string|boolean>} */
     const map = {};
     for (const [key, def] of Object.entries(REGISTRY)) {
       if (def.normalize) map[key] = def.normalize;
@@ -108,10 +109,15 @@ export const FormMetadata = (() => {
 
   /** Build tooltip suffix from metadata. Shows whatever keys are present.
    *  Pass template requires/defaults for ghost slots. Pass instance state for occupied. */
+  /**
+   * @param {import('./types/contracts.js').BuildState|Partial<Record<import('./types/contracts.js').FormMetadataKey, import('./types/contracts.js').InputValue>>|null|undefined} state
+   * @param {string} resolvedSlug
+   */
   function buildTooltipSuffix(state, resolvedSlug) {
     if (!state) return '';
     const parts = [];
-    for (const [key, def] of Object.entries(REGISTRY)) {
+    for (const key of KEYS) {
+      const def = REGISTRY[key];
       if (!def.tooltip) continue;
       const val = state[key];
       if (val == null || val === '' || val === false) continue;
@@ -122,6 +128,10 @@ export const FormMetadata = (() => {
   }
 
   /** Build sprite candidate slugs from state metadata. Returns array. */
+  /**
+   * @param {import('./types/contracts.js').BuildState|Partial<Record<import('./types/contracts.js').FormMetadataKey, import('./types/contracts.js').InputValue>>|null|undefined} state
+   * @param {string} resolvedSlug
+   */
   function buildSpriteCandidates(state, resolvedSlug) {
     if (!state) return [];
     const candidates = [];
@@ -131,7 +141,8 @@ export const FormMetadata = (() => {
       const sweetSlug = String(state.sweet).toLowerCase().replace(/\s+/g, '-');
       candidates.push(`alcremie-${creamSlug}-${sweetSlug}`);
     }
-    for (const [key, def] of Object.entries(REGISTRY)) {
+    for (const key of KEYS) {
+      const def = REGISTRY[key];
       if (!def.sprite) continue;
       const val = state[key];
       if (val == null || val === '' || val === false) continue;
@@ -142,9 +153,12 @@ export const FormMetadata = (() => {
   }
 
   /** Get placement UI controls needed for a species. Returns [{key, type, options, labels?}]. */
+  /** @param {string} slug */
   function getPlacementControls(slug) {
+    /** @type {import('./types/contracts.js').FormControl[]} */
     const controls = [];
-    for (const [key, def] of Object.entries(REGISTRY)) {
+    for (const key of KEYS) {
+      const def = REGISTRY[key];
       if (!def.placement) continue;
       const config = def.placement(slug);
       if (config) controls.push({ key, ...config });
@@ -153,11 +167,17 @@ export const FormMetadata = (() => {
   }
 
   /** Get locked fields for a species. Returns { key: { value, display, reason } } or empty. */
-  function getLock(slug) {
+  /**
+   * @param {string} slug
+   * @param {{speciesGender?: string|null}} [context]
+   */
+  function getLock(slug, context = {}) {
+    /** @type {Partial<Record<import('./types/contracts.js').FormMetadataKey, {value: string, display: string, reason: string}>>} */
     const locks = {};
-    for (const [key, def] of Object.entries(REGISTRY)) {
+    for (const key of KEYS) {
+      const def = REGISTRY[key];
       if (!def.lock) continue;
-      const lock = def.lock(slug);
+      const lock = def.lock(slug, context);
       if (lock) locks[key] = lock;
     }
     return locks;
@@ -174,7 +194,3 @@ export const FormMetadata = (() => {
     getLock,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.FormMetadata = FormMetadata;
-}

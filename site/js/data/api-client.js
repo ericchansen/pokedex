@@ -12,7 +12,13 @@ export const ApiClient = (() => {
     return !location.hostname.match(/^(localhost|127\.0\.0\.1)$/);
   }
 
-  async function request(method, url, body) {
+  /**
+   * @param {string} method
+   * @param {string} url
+   * @param {object|undefined} body
+   */
+  async function request(method, url, body = undefined) {
+    /** @type {RequestInit} */
     const options = { method };
     if (body !== undefined) {
       options.headers = { 'Content-Type': 'application/json' };
@@ -33,31 +39,40 @@ export const ApiClient = (() => {
 
     if (!resp.ok) {
       let text = '';
-      try { text = await resp.text(); } catch (_) {}
+      try { text = await resp.text(); } catch {}
       throw new Error(`${method} ${url} failed: ${resp.status} ${resp.statusText}${text ? ` — ${text}` : ''}`);
     }
 
     return resp;
   }
 
+  /**
+   * JSON is validated and specialized by the data service that owns each URL.
+   * @template T
+   * @param {string} url
+   * @returns {Promise<T>}
+   */
   async function getJson(url) {
     const resp = await request('GET', url);
-    return resp.json();
+    return /** @type {T} */ (await resp.json());
   }
 
+  /** @template T @param {string} url @param {object} body @returns {Promise<T>} */
   async function post(url, body) {
     const resp = await request('POST', url, body);
-    return resp.json();
+    return /** @type {T} */ (await resp.json());
   }
 
+  /** @template T @param {string} url @param {object} body @returns {Promise<T>} */
   async function put(url, body) {
     const resp = await request('PUT', url, body);
-    return resp.json();
+    return /** @type {T} */ (await resp.json());
   }
 
+  /** @template T @param {string} url @returns {Promise<T>} */
   async function remove(url) {
     const resp = await request('DELETE', url);
-    return resp.json();
+    return /** @type {T} */ (await resp.json());
   }
 
   /** Check if the current user is authenticated (SWA Easy Auth). */
@@ -68,7 +83,8 @@ export const ApiClient = (() => {
       if (!resp.ok) return null;
       const data = await resp.json();
       return data?.clientPrincipal || null;
-    } catch (_) {
+    } catch (error) {
+      console.warn('[ApiClient] failed to load auth info', error);
       return null;
     }
   }
@@ -82,7 +98,3 @@ export const ApiClient = (() => {
     isHosted,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.ApiClient = ApiClient;
-}

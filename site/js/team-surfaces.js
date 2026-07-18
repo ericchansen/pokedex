@@ -1,8 +1,64 @@
+import { AppRoutes } from './app-routes.js';
+import { BuildUIHelpers } from './build-ui-helpers.js';
+import { DataManager } from './data.js';
+import { DomainMappers } from './domain-mappers.js';
+import { EvConvert } from './ev-convert.js';
+import { ExportUI } from './export-ui.js';
+import { PokemonViewer } from './pokemon-viewer.js';
+import { Router } from './router.js';
+import { Selection } from './selection.js';
+import { ShowdownParser } from './showdown-parser.js';
+import { TeamExportFormatter } from './team-export.js';
+import { UIShared } from './ui-shared.js';
+import { Feedback } from './ui/feedback.js';
+import { KeyedList } from './ui/keyed-list.js';
+import { DetailHeroSection } from './ui/sections/detail-hero-section.js';
+import { DetailEditorSurface } from './ui/surfaces/detail-editor-surface.js';
+import { DetailPanel } from './ui/surfaces/detail-panel.js';
+import { DetailViewerSurface } from './ui/surfaces/detail-viewer-surface.js';
+import { FormErrors } from './ui/widgets/form-errors.js';
+import { MoveEditorWidget } from './ui/widgets/move-editor-widget.js';
+import { StatEditorWidget } from './ui/widgets/stat-editor-widget.js';
+
 /**
  * team-surfaces.js - Team list, detail, import, and editor surfaces.
  */
 
 export const TeamSurfaces = (() => {
+  /** @typedef {{target?: HTMLElement|null, onSaved?: (() => void)|null, onCancel?: (() => void)|null}} TeamFormOptions */
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireInput(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLInputElement)) throw new Error(`Missing input: ${selector}`);
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireSelect(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLSelectElement)) throw new Error(`Missing select: ${selector}`);
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireField(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLInputElement)
+      && !(element instanceof HTMLTextAreaElement)
+      && !(element instanceof HTMLSelectElement)) {
+      throw new Error(`Missing form field: ${selector}`);
+    }
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireElement(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLElement)) throw new Error(`Missing element: ${selector}`);
+    return element;
+  }
+
   const {
     STAT_NAMES,
     renderNatureOptions,
@@ -15,12 +71,11 @@ export const TeamSurfaces = (() => {
     formatCompactStatSpread,
     renderStatBars,
     createAutocomplete,
-    openPanel,
-    closePanel,
     createTeamExportSurface,
     highlightShowdownText,
-    showToast,
   } = UIShared;
+  const { open: openPanel, close: closePanel } = DetailPanel;
+  const { showToast } = Feedback;
   const { showFormErrors, showFormApiBanner } = FormErrors;
   const { getEvsForSystem, getIvsForSystem } = BuildUIHelpers;
   const { getSpreadConfig, renderSpreadFields, createBudgetUpdater } = StatEditorWidget;
@@ -30,17 +85,19 @@ export const TeamSurfaces = (() => {
     CHAMPIONS_TOTAL_CAP = 66,
     CLASSIC_PER_STAT_CAP = 252,
     CLASSIC_TOTAL_CAP = 510,
-  } = window.EvConvert || {};
+  } = EvConvert || {};
   const MAX_TEAM_MEMBERS = 6;
   const MAX_MOVES = 4;
   const MOVE_SLOT_INDEXES = Array.from({ length: MAX_MOVES }, (_, index) => index);
 
+  /** @param {import('./types/contracts.js').ParsedShowdownSet[]} sets @returns {import('./types/contracts.js').EvSystem} */
   function detectImportedEvSystem(sets) {
     const spreads = sets
       .map((set) => set.evs)
       .filter((spread) => spread && Object.keys(spread).length);
     if (!spreads.length) return 'classic';
-    const statKeys = Object.keys(STAT_NAMES);
+    const statKeys = /** @type {import('./types/contracts.js').StatKey[]} */ (Object.keys(STAT_NAMES));
+    /** @param {import('./types/contracts.js').StatSpread} spread */
     const isChampionsSpread = (spread) => {
       const values = statKeys.map((key) => Number(spread[key] || 0));
       const total = values.reduce((sum, value) => sum + value, 0);
@@ -49,9 +106,10 @@ export const TeamSurfaces = (() => {
     return spreads.every(isChampionsSpread) ? 'champions' : 'classic';
   }
 
+  /** @param {import('./types/contracts.js').Team[]} teams */
   function renderTeams(teams) {
     const container = document.getElementById('teams-container');
-    container.innerHTML = '';
+    if (!container) return;
 
     if (teams.length === 0) {
       const empty = document.createElement('div');
@@ -63,22 +121,30 @@ export const TeamSurfaces = (() => {
           <button class="btn btn-primary" id="teams-empty-import">📋 Paste from Showdown</button>
           <button class="btn btn-secondary" id="teams-empty-create">+ New Team</button>
         </div>`;
-      container.appendChild(empty);
+      container.replaceChildren(empty);
       empty.querySelector('#teams-empty-import')?.addEventListener('click', () => openTeamImportPanel());
       empty.querySelector('#teams-empty-create')?.addEventListener('click', () => openTeamForm(null));
       return;
     }
 
-    const header = document.createElement('div');
-    header.className = 'team-section-header';
-    header.innerHTML = `
-      <h2 class="team-section-title">Teams</h2>
-      <span class="team-section-count">${teams.length} ${pluralize(teams.length, 'team')}</span>
-      <button class="btn btn-secondary btn-sm" id="import-team-btn" title="Paste a Showdown team export">📋 Paste from Showdown</button>
-      <button class="btn btn-primary btn-sm" id="new-team-btn">+ New Team</button>`;
-    container.appendChild(header);
-    header.querySelector('#import-team-btn')?.addEventListener('click', () => openTeamImportPanel());
-    header.querySelector('#new-team-btn')?.addEventListener('click', () => openTeamForm(null));
+    let header = container.querySelector('.team-section-header');
+    let grid = container.querySelector('.team-grid');
+    if (!header || !grid) {
+      header = document.createElement('div');
+      header.className = 'team-section-header';
+      header.innerHTML = `
+        <h2 class="team-section-title">Teams</h2>
+        <span class="team-section-count"></span>
+        <button type="button" class="btn btn-secondary btn-sm" id="import-team-btn" title="Paste a Showdown team export">📋 Paste from Showdown</button>
+        <button type="button" class="btn btn-primary btn-sm" id="new-team-btn">+ New Team</button>`;
+      header.querySelector('#import-team-btn')?.addEventListener('click', () => openTeamImportPanel());
+      header.querySelector('#new-team-btn')?.addEventListener('click', () => openTeamForm(null));
+      grid = document.createElement('div');
+      grid.className = 'team-grid';
+      container.replaceChildren(header, grid);
+    }
+    const count = header.querySelector('.team-section-count');
+    if (count) count.textContent = `${teams.length} ${pluralize(teams.length, 'team')}`;
 
     const sorted = [...teams].sort((a, b) => {
       const aUser = a.source === 'user' ? 0 : 1;
@@ -86,15 +152,33 @@ export const TeamSurfaces = (() => {
       return aUser - bUser;
     });
 
-    const grid = document.createElement('div');
-    grid.className = 'team-grid';
     const allBuilds = DataManager.getAllBuilds();
-    for (const team of sorted) {
-      grid.appendChild(createTeamCard(team, allBuilds));
-    }
-    container.appendChild(grid);
+    if (!(grid instanceof HTMLElement)) return;
+    KeyedList.reconcile(grid, sorted, {
+      key: (team) => team.id || team.team_id || team.name || 'team',
+      signature: (team) => JSON.stringify({
+        team,
+        selected: getTeamBuildIds(team).map((id) => Selection.has(id)),
+        owned: getTeamOwnedMembers(team, allBuilds),
+      }),
+      render: (team) => createTeamCard(team, allBuilds),
+    });
   }
 
+  /** @param {import('./types/contracts.js').Team} team */
+  function getTeamBuildIds(team) {
+    return (team.members || []).flatMap((member) => member.build_id ? [member.build_id] : []);
+  }
+
+  /** @param {import('./types/contracts.js').Team} team @param {import('./types/contracts.js').BuildState[]} allBuilds */
+  function getTeamOwnedMembers(team, allBuilds) {
+    return (team.members || []).map((member) => {
+      const slug = DataManager.resolveSpecies(member).slug;
+      return allBuilds.some((build) => build.slug === slug && DataManager.isBuildOwned(build));
+    });
+  }
+
+  /** @param {import('./types/contracts.js').Team} team @param {import('./types/contracts.js').BuildState[]} allBuilds */
   function createTeamCard(team, allBuilds) {
     const card = document.createElement('article');
     card.className = 'team-card team-card--compact team-card--clickable';
@@ -107,14 +191,11 @@ export const TeamSurfaces = (() => {
       ...(team.members || []).map((member) => member.species),
     ].filter(Boolean).join(' ').toLowerCase();
 
-    const evBadge = UIShared.renderEvSystemBadge(team.ev_system);
+    const evBadge = UIShared.renderEvSystemBadge(team.ev_system || 'classic');
     const isUser = team.source === 'user';
 
     const members = team.members || [];
-    const ownedCount = members.filter((member) => {
-      const slug = DataManager.resolveSpecies(member).slug;
-      return allBuilds.some((build) => build.slug === slug && DataManager.isBuildOwned(build));
-    }).length;
+    const ownedCount = getTeamOwnedMembers(team, allBuilds).filter(Boolean).length;
     const completenessLabel = `${ownedCount}/${members.length} owned`;
     const completenessClass = ownedCount === members.length && members.length > 0
       ? 'completeness-badge--full'
@@ -125,15 +206,15 @@ export const TeamSurfaces = (() => {
       const buildId = member.build_id || '';
       const isSelected = buildId && Selection.has(buildId);
       const badge = isSelected ? '<span class="sprite-select-badge" aria-hidden="true">✓</span>' : '';
-      const name = resolved.name || member.species;
+      const name = resolved.name || member.species || '';
       return `<span class="team-sprite-icon-wrap"${buildId ? ` data-build-id="${escapeHtml(buildId)}"` : ''} title="${escapeHtml(name)}${buildId ? ' — click to select' : ''}">${badge}${UIShared.spriteImgHtml(resolved, name, { cls: 'team-sprite-icon' })}</span>`;
     }).join('');
 
-    const teamBuildIds = members.map((member) => member.build_id).filter(Boolean);
+    const teamBuildIds = getTeamBuildIds(team);
     const allTeamSelected = teamBuildIds.length > 0 && teamBuildIds.every((id) => Selection.has(id));
     const someTeamSelected = teamBuildIds.some((id) => Selection.has(id));
     const selectAllLabel = !someTeamSelected
-      ? `Select all ${MAX_TEAM_MEMBERS}`
+      ? `Select all ${teamBuildIds.length}`
       : (allTeamSelected ? 'Deselect all' : 'Select remaining');
     const exportText = TeamExportFormatter.formatTeam(team);
 
@@ -169,8 +250,9 @@ export const TeamSurfaces = (() => {
     card.addEventListener('click', () => openTeamDetail(team));
     card.querySelector('.team-card-export')?.addEventListener('click', (event) => event.stopPropagation());
 
-    card.querySelector('.team-copy-btn').addEventListener('click', async (event) => {
+    card.querySelector('.team-copy-btn')?.addEventListener('click', async (event) => {
       event.stopPropagation();
+      if (!(event.currentTarget instanceof HTMLElement)) return;
       await UIShared.flashCopyFeedback(
         TeamExportFormatter.formatTeam(team),
         event.currentTarget,
@@ -217,15 +299,17 @@ export const TeamSurfaces = (() => {
     card.querySelector('.team-id-badge')?.addEventListener('click', async (event) => {
       event.stopPropagation();
       const badge = event.currentTarget;
-      await UIShared.flashCopyFeedback(badge.dataset.teamId, badge);
+      if (!(badge instanceof HTMLElement)) return;
+      await UIShared.flashCopyFeedback(badge.dataset.teamId || '', badge);
     });
 
     return card;
   }
 
+  /** @param {import('./types/contracts.js').Team} team */
   function openTeamDetail(team) {
     const isUser = team.source === 'user';
-    const evBadge = UIShared.renderEvSystemBadge(team.ev_system);
+    const evBadge = UIShared.renderEvSystemBadge(team.ev_system || 'classic');
     const heroHtml = DetailHeroSection.renderSimple({
       title: team.name || '—',
       subtitleHtml: `<p class="detail-dex">${escapeHtml(team.archetype || 'Unknown')}${team.creator ? ` · by ${escapeHtml(team.creator)}` : ''}</p>`,
@@ -259,14 +343,14 @@ export const TeamSurfaces = (() => {
     const content = DetailViewerSurface.mount(html);
     content.querySelector('.team-detail-export-anchor')?.replaceWith(createTeamExportSurface(team));
 
-    const membersContainer = content.querySelector('.team-detail-members');
+    const membersContainer = requireElement(content, '.team-detail-members');
     const allBuilds = DataManager.getAllBuilds();
     for (const member of (team.members || [])) {
       const memberCard = document.createElement('div');
       memberCard.className = 'team-detail-member-card';
       const resolved = DataManager.resolveSpecies(member);
       const slug = resolved.slug || DataManager.speciesSlug(member.species);
-      const speciesName = resolved.name || member.species;
+      const speciesName = resolved.name || member.species || '';
       const matchingBuilds = allBuilds.filter((build) => build.slug === slug);
       const matchedOwnedCount = matchingBuilds.filter((build) => DataManager.isBuildOwned(build)).length;
       const buildBadge = matchingBuilds.length > 0
@@ -316,7 +400,7 @@ export const TeamSurfaces = (() => {
       memberCard.appendChild(memberCopyBtn);
 
       memberCard.addEventListener('click', (event) => {
-        if (event.target.closest('.build-xref-link')) return;
+        if (event.target instanceof Element && event.target.closest('.build-xref-link')) return;
         PokemonViewer.openPokemonViewer({ team, member });
       });
       memberCard.querySelector('.build-xref-link')?.addEventListener('click', (event) => {
@@ -336,38 +420,40 @@ export const TeamSurfaces = (() => {
     content.querySelector('#td-clone-btn')?.addEventListener('click', () => cloneTeam(team));
   }
 
+  /** @param {string|undefined} teamId */
   async function deleteTeam(teamId) {
-    if (!await UIShared.showConfirm('Delete this team? This cannot be undone.', { title: 'Delete Team', confirmLabel: 'Delete' })) return;
+    if (!teamId) return;
+    if (!await Feedback.showConfirm('Delete this team? This cannot be undone.', { title: 'Delete Team', confirmLabel: 'Delete' })) return;
     try {
       await DataManager.deleteTeam(teamId);
       closePanel();
-      await DataManager.init();
-      AppStore.markRouteDirty();
     } catch (err) {
-      UIShared.showToast(`Delete failed: ${err.message}`);
+      Feedback.showToast(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
+  /** @param {import('./types/contracts.js').Team} team */
   async function renameTeam(team) {
     const current = team.name || '';
-    const next = await UIShared.showPrompt('Team name (leave blank for none):', current, { placeholder: 'Team name…' });
+    const next = await Feedback.showPrompt('Team name (leave blank for none):', current, { placeholder: 'Team name…' });
     if (next === null) return;
     const trimmed = next.trim();
     const newName = trimmed === '' ? null : trimmed;
     if (newName === (team.name || null)) return;
-    const payload = DomainMappers.createTeamStorage({ ...team, name: newName });
+    const payload = DomainMappers.createTeamStorage({ ...team, name: newName || '' });
+    if (!team.id) return;
     try {
       await DataManager.updateTeam(team.id, payload);
-      await DataManager.init();
       closePanel();
-      AppStore.markRouteDirty();
       showToast(`Renamed team to "${newName ?? '—'}"`);
     } catch (err) {
-      UIShared.showToast(`Rename failed: ${err.message}`);
+      Feedback.showToast(`Rename failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
+  /** @param {import('./types/contracts.js').Team} team */
   function cloneTeam(team) {
+    /** @type {import('./types/contracts.js').Team} */
     const clone = {
       ...team,
       id: undefined,
@@ -382,7 +468,8 @@ export const TeamSurfaces = (() => {
       })),
     };
 
-    while (clone.members.length < MAX_TEAM_MEMBERS) clone.members.push({ species: '', item: '', ability: '', nature: '', moves: [], evs: {} });
+    const cloneMembers = clone.members || (clone.members = []);
+    while (cloneMembers.length < MAX_TEAM_MEMBERS) cloneMembers.push({ species: '', item: '', ability: '', nature: '', moves: [], evs: {} });
     openTeamForm(clone);
   }
 
@@ -419,11 +506,11 @@ Modest Nature
     `;
 
     const content = openPanel(html);
-    const nameInput = content.querySelector('#ti-name');
-    const pasteInput = content.querySelector('#ti-paste');
-    const preview = content.querySelector('#ti-preview');
-    const errorBox = content.querySelector('#ti-errors');
-    const submitBtn = content.querySelector('#ti-submit');
+    const nameInput = requireInput(content, '#ti-name');
+    const pasteInput = /** @type {HTMLTextAreaElement} */ (requireField(content, '#ti-paste'));
+    const preview = requireElement(content, '#ti-preview');
+    const errorBox = requireElement(content, '#ti-errors');
+    const submitBtn = /** @type {HTMLButtonElement} */ (requireElement(content, '#ti-submit'));
 
     function updatePreview() {
       const text = pasteInput.value.trim();
@@ -445,9 +532,9 @@ Modest Nature
     }
 
     pasteInput.addEventListener('input', updatePreview);
-    content.querySelector('#ti-cancel').addEventListener('click', () => closePanel());
+    requireElement(content, '#ti-cancel').addEventListener('click', () => closePanel());
 
-    content.querySelector('#team-import-form').addEventListener('submit', async (event) => {
+    requireElement(content, '#team-import-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       errorBox.classList.add('hidden');
       const text = pasteInput.value.trim();
@@ -494,10 +581,9 @@ Modest Nature
       try {
         await DataManager.createTeam(teamData);
         closePanel();
-        AppStore.markRouteDirty();
         showToast(`Imported "${teamName}" (${members.length} ${pluralize(members.length, 'member')})`);
       } catch (err) {
-        errorBox.textContent = `Import failed: ${err.message}`;
+        errorBox.textContent = `Import failed: ${err instanceof Error ? err.message : String(err)}`;
         errorBox.classList.remove('hidden');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Import Team';
@@ -507,10 +593,15 @@ Modest Nature
     pasteInput.focus();
   }
 
+  /**
+   * @param {import('./types/contracts.js').Team|null|undefined} existingTeam
+   * @param {TeamFormOptions} [opts]
+   */
   function openTeamForm(existingTeam, opts = {}) {
     const { target, onSaved, onCancel } = opts;
     const isEdit = !!(existingTeam && existingTeam.id);
     const isFullPage = !!target;
+    /** @type {import('./types/contracts.js').Team} */
     const team = existingTeam ? JSON.parse(JSON.stringify(existingTeam)) : {
       source: 'user',
       name: '',
@@ -591,19 +682,25 @@ Modest Nature
     }
 
     const evRadios = content.querySelectorAll('input[name="tf-ev-system"]');
-    const teamIdGroup = content.querySelector('#tf-team-id-group');
+    const teamIdGroup = requireElement(content, '#tf-team-id-group');
     evRadios.forEach((radio) => {
+      if (!(radio instanceof HTMLInputElement)) return;
       radio.addEventListener('change', () => {
-        const system = content.querySelector('input[name="tf-ev-system"]:checked').value;
+        const system = /** @type {import('./types/contracts.js').EvSystem} */ (
+          requireInput(content, 'input[name="tf-ev-system"]:checked').value
+        );
         teamIdGroup.classList.toggle('hidden', system !== 'champions');
         refreshMemberEvInputs(content, system);
       });
     });
 
-    const membersContainer = content.querySelector('#tf-members-container');
+    const membersContainer = requireElement(content, '#tf-members-container');
 
+    /** @param {import('./types/contracts.js').TeamMember} member @param {number} index */
     function renderMemberSlot(member, index) {
-      const system = content.querySelector('input[name="tf-ev-system"]:checked').value;
+      const system = /** @type {import('./types/contracts.js').EvSystem} */ (
+        requireInput(content, 'input[name="tf-ev-system"]:checked').value
+      );
       const { maxEv, totalEv } = getSpreadConfig(system);
       const memberEvs = getEvsForSystem(member, system) || {};
       const memberIvs = getIvsForSystem(member, 'classic') || {};
@@ -637,7 +734,7 @@ Modest Nature
           <div class="form-group form-group--half">
             <label>Nature</label>
             <select class="tf-m-nature">
-              ${renderNatureOptions(member.nature)}
+              ${renderNatureOptions(member.nature || '')}
             </select>
           </div>
         </div>
@@ -659,8 +756,8 @@ Modest Nature
 
       membersContainer.appendChild(slot);
 
-      const speciesInput = slot.querySelector('.tf-m-species');
-      const abilitySelect = slot.querySelector('.tf-m-ability');
+      const speciesInput = requireInput(slot, '.tf-m-species');
+      const abilitySelect = requireSelect(slot, '.tf-m-ability');
 
       function getMemberSpeciesSlug() {
         const species = speciesInput.value.trim();
@@ -673,14 +770,15 @@ Modest Nature
         return syncAbilitySelect(abilitySelect, speciesInput.value.trim(), selectedAbility);
       }
 
-      createAutocomplete(speciesInput, (query) => DataManager.searchSpecies(query), {
+      createAutocomplete(speciesInput, (query) => DataManager.searchSpecies(query)
+        .filter((entry) => entry != null), {
         onSelect: (item) => {
-          member._slug = item.slug;
+          member.slug = item.slug;
           refreshAbilitySelect(abilitySelect.value);
         },
         formatItem: formatSpeciesItem,
       });
-      createAutocomplete(slot.querySelector('.tf-m-item'), (query) => DataManager.searchItems(query));
+      createAutocomplete(requireInput(slot, '.tf-m-item'), (query) => DataManager.searchItems(query));
       refreshAbilitySelect(member.ability || '');
       speciesInput.addEventListener('input', () => {
         refreshAbilitySelect();
@@ -689,33 +787,33 @@ Modest Nature
         refreshAbilitySelect();
       });
       wireSpeciesMoveAutocomplete(
-        MOVE_SLOT_INDEXES.map((moveIndex) => slot.querySelector(`.tf-m-move-${moveIndex}`)),
+        MOVE_SLOT_INDEXES.map((moveIndex) => requireInput(slot, `.tf-m-move-${moveIndex}`)),
         getMemberSpeciesSlug,
         (slug, query) => DataManager.searchMovesForSpecies(slug, query),
         { formatItem: formatMoveItem }
       );
 
-      const evInputs = Object.keys(STAT_NAMES).map((key) => slot.querySelector(`.tf-m-ev-${key}`));
+      const evInputs = Object.keys(STAT_NAMES).map((key) => requireInput(slot, `.tf-m-ev-${key}`));
       const updateEvTotal = createBudgetUpdater(evInputs, {
         maxPerStat: maxEv,
         maxTotal: totalEv,
-        totalEl: slot.querySelector('.tf-m-ev-total'),
+        totalEl: requireElement(slot, '.tf-m-ev-total'),
       });
       evInputs.forEach((input) => input.addEventListener('input', updateEvTotal));
       updateEvTotal();
 
-      slot.querySelector('.tf-remove-member').addEventListener('click', () => {
+      requireElement(slot, '.tf-remove-member').addEventListener('click', () => {
         slot.remove();
         refreshMemberNumbers(content);
       });
-      slot.querySelector('.tf-move-up').addEventListener('click', () => {
+      requireElement(slot, '.tf-move-up').addEventListener('click', () => {
         const slots = Array.from(membersContainer.querySelectorAll('.team-member-form'));
         const currentIndex = slots.indexOf(slot);
         if (currentIndex <= 0) return;
         membersContainer.insertBefore(slot, slots[currentIndex - 1]);
         refreshMemberNumbers(content);
       });
-      slot.querySelector('.tf-move-down').addEventListener('click', () => {
+      requireElement(slot, '.tf-move-down').addEventListener('click', () => {
         const slots = Array.from(membersContainer.querySelectorAll('.team-member-form'));
         const currentIndex = slots.indexOf(slot);
         if (currentIndex >= slots.length - 1) return;
@@ -728,14 +826,14 @@ Modest Nature
       renderMemberSlot(team.members[i], i);
     }
 
-    content.querySelector('#tf-add-member').addEventListener('click', () => {
+    requireElement(content, '#tf-add-member').addEventListener('click', () => {
       const currentCount = membersContainer.querySelectorAll('.team-member-form').length;
       if (currentCount >= MAX_TEAM_MEMBERS) return;
       renderMemberSlot({}, currentCount);
       refreshMemberNumbers(content);
     });
 
-    content.querySelector('#tf-cancel').addEventListener('click', () => {
+    requireElement(content, '#tf-cancel').addEventListener('click', () => {
       if (isFullPage) {
         if (onCancel) onCancel();
         else Router.navigate(AppRoutes.hashes.teams);
@@ -744,36 +842,42 @@ Modest Nature
       }
     });
 
-    content.querySelector('#team-form').addEventListener('submit', async (event) => {
+    requireElement(content, '#team-form').addEventListener('submit', async (event) => {
       event.preventDefault();
-      const form = content.querySelector('#team-form');
+      const form = requireElement(content, '#team-form');
+      /** @type {Array<{input?: HTMLElement|null, message: string}>} */
       const errors = [];
 
-      const nameEl = content.querySelector('#tf-name');
+      const nameEl = requireInput(content, '#tf-name');
       const name = nameEl.value.trim();
       if (!name) {
         errors.push({ input: nameEl, message: 'Team name is required.' });
       }
 
-      const system = content.querySelector('input[name="tf-ev-system"]:checked').value;
+      const system = /** @type {import('./types/contracts.js').EvSystem} */ (
+        requireInput(content, 'input[name="tf-ev-system"]:checked').value
+      );
       const memberSlots = membersContainer.querySelectorAll('.team-member-form');
+      /** @type {import('./types/contracts.js').TeamMember[]} */
       const members = [];
 
       for (let i = 0; i < memberSlots.length; i += 1) {
         const slot = memberSlots[i];
-        const species = slot.querySelector('.tf-m-species').value.trim();
+        const species = requireInput(slot, '.tf-m-species').value.trim();
         if (!species) continue;
 
-        const evResult = validateEvSpread((key) => slot.querySelector(`.tf-m-ev-${key}`), system);
+        const evResult = validateEvSpread((key) => requireInput(slot, `.tf-m-ev-${key}`), system);
         errors.push(...evResult.errors);
 
+        /** @type {import('./types/contracts.js').IvSpread} */
         const ivs = {};
         if (system === 'classic') {
           for (const key of Object.keys(STAT_NAMES)) {
-            const ivEl = slot.querySelector(`.tf-m-iv-${key}`);
-            const ivVal = ivEl && ivEl.value.trim() !== '' ? Number(ivEl.value) : 31;
-            ivs[key] = ivVal;
-            if (ivEl && (ivVal < 0 || ivVal > 31)) {
+            const statKey = /** @type {import('./types/contracts.js').StatKey} */ (key);
+            const ivEl = requireInput(slot, `.tf-m-iv-${statKey}`);
+            const ivVal = ivEl.value.trim() !== '' ? Number(ivEl.value) : 31;
+            ivs[statKey] = ivVal;
+            if (ivVal < 0 || ivVal > 31) {
               errors.push({ input: ivEl, message: 'Must be 0-31' });
             }
           }
@@ -784,12 +888,12 @@ Modest Nature
           slot: i + 1,
           build_id: existingMember?.build_id || null,
           species,
-          item: slot.querySelector('.tf-m-item').value.trim(),
-          ability: slot.querySelector('.tf-m-ability').value.trim(),
-          nature: slot.querySelector('.tf-m-nature').value,
+          item: requireInput(slot, '.tf-m-item').value.trim(),
+          ability: requireSelect(slot, '.tf-m-ability').value.trim(),
+          nature: requireSelect(slot, '.tf-m-nature').value,
           evs: evResult.evs,
           ...(system === 'classic' ? { ivs } : {}),
-          moves: MOVE_SLOT_INDEXES.map((moveIndex) => slot.querySelector(`.tf-m-move-${moveIndex}`).value.trim()).filter(Boolean),
+          moves: MOVE_SLOT_INDEXES.map((moveIndex) => requireInput(slot, `.tf-m-move-${moveIndex}`).value.trim()).filter(Boolean),
         }, system));
       }
 
@@ -799,54 +903,54 @@ Modest Nature
         ...team,
         name,
         source: 'user',
-        creator: content.querySelector('#tf-creator').value.trim(),
-        archetype: content.querySelector('#tf-archetype').value.trim(),
+        creator: requireInput(content, '#tf-creator').value.trim(),
+        archetype: requireInput(content, '#tf-archetype').value.trim(),
         ev_system: system,
-        team_id: system === 'champions' ? content.querySelector('#tf-team-id').value.trim() : '',
-        notes: content.querySelector('#tf-notes').value.trim(),
+        team_id: system === 'champions' ? requireInput(content, '#tf-team-id').value.trim() : '',
+        notes: requireField(content, '#tf-notes').value.trim(),
         members,
         cloned_from: team.cloned_from || null,
       });
 
       try {
         if (isEdit) {
-          await DataManager.updateTeam(team.id, payload);
+          if (team.id) await DataManager.updateTeam(team.id, payload);
         } else {
           await DataManager.createTeam(payload);
         }
-        await DataManager.init();
         if (isFullPage) {
           if (onSaved) onSaved();
           else Router.navigate(AppRoutes.hashes.teams);
         } else {
           closePanel();
-          AppStore.markRouteDirty();
         }
       } catch (err) {
-        showFormApiBanner(form, `Save failed: ${err.message}`);
+        showFormApiBanner(form, `Save failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     });
 
   }
 
+  /** @param {HTMLElement} content */
   function refreshMemberNumbers(content) {
     const members = content.querySelectorAll('.team-member-form');
     members.forEach((slot, index) => {
       const heading = slot.querySelector('h4');
       if (heading) heading.textContent = `Slot ${index + 1}`;
       const removeBtn = slot.querySelector('.tf-remove-member');
-      if (removeBtn) removeBtn.dataset.idx = index;
+      if (removeBtn instanceof HTMLElement) removeBtn.dataset.idx = String(index);
       const upBtn = slot.querySelector('.tf-move-up');
-      if (upBtn) upBtn.disabled = index === 0;
+      if (upBtn instanceof HTMLButtonElement) upBtn.disabled = index === 0;
       const downBtn = slot.querySelector('.tf-move-down');
-      if (downBtn) downBtn.disabled = index === members.length - 1;
+      if (downBtn instanceof HTMLButtonElement) downBtn.disabled = index === members.length - 1;
     });
     const addBtn = content.querySelector('#tf-add-member');
-    if (addBtn) addBtn.disabled = members.length >= MAX_TEAM_MEMBERS;
+    if (addBtn instanceof HTMLButtonElement) addBtn.disabled = members.length >= MAX_TEAM_MEMBERS;
     const header = content.querySelector('.team-form-members-header h3');
     if (header) header.textContent = `Members (${members.length}/${MAX_TEAM_MEMBERS})`;
   }
 
+  /** @param {HTMLElement} content @param {import('./types/contracts.js').EvSystem} system */
   function refreshMemberEvInputs(content, system) {
     const { maxEv, stepEv, totalEv } = getSpreadConfig(system);
 
@@ -854,8 +958,9 @@ Modest Nature
     members.forEach((slot) => {
       const evInputs = slot.querySelectorAll('.tf-m-ev');
       evInputs.forEach((input) => {
-        input.max = maxEv;
-        input.step = stepEv;
+        if (!(input instanceof HTMLInputElement)) return;
+        input.max = String(maxEv);
+        input.step = String(stepEv);
       });
       const evHeading = slot.querySelector('.stat-heading--ev');
       if (evHeading) evHeading.innerHTML = `EVs <span class="form-hint">(0-${maxEv}, total ≤ ${totalEv})</span>`;
@@ -863,10 +968,10 @@ Modest Nature
       let ivsGrid = slot.querySelector('.tf-m-ivs-grid');
       const ivsHeading = ivsGrid ? ivsGrid.previousElementSibling : null;
       if (system === 'champions') {
-        if (ivsGrid) ivsGrid.style.display = 'none';
-        if (ivsHeading && ivsHeading.textContent.includes('IV')) ivsHeading.style.display = 'none';
+        if (ivsGrid instanceof HTMLElement) ivsGrid.style.display = 'none';
+        if (ivsHeading instanceof HTMLElement && ivsHeading.textContent.includes('IV')) ivsHeading.style.display = 'none';
       } else {
-        if (ivsGrid) {
+        if (ivsGrid instanceof HTMLElement) {
           ivsGrid.style.display = '';
         } else {
           const movesHeading = Array.from(slot.querySelectorAll('.stat-heading')).find((heading) => heading.textContent.includes('Moves'));
@@ -885,12 +990,15 @@ Modest Nature
           }
           ivsGrid = slot.querySelector('.tf-m-ivs-grid');
         }
-        if (ivsHeading && ivsHeading.textContent.includes('IV')) ivsHeading.style.display = '';
+        if (ivsHeading instanceof HTMLElement && ivsHeading.textContent.includes('IV')) ivsHeading.style.display = '';
       }
 
       const totalEl = slot.querySelector('.tf-m-ev-total');
-      if (totalEl) {
-        const total = Array.from(evInputs).reduce((sum, input) => sum + Number(input.value || 0), 0);
+      if (totalEl instanceof HTMLElement) {
+        const total = Array.from(evInputs).reduce(
+          (sum, input) => sum + (input instanceof HTMLInputElement ? Number(input.value || 0) : 0),
+          0
+        );
         totalEl.textContent = `Total: ${total}/${totalEv}`;
         totalEl.style.color = total > totalEv ? 'var(--accent-red)' : '';
       }
@@ -904,7 +1012,3 @@ Modest Nature
     openTeamImportPanel,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.TeamSurfaces = TeamSurfaces;
-}

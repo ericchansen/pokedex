@@ -17,12 +17,15 @@
 
 const FINGERPRINT_VERSION = 2;
 
+/** @param {unknown} obj @returns {unknown} */
 function sortedObject(obj) {
   if (obj == null) return null;
   if (typeof obj !== 'object' || Array.isArray(obj)) return obj;
+  /** @type {Record<string, unknown>} */
   const out = {};
+  const record = /** @type {Record<string, unknown>} */ (obj);
   for (const key of Object.keys(obj).sort()) {
-    const val = obj[key];
+    const val = record[key];
     out[key] = (val && typeof val === 'object' && !Array.isArray(val))
       ? sortedObject(val)
       : val;
@@ -30,13 +33,18 @@ function sortedObject(obj) {
   return out;
 }
 
+/**
+ * @param {import('./types/contracts.js').BuildState|null|undefined} build
+ * @param {string[]|null|undefined} eggMoves
+ */
 function canonicalPayload(build, eggMoves) {
   const b = build || {};
   const moves = Array.isArray(b.moves) ? b.moves.slice() : [];
   const evsIn = (b.evs && typeof b.evs === 'object') ? b.evs : {};
+  /** @type {Record<string, unknown>} */
   const evs = {};
-  for (const sys of Object.keys(evsIn).sort()) {
-    evs[sys] = sortedObject(evsIn[sys] || {});
+  for (const [sys, spread] of Object.entries(evsIn).sort(([a], [b]) => a.localeCompare(b))) {
+    evs[sys] = sortedObject(spread || {});
   }
   const egg = Array.isArray(eggMoves) ? eggMoves.slice().sort() : [];
   return {
@@ -54,19 +62,23 @@ function canonicalPayload(build, eggMoves) {
 }
 
 // Stringify with sorted keys at every level.
+/** @param {unknown} value @returns {string} */
 function stableStringify(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) {
     return '[' + value.map(stableStringify).join(',') + ']';
   }
-  const keys = Object.keys(value).sort();
-  return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStringify(value[k])).join(',') + '}';
+  const record = /** @type {Record<string, unknown>} */ (value);
+  const keys = Object.keys(record).sort();
+  return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStringify(record[k])).join(',') + '}';
 }
 
 // Pure-JS SHA-1 (no Web Crypto; we want a synchronous helper that works
 // in any context without async hoops). Implementation: standard FIPS 180-1.
+/** @param {string} str */
 function sha1Hex(str) {
   // Convert string to UTF-8 bytes
+  /** @type {number[]} */
   const bytes = [];
   for (let i = 0; i < str.length; i++) {
     let c = str.charCodeAt(i);
@@ -101,7 +113,8 @@ function sha1Hex(str) {
 
   let h0 = 0x67452301, h1 = 0xefcdab89, h2 = 0x98badcfe, h3 = 0x10325476, h4 = 0xc3d2e1f0;
 
-  const w = new Array(80);
+  /** @type {number[]} */
+  const w = new Array(80).fill(0);
   for (let chunkStart = 0; chunkStart < bytes.length; chunkStart += 64) {
     for (let i = 0; i < 16; i++) {
       const j = chunkStart + i * 4;
@@ -128,14 +141,18 @@ function sha1Hex(str) {
     h4 = (h4 + e) >>> 0;
   }
 
+  /** @param {number} n */
   const toHex = n => ('00000000' + n.toString(16)).slice(-8);
   return toHex(h0) + toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4);
 }
 
+/**
+ * @param {import('./types/contracts.js').BuildState|null|undefined} build
+ * @param {string[]|null|undefined} eggMoves
+ */
 function buildFingerprint(build, eggMoves) {
   const payload = canonicalPayload(build, eggMoves);
   return sha1Hex(stableStringify(payload));
 }
 
 export const BuildFingerprint = { buildFingerprint, FINGERPRINT_VERSION };
-window.BuildFingerprint = BuildFingerprint;

@@ -1,7 +1,10 @@
+import { DetailPanel } from './detail-panel.js';
+
 /**
  * ui/surfaces/detail-editor-surface.js - Shared page/panel shell for editors.
  */
 export const DetailEditorSurface = (() => {
+  /** @param {{isFullPage?: boolean, isEdit?: boolean, noun?: string, bodyHtml?: string, backButtonId?: string}} options */
   function render(options) {
     const {
       isFullPage = false,
@@ -27,15 +30,20 @@ export const DetailEditorSurface = (() => {
     return `<div class="detail-context-badge">${title}</div>${bodyHtml}`;
   }
 
+  /**
+   * @param {string} html
+   * @param {{target?: HTMLElement|null, panelOptions?: {onBeforeClose?: (() => void|Promise<void>)|null}|null}} [options]
+   */
   function mount(html, options = {}) {
     const { target = null, panelOptions = null } = options;
     if (target) {
       target.innerHTML = html;
       return target;
     }
-    return UIShared.openPanel(html, panelOptions || undefined);
+    return DetailPanel.open(html, panelOptions || undefined);
   }
 
+  /** @param {HTMLElement|null} container @param {string} backSelector @param {EventListener|null} onBack */
   function bindBack(container, backSelector, onBack) {
     if (!container || !backSelector || typeof onBack !== 'function') return;
     container.querySelector(backSelector)?.addEventListener('click', onBack);
@@ -47,7 +55,3 @@ export const DetailEditorSurface = (() => {
     bindBack,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.DetailEditorSurface = DetailEditorSurface;
-}

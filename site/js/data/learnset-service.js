@@ -1,14 +1,31 @@
+import { DomainMappers } from '../domain-mappers.js';
+import { SpeciesResolver } from '../species-resolver.js';
+import { ReferenceData } from './reference-data.js';
+
 /**
  * data/learnset-service.js - Learnset and factory-set queries shared via DataManager.
  */
 export const LearnsetService = (() => {
+  /** @typedef {{
+   * movesData: import('../types/contracts.js').ReferenceDataMap,
+   * pokedexBySlug: Map<string, import('../types/contracts.js').PokedexEntry>,
+   * abilitiesList: import('../types/contracts.js').ReferenceItem[],
+   * getAbilitiesForSpecies?: (slug: string) => string[]
+   * }} LearnsetContext
+   */
+  /** @type {import('../types/contracts.js').LearnsetsData|null} */
   let learnsetsData = null;
+  /** @type {import('../types/contracts.js').FactorySetsData|null} */
   let factorySetsData = null;
+  /** @type {Map<string, import('../types/contracts.js').LearnsetMove[]>} */
   const learnsetDetailsCache = new Map();
+  /** @type {Map<string, Map<string, import('../types/contracts.js').LearnsetMove>>} */
   const eggMoveLookupCache = new Map();
 
+  /** @type {LearnsetContext|null} */
   let _ctx = null;
 
+  /** @param {LearnsetContext} ctx */
   function init(ctx) {
     _ctx = ctx || null;
     learnsetDetailsCache.clear();
@@ -27,13 +44,14 @@ export const LearnsetService = (() => {
     return Array.isArray(_ctx?.abilitiesList) ? _ctx.abilitiesList : [];
   }
 
+  /** @param {string} slug */
   function getSpeciesAbilities(slug) {
     if (typeof _ctx?.getAbilitiesForSpecies === 'function') {
       return _ctx.getAbilitiesForSpecies(slug);
     }
     const entry = getPokedexBySlug().get(slug);
     if (!entry || !entry.abilities) return [];
-    return Object.values(entry.abilities).filter(Boolean);
+    return Object.values(entry.abilities).filter((ability) => typeof ability === 'string');
   }
 
   async function ensureLearnsets() {
@@ -46,6 +64,7 @@ export const LearnsetService = (() => {
     return factorySetsData;
   }
 
+  /** @param {string|null|undefined} speciesSlugOrName */
   function toLearnsetSlug(speciesSlugOrName) {
     return String(speciesSlugOrName || '')
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -53,12 +72,16 @@ export const LearnsetService = (() => {
       .replace(/[\s'-]+/g, '');
   }
 
+  /** @param {import('../types/contracts.js').InputValue} moveRef */
   function normalizeMoveLookupKey(moveRef) {
     return DomainMappers.normalizeMoveToken(moveRef);
   }
 
+  /** @param {string[]} moves @param {number} [limit] */
   function dedupeMoveNames(moves, limit = Infinity) {
+    /** @type {string[]} */
     const out = [];
+    /** @type {Set<string>} */
     const seen = new Set();
     for (const rawMove of moves || []) {
       const move = String(rawMove || '').trim();
@@ -71,6 +94,7 @@ export const LearnsetService = (() => {
     return out;
   }
 
+  /** @param {string} source */
   function isEggLearnsetSource(source) {
     return /^\d+E/.test(String(source || '').trim());
   }
@@ -78,6 +102,7 @@ export const LearnsetService = (() => {
   /** Walk prevo chain to find the baby/base form (the one that hatches from an egg).
    *  Only follows prevo, NOT baseSpecies — regional forms (Vulpix-Alola) have their
    *  own egg move pools and must not fall back to the Kantonian base. */
+  /** @param {string} speciesSlugOrName */
   function getBaseBabySlug(speciesSlugOrName) {
     const pokedex = getPokedexBySlug();
     let slug = toLearnsetSlug(speciesSlugOrName);
@@ -91,6 +116,11 @@ export const LearnsetService = (() => {
     return slug;
   }
 
+  /**
+   * @param {string} moveSlug
+   * @param {string[]} sources
+   * @returns {import('../types/contracts.js').LearnsetMove|null}
+   */
   function projectLearnsetMove(moveSlug, sources) {
     const move = getMovesData()[moveSlug];
     if (!move) return null;
@@ -106,6 +136,12 @@ export const LearnsetService = (() => {
     };
   }
 
+  /**
+   * @param {string} speciesSlugOrName
+   * @param {import('../types/contracts.js').LearnsetsData} data
+   * @param {Record<string, string[]>} merged
+   * @param {Set<string>} [seen]
+   */
   function mergeLearnsetChain(speciesSlugOrName, data, merged, seen = new Set()) {
     const slug = toLearnsetSlug(speciesSlugOrName);
     if (!slug || seen.has(slug)) return;
@@ -124,28 +160,39 @@ export const LearnsetService = (() => {
     if (dexEntry.prevo) mergeLearnsetChain(dexEntry.prevo, data, merged, seen);
   }
 
+  /** @param {string} speciesSlugOrName */
   async function getLearnsetDetails(speciesSlugOrName) {
     const slug = toLearnsetSlug(speciesSlugOrName);
     if (!slug) return [];
-    if (learnsetDetailsCache.has(slug)) return learnsetDetailsCache.get(slug);
+    const cached = learnsetDetailsCache.get(slug);
+    if (cached) return cached;
 
     const data = await ensureLearnsets();
+    /** @type {Record<string, string[]>} */
     const merged = {};
     mergeLearnsetChain(slug, data, merged);
     const details = Object.keys(merged)
       .map((moveSlug) => projectLearnsetMove(moveSlug, merged[moveSlug]))
-      .filter(Boolean)
+      .filter((move) => move !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
 
     learnsetDetailsCache.set(slug, details);
     return details;
   }
 
+  /** @param {string} speciesSlugOrName */
   async function getLearnset(speciesSlugOrName) {
     const details = await getLearnsetDetails(speciesSlugOrName);
-    return details.map(({ sources, isEggMove, ...move }) => move);
+    return details.map(({ slug, name, type, category, basePower }) => ({
+      slug,
+      name,
+      type,
+      category,
+      basePower,
+    }));
   }
 
+  /** @param {string} speciesSlugOrName */
   async function getEggMovesForSpecies(speciesSlugOrName) {
     // Always resolve egg moves from the baby/base form — evolved forms may
     // learn the same moves by level-up, hiding them from the egg move list.
@@ -155,11 +202,14 @@ export const LearnsetService = (() => {
     return details.filter((move) => move.isEggMove);
   }
 
+  /** @param {string} speciesSlugOrName */
   async function getEggMoveLookup(speciesSlugOrName) {
     const slug = toLearnsetSlug(speciesSlugOrName);
     if (!slug) return new Map();
-    if (eggMoveLookupCache.has(slug)) return eggMoveLookupCache.get(slug);
+    const cached = eggMoveLookupCache.get(slug);
+    if (cached) return cached;
 
+    /** @type {Map<string, import('../types/contracts.js').LearnsetMove>} */
     const lookup = new Map();
     for (const move of await getEggMovesForSpecies(slug)) {
       const moveNameKey = normalizeMoveLookupKey(move.name);
@@ -171,6 +221,7 @@ export const LearnsetService = (() => {
     return lookup;
   }
 
+  /** @param {string} speciesSlugOrName @param {import('../types/contracts.js').InputValue} moveRef */
   async function isEggMoveForSpecies(speciesSlugOrName, moveRef) {
     const key = normalizeMoveLookupKey(moveRef);
     if (!key) return null;
@@ -178,10 +229,15 @@ export const LearnsetService = (() => {
     return lookup.get(key) || null;
   }
 
+  /** @param {string} speciesSlugOrName @param {string[]} [explicitEggMoves] @param {string[]} [currentMoves] */
   async function mergeKnownEggMoves(speciesSlugOrName, explicitEggMoves = [], currentMoves = []) {
+    /** @type {string[]} */
     const eggMoves = [];
+    /** @type {string[]} */
     const autoDetected = [];
+    /** @type {string[]} */
     const invalidExplicit = [];
+    /** @param {string[]} target @param {string} moveName */
     const addUnique = (target, moveName) => {
       const key = normalizeMoveLookupKey(moveName);
       if (!key || target.some((move) => normalizeMoveLookupKey(move) === key)) return;
@@ -226,6 +282,7 @@ export const LearnsetService = (() => {
     };
   }
 
+  /** @param {string} speciesSlug @param {string} query */
   async function searchMovesForSpecies(speciesSlug, query) {
     const legal = await getLearnsetDetails(speciesSlug);
     if (!query || query.length < 1) return legal.slice(0, 20);
@@ -233,6 +290,7 @@ export const LearnsetService = (() => {
     return legal.filter((move) => move.name.toLowerCase().includes(q)).slice(0, 20);
   }
 
+  /** @param {string} speciesSlug @param {string} query */
   async function searchEggMovesForSpecies(speciesSlug, query) {
     const legal = await getEggMovesForSpecies(speciesSlug);
     if (!query || query.length < 1) return legal.slice(0, 20);
@@ -240,6 +298,7 @@ export const LearnsetService = (() => {
     return legal.filter((move) => move.name.toLowerCase().includes(q)).slice(0, 20);
   }
 
+  /** @param {string} speciesName */
   async function listFactorySets(speciesName) {
     const data = await ensureFactorySets();
     const key = SpeciesResolver.normalizeCollapsedSlug(speciesName);
@@ -253,10 +312,17 @@ export const LearnsetService = (() => {
     }));
   }
 
+  /**
+   * @param {import('../types/contracts.js').FactorySet|null|undefined} set
+   * @param {string} fallbackSpecies
+   * @returns {import('../types/contracts.js').BuildState|null}
+   */
   function factorySetToBuildShape(set, fallbackSpecies) {
     if (!set) return null;
+    /** @param {string|string[]|undefined} value */
     const first = (value) => (Array.isArray(value) ? value[0] : value);
     const moves = (set.moves || []).map((move) => (Array.isArray(move) ? move[0] : move)).filter(Boolean);
+    /** @type {import('../types/contracts.js').BuildState} */
     const out = {
       species: first(set.species) || fallbackSpecies,
       level: (typeof set.level === 'number' && set.level !== 50) ? set.level : null,
@@ -271,10 +337,12 @@ export const LearnsetService = (() => {
     return out;
   }
 
+  /** @param {string} speciesName */
   async function getDefaultSet(speciesName) {
     const sets = await listFactorySets(speciesName);
     if (sets.length === 0) return null;
     const build = sets[0].build;
+    if (!build) return null;
     return {
       species: build.species,
       item: build.item || null,
@@ -286,6 +354,7 @@ export const LearnsetService = (() => {
     };
   }
 
+  /** @param {string} slug */
   function searchAbilitiesForSpecies(slug) {
     const abilities = getSpeciesAbilities(slug);
     if (!abilities.length) return getAbilitiesList();
@@ -309,7 +378,3 @@ export const LearnsetService = (() => {
     searchAbilitiesForSpecies,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.LearnsetService = LearnsetService;
-}

@@ -1,13 +1,15 @@
+import { SettingsState } from '../settings-state.js';
+import { UIShared } from '../ui-shared.js';
+import { Feedback } from '../ui/feedback.js';
+
 /**
  * views/settings.js - Local browser settings.
  */
 
-const {
-  SettingsState,
-  UIShared,
-} = globalThis;
+
 
 const SettingsView = (() => {
+  /** @param {HTMLElement} container */
   function mount(container) {
     const state = SettingsState.get();
     const defaultLanguageName = UIShared.getLanguageName(state.defaultLanguage);
@@ -49,23 +51,27 @@ const SettingsView = (() => {
     `;
 
     const themeSelect = container.querySelector('#settings-theme');
+    if (!(themeSelect instanceof HTMLSelectElement)) return;
     themeSelect.value = state.theme;
     themeSelect.addEventListener('change', () => {
       SettingsState.setTheme(themeSelect.value);
-      UIShared.showToast('Theme updated');
+      Feedback.showToast('Theme updated');
     });
 
     const select = container.querySelector('#settings-default-language');
     const summary = container.querySelector('#settings-language-summary');
+    if (!(select instanceof HTMLSelectElement) || !(summary instanceof HTMLElement)) return;
+    const summaryElement = summary;
 
+    /** @param {string} code */
     function updateSummary(code) {
-      summary.innerHTML = `Current default: <strong>${UIShared.escapeHtml(UIShared.getLanguageName(code))}</strong>`;
+      summaryElement.innerHTML = `Current default: <strong>${UIShared.escapeHtml(UIShared.getLanguageName(code))}</strong>`;
     }
 
     select.addEventListener('change', () => {
       const next = SettingsState.setDefaultLanguage(select.value);
       updateSummary(next.defaultLanguage);
-      UIShared.showToast(`Default language set to ${UIShared.getLanguageName(next.defaultLanguage)}`);
+      Feedback.showToast(`Default language set to ${UIShared.getLanguageName(next.defaultLanguage)}`);
     });
   }
 

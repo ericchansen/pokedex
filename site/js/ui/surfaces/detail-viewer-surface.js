@@ -1,7 +1,10 @@
+import { DetailPanel } from './detail-panel.js';
+
 /**
  * ui/surfaces/detail-viewer-surface.js - Shared viewer shell for detail panels.
  */
 export const DetailViewerSurface = (() => {
+  /** @param {{contextBadgeHtml?: string, heroHtml?: string, bodyHtml?: string}} [options] */
   function render(options = {}) {
     const {
       contextBadgeHtml = '',
@@ -11,8 +14,9 @@ export const DetailViewerSurface = (() => {
     return `${contextBadgeHtml}${heroHtml}${bodyHtml}`;
   }
 
+  /** @param {string} html @param {{onBeforeClose?: (() => void|Promise<void>)|null}|null} [panelOptions] */
   function mount(html, panelOptions = null) {
-    return UIShared.openPanel(html, panelOptions || undefined);
+    return DetailPanel.open(html, panelOptions || undefined);
   }
 
   return {
@@ -20,7 +24,3 @@ export const DetailViewerSurface = (() => {
     mount,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.DetailViewerSurface = DetailViewerSurface;
-}
