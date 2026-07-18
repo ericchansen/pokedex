@@ -1,14 +1,25 @@
+import { DataManager } from '../../data.js';
+import { FormMetadata } from '../../form-metadata.js';
+import { UIShared } from '../../ui-shared.js';
+
 /**
  * ui/detail/detail-subject-vm.js - Shared detail subject/view-model helpers.
  */
 export const DetailSubjectVM = (() => {
+  /**
+   * @typedef {{
+   * id?: string|number, num?: number, name?: string, species?: string, slug?: string,
+   * baseStats?: import('../../types/contracts.js').StatSpread
+   * }} SpeciesSubjectSource
+   */
+  /** @param {SpeciesSubjectSource|null|undefined} source @param {SpeciesSubjectSource} [fallback] */
   function resolveSpeciesSubject(source, fallback = {}) {
     const resolved = DataManager.resolveSpecies(source || fallback.slug || fallback.species || null);
     const speciesEntry = source?.baseStats ? source : (resolved.entry || source || null);
     const slug = resolved.slug || source?.slug || fallback.slug || '';
     const dexId = speciesEntry?.id || speciesEntry?.num || 0;
     const speciesName = speciesEntry?.name || resolved.name || source?.species || fallback.species || 'Unknown';
-    const inChampions = dexId ? DataManager.isInChampions(dexId) : false;
+    const inChampions = typeof dexId === 'number' ? DataManager.isInChampions(dexId) : false;
 
     return {
       resolved,
@@ -20,6 +31,13 @@ export const DetailSubjectVM = (() => {
     };
   }
 
+  /** @param {{
+   * team?: import('../../types/contracts.js').Team|null,
+   * member?: import('../../types/contracts.js').TeamMember|null,
+   * boxId?: number, slotIdx?: number,
+   * build?: import('../../types/contracts.js').BuildState|null,
+   * species?: import('../../types/contracts.js').PokedexEntry|null
+   * }} ctx */
   function createViewerContextBadge(ctx) {
     if (ctx.team && ctx.member) {
       return `<div class="detail-context-badge">Team Member · ${UIShared.escapeHtml(ctx.team.name || ctx.team.creator || ctx.team.id)} · Slot ${UIShared.escapeHtml(String(ctx.member.slot || ''))}</div>`;
@@ -33,6 +51,11 @@ export const DetailSubjectVM = (() => {
     return '';
   }
 
+  /**
+   * @param {import('../../types/contracts.js').InstanceModel|null|undefined} instance
+   * @param {string} [fallbackSpecies]
+   * @param {string} [fallbackSlug]
+   */
   function createInstanceEditDraft(instance, fallbackSpecies = '', fallbackSlug = '') {
     const state = instance?.state || {};
     return {
@@ -79,7 +102,3 @@ export const DetailSubjectVM = (() => {
     createInstanceEditDraft,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.DetailSubjectVM = DetailSubjectVM;
-}

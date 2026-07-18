@@ -1,3 +1,6 @@
+import { ExportUI } from './export-ui.js';
+import { Selection } from './selection.js';
+
 /**
  * selection-bar.js — Global floating action bar driven by Selection module.
  *
@@ -6,6 +9,7 @@
  */
 
 export const SelectionBar = (() => {
+  /** @type {HTMLElement|null} */
   let barEl = null;
   let initialized = false;
 
@@ -22,10 +26,10 @@ export const SelectionBar = (() => {
     `;
     document.body.appendChild(barEl);
 
-    barEl.querySelector('#selection-bar-clear').addEventListener('click', () => {
+    barEl.querySelector('#selection-bar-clear')?.addEventListener('click', () => {
       Selection.clear();
     });
-    barEl.querySelector('#selection-bar-export').addEventListener('click', () => {
+    barEl.querySelector('#selection-bar-export')?.addEventListener('click', () => {
       const builds = Selection.getBuilds();
       if (!builds.length) return;
       ExportUI.openBulkExportModal(builds);
@@ -52,5 +56,3 @@ export const SelectionBar = (() => {
 
   return { init, refresh };
 })();
-
-if (typeof window !== 'undefined') window.SelectionBar = SelectionBar;

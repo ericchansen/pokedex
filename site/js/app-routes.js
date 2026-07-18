@@ -29,14 +29,16 @@ export const AppRoutes = (() => {
     [sections.settings]: 'Search unavailable in Settings',
   });
 
+  /** @param {import('./types/contracts.js').RouteSection} section */
   function hashForSection(section) {
     return hashes[section] || hashes.boxes;
   }
 
+  /** @param {string|null|undefined} [hash] */
   function sectionForHash(hash) {
     const h = hash || (typeof window !== 'undefined' ? window.location.hash : '') || hashes.boxes;
-    for (const [section, prefix] of Object.entries(hashes)) {
-      if (h.startsWith(prefix)) return sections[section];
+    for (const section of /** @type {import('./types/contracts.js').RouteSection[]} */ (Object.keys(hashes))) {
+      if (h.startsWith(hashes[section])) return sections[section];
     }
     return sections.boxes;
   }
@@ -51,7 +53,3 @@ export const AppRoutes = (() => {
     sectionForHash,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.AppRoutes = AppRoutes;
-}

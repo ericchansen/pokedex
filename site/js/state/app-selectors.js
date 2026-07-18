@@ -1,43 +1,61 @@
+import { AppRoutes } from '../app-routes.js';
+import { DataManager } from '../data.js';
+import { EntityStore } from '../data/entity-store.js';
+import { UIModels } from '../ui-models.js';
+import { AppStore } from './app-store.js';
+
 /**
  * state/app-selectors.js - Derived state selectors over AppStore + DataManager.
  */
 export const AppSelectors = (() => {
+  /** @typedef {import('../types/contracts.js').RouteSection} RouteSection */
+  /** @typedef {import('../types/contracts.js').AppState} AppState */
+  /** @typedef {import('../types/contracts.js').BrowserQuery} BrowserQuery */
+  /** @typedef {import('../types/contracts.js').BrowserEntry} BrowserEntry */
+  /** @type {Map<RouteSection, {queryKey: string, dataVersion: string, value: import('../types/contracts.js').BrowserSelection}>} */
+  const inventoryBrowserCache = new Map();
+  /** @type {Record<RouteSection, RouteSection>} */
   const SEC = {
-    boxes: globalThis.AppRoutes?.sections?.boxes || 'boxes',
-    inventory: globalThis.AppRoutes?.sections?.inventory || 'inventory',
-    builds: globalThis.AppRoutes?.sections?.builds || 'builds',
-    teams: globalThis.AppRoutes?.sections?.teams || 'teams',
-    settings: globalThis.AppRoutes?.sections?.settings || 'settings',
+    boxes: AppRoutes?.sections?.boxes || 'boxes',
+    inventory: AppRoutes?.sections?.inventory || 'inventory',
+    builds: AppRoutes?.sections?.builds || 'builds',
+    teams: AppRoutes?.sections?.teams || 'teams',
+    settings: AppRoutes?.sections?.settings || 'settings',
   };
 
+  /** @type {Record<string, (a: BrowserEntry, b: BrowserEntry) => number>} */
   const SORT_COMPARATORS = {
     name: (a, b) => a.name.localeCompare(b.name),
-    dex: (a, b) => a.num - b.num,
-    num: (a, b) => a.num - b.num,
+    dex: (a, b) => Number(a.num) - Number(b.num),
+    num: (a, b) => Number(a.num) - Number(b.num),
     nature: (a, b) => (a.nature || '').localeCompare(b.nature || ''),
     ability: (a, b) => (a.ability || '').localeCompare(b.ability || ''),
     item: (a, b) => (a.item || '').localeCompare(b.item || ''),
     ball: (a, b) => (a.ball || '').localeCompare(b.ball || ''),
     location: (a, b) => (a.location || '').localeCompare(b.location || ''),
     type: (a, b) => (a.types?.[0] || '').localeCompare(b.types?.[0] || ''),
-    sprite: (a, b) => a.num - b.num,
+    sprite: (a, b) => Number(a.num) - Number(b.num),
   };
 
   // ── Pure filter predicates (shared with home.js Boxes view) ──────────────
 
+  /** @param {string[]} types @param {string} filterType */
   function typeMatches(types, filterType) {
     return !filterType || types.some(t => t.toLowerCase() === filterType.toLowerCase());
   }
 
+  /** @param {string|number|null|undefined} gen @param {string} filterGeneration */
   function generationMatches(gen, filterGeneration) {
     return !filterGeneration || String(gen) === filterGeneration;
   }
 
+  /** @param {string[]} compatibleGames @param {string[]} filterGames */
   function gamesMatch(compatibleGames, filterGames) {
     return !filterGames.length || filterGames.every(g => compatibleGames.includes(g));
   }
 
   // Maps query flag keys (snake_case) to inventory entry view-model properties (camelCase).
+  /** @type {Record<string, keyof BrowserEntry>} */
   const FLAG_ENTRY_KEYS = {
     shiny: 'shiny',
     genned: 'genned',
@@ -49,6 +67,7 @@ export const AppSelectors = (() => {
     ev_guesstimate: 'evGuesstimate',
   };
 
+  /** @param {BrowserEntry} entry @param {string[]} filterFlags */
   function flagsMatch(entry, filterFlags) {
     return !filterFlags.length || filterFlags.every(key => !!entry[FLAG_ENTRY_KEYS[key] ?? key]);
   }
@@ -58,12 +77,20 @@ export const AppSelectors = (() => {
   function getActiveQueryRoute() {
     return typeof AppStore?.getActiveQueryRoute === 'function'
       ? AppStore.getActiveQueryRoute()
-      : (globalThis.AppRoutes?.DEFAULT_SECTION || 'boxes');
+      : (AppRoutes?.DEFAULT_SECTION || 'boxes');
   }
 
+  /**
+   * @param {string} [route]
+   * @param {AppState} [state]
+   * @returns {BrowserQuery}
+   */
   function selectBrowserQuery(route = getActiveQueryRoute(), state = AppStore.getState()) {
-    const normalizedRoute = String(route || getActiveQueryRoute()).trim() || getActiveQueryRoute();
-    const query = state.query?.byRoute?.[normalizedRoute]
+    const routeText = String(route || getActiveQueryRoute()).trim() || getActiveQueryRoute();
+    const normalizedRoute = Object.hasOwn(state.query.byRoute, routeText)
+      ? /** @type {RouteSection} */ (routeText)
+      : getActiveQueryRoute();
+    const query = state.query.byRoute[normalizedRoute]
       || (typeof AppStore?.getBrowserQuery === 'function' ? AppStore.getBrowserQuery(normalizedRoute) : {});
     return {
       search: String(query.search || ''),
@@ -74,18 +101,20 @@ export const AppSelectors = (() => {
       transferred: String(query.transferred || ''),
       source: String(query.source || ''),
       ownedOnly: !!query.ownedOnly,
-      mode: String(query.mode || (normalizedRoute === (SEC.boxes) ? 'grid' : 'table')),
+      mode: query.mode || (normalizedRoute === SEC.boxes ? 'grid' : 'table'),
       sortKey: String(query.sortKey || 'num'),
       sortAsc: query.sortAsc == null ? true : !!query.sortAsc,
     };
   }
 
+  /** @param {AppState} [state] @param {string} [route] */
   function selectSearch(state = AppStore.getState(), route = getActiveQueryRoute()) {
     return {
       query: selectBrowserQuery(route, state).search,
     };
   }
 
+  /** @param {AppState} [state] */
   function selectSelection(state = AppStore.getState()) {
     return {
       ids: [...state.selection.ids],
@@ -93,32 +122,33 @@ export const AppSelectors = (() => {
     };
   }
 
-  function selectRouteRevision(state = AppStore.getState()) {
-    return state.route.revision;
-  }
-
+  /** @param {AppState} [state] */
   function selectDetail(state = AppStore.getState()) {
     return { ...state.detail };
   }
 
+  /** @param {BrowserEntry} entry @param {string} search */
   function matchesEntrySearch(entry, search) {
     const normalized = String(search || '').trim();
     if (!normalized) return true;
     return UIModels.matchesSearch(entry.searchText, normalized);
   }
 
+  /** @param {BrowserEntry[]} entries @param {BrowserQuery} query */
   function sortBrowserEntries(entries, query) {
     const dir = query.sortAsc ? 1 : -1;
     const cmp = SORT_COMPARATORS[query.sortKey] || SORT_COMPARATORS.dex;
     return [...entries].sort((a, b) => cmp(a, b) * dir);
   }
 
+  /** @param {RouteSection} normalizedRoute @returns {BrowserEntry[]} */
   function fetchBrowserEntries(normalizedRoute) {
     return normalizedRoute === (SEC.inventory)
       ? (DataManager.getAllInstances?.() || []).map((instance) => UIModels.buildInventoryEntryView(instance))
       : (DataManager.getAllBuilds?.() || []).map((build) => UIModels.buildLibraryBuildEntryView(build));
   }
 
+  /** @param {BrowserEntry[]} allEntries @param {BrowserQuery} query @param {RouteSection} normalizedRoute */
   function filterBrowserEntries(allEntries, query, normalizedRoute) {
     return allEntries.filter((entry) => {
       if (normalizedRoute === (SEC.inventory) && !entry.owned) return false;
@@ -138,6 +168,7 @@ export const AppSelectors = (() => {
     });
   }
 
+  /** @param {BrowserEntry[]} allEntries @param {boolean} isInventory */
   function computeQuickStats(allEntries, isInventory) {
     let ownedCount = isInventory ? allEntries.length : 0;
     let withBuildsCount = 0;
@@ -154,6 +185,12 @@ export const AppSelectors = (() => {
     ];
   }
 
+  /**
+   * @param {BrowserEntry[]} visibleEntries
+   * @param {BrowserEntry[]} allEntries
+   * @param {RouteSection} normalizedRoute
+   * @returns {import('../types/contracts.js').BrowserEmptyState|null}
+   */
   function buildEmptyState(visibleEntries, allEntries, normalizedRoute) {
     if (visibleEntries.length > 0) return null;
     if (allEntries.length === 0) {
@@ -176,6 +213,13 @@ export const AppSelectors = (() => {
     };
   }
 
+  /**
+   * @param {RouteSection} normalizedRoute
+   * @param {BrowserQuery} query
+   * @param {string} summaryText
+   * @param {string[]} quickStats
+   * @returns {import('../types/contracts.js').BrowserToolbarModel}
+   */
   function buildToolbarModel(normalizedRoute, query, summaryText, quickStats) {
     return {
       route: normalizedRoute,
@@ -193,11 +237,22 @@ export const AppSelectors = (() => {
     };
   }
 
+  /**
+   * @param {RouteSection} [route]
+   * @param {AppState} [state]
+   * @returns {import('../types/contracts.js').BrowserSelection}
+   */
   function selectInventoryBrowser(route = SEC.inventory, state = AppStore.getState()) {
     const normalizedRoute = route === (SEC.builds)
       ? (SEC.builds)
       : (SEC.inventory);
     const query = selectBrowserQuery(normalizedRoute, state);
+    const cacheKey = JSON.stringify(query);
+    const dataVersion = `${EntityStore.getVersion('builds')}:${EntityStore.getVersion('inventory')}`;
+    const cached = inventoryBrowserCache.get(normalizedRoute);
+    if (cached?.queryKey === cacheKey && cached.dataVersion === dataVersion) {
+      return cached.value;
+    }
     const allEntries = fetchBrowserEntries(normalizedRoute);
     const filteredEntries = filterBrowserEntries(allEntries, query, normalizedRoute);
     const visibleEntries = sortBrowserEntries(filteredEntries, query);
@@ -209,7 +264,7 @@ export const AppSelectors = (() => {
     const emptyState = buildEmptyState(visibleEntries, allEntries, normalizedRoute);
     const toolbarModel = buildToolbarModel(normalizedRoute, query, summaryText, quickStats);
 
-    return {
+    const value = {
       route: normalizedRoute,
       query,
       allEntries,
@@ -220,10 +275,24 @@ export const AppSelectors = (() => {
       emptyState,
       toolbarModel,
     };
+    inventoryBrowserCache.set(normalizedRoute, {
+      queryKey: cacheKey,
+      dataVersion,
+      value,
+    });
+    return value;
   }
 
+  /**
+   * @param {string} [route]
+   * @param {AppState} [state]
+   * @returns {import('../types/contracts.js').BrowserToolbarModel}
+   */
   function selectBrowserToolbarConfig(route = getActiveQueryRoute(), state = AppStore.getState()) {
-    const normalizedRoute = String(route || getActiveQueryRoute()).trim() || getActiveQueryRoute();
+    const routeText = String(route || getActiveQueryRoute()).trim() || getActiveQueryRoute();
+    const normalizedRoute = Object.hasOwn(state.query.byRoute, routeText)
+      ? /** @type {RouteSection} */ (routeText)
+      : getActiveQueryRoute();
     const query = selectBrowserQuery(normalizedRoute, state);
     if (normalizedRoute === (SEC.inventory)
       || normalizedRoute === (SEC.builds)) {
@@ -277,14 +346,9 @@ export const AppSelectors = (() => {
     selectBrowserQuery,
     selectSearch,
     selectSelection,
-    selectRouteRevision,
     selectDetail,
     selectInventoryBrowser,
     selectBrowserToolbarConfig,
     selectProgress,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.AppSelectors = AppSelectors;
-}

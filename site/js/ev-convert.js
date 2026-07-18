@@ -1,3 +1,5 @@
+import { DomainMappers } from './domain-mappers.js';
+
 /**
  * ev-convert.js — Cross-scale EV/IV conversion for bulk Showdown export.
  *
@@ -33,6 +35,21 @@ export const EvConvert = (() => {
   const CLASSIC_PER_STAT_CAP = 252;
   const CLASSIC_TOTAL_CAP = 510;
 
+  /**
+   * @typedef {{
+   *   evs: import('./types/contracts.js').NumericStatSpread,
+   *   ivs: import('./types/contracts.js').IvSpread|null,
+   *   evSystem: import('./types/contracts.js').EvSystem,
+   *   converted: boolean,
+   *   fromSystem: import('./types/contracts.js').EvSystem|null,
+   *   note: string
+   * }} EvConversion
+   */
+
+  /**
+   * @param {import('./types/contracts.js').StatSpread|null|undefined} spread
+   * @returns {import('./types/contracts.js').NumericStatSpread}
+   */
   function normalize(spread) {
     if (!spread) return emptySpread();
     const out = emptySpread();
@@ -40,8 +57,9 @@ export const EvConvert = (() => {
     return out;
   }
 
+  /** @param {import('./types/contracts.js').StatSpread} spread */
   function total(spread) {
-    return STAT_KEYS.reduce((s, k) => s + (spread[k] || 0), 0);
+    return STAT_KEYS.reduce((sum, key) => sum + Number(spread[key] || 0), 0);
   }
 
   /**
@@ -52,6 +70,7 @@ export const EvConvert = (() => {
    * All output values are multiples of 4 (sub-4 EVs contribute nothing in
    * the classic formula due to ⌊EV/4⌋).
    */
+  /** @param {import('./types/contracts.js').StatSpread|null|undefined} championsEvs */
   function championsToClassic(championsEvs) {
     const sp = normalize(championsEvs);
     const out = emptySpread();
@@ -80,6 +99,7 @@ export const EvConvert = (() => {
    *   2. clamp each SP to [0, 32]          — per-stat cap
    *   3. while sum > 66, decrement the largest SP — total cap
    */
+  /** @param {import('./types/contracts.js').StatSpread|null|undefined} classicEvs */
   function classicToChampions(classicEvs) {
     const ev = normalize(classicEvs);
     const out = emptySpread();
@@ -99,6 +119,10 @@ export const EvConvert = (() => {
     return out;
   }
 
+  /**
+   * @param {import('./types/contracts.js').StatSpread} a
+   * @param {import('./types/contracts.js').StatSpread} b
+   */
   function spreadsEqual(a, b) {
     const na = normalize(a);
     const nb = normalize(b);
@@ -116,10 +140,16 @@ export const EvConvert = (() => {
    *   note:       short human-readable summary of the situation
    * }
    */
+  /**
+   * @param {import('./types/contracts.js').BuildState|null|undefined} build
+   * @param {import('./types/contracts.js').EvSystem} targetSystem
+   * @returns {EvConversion}
+   */
   function evsForTarget(build, targetSystem) {
     const evs = (build && build.evs) || {};
     const target = targetSystem === 'champions' ? 'champions' : 'classic';
 
+    /** @type {import('./types/contracts.js').NumericStatSpread|null} */
     let stored = null;
     if (evs[target]) stored = normalize(evs[target]);
 
@@ -135,7 +165,9 @@ export const EvConvert = (() => {
     }
 
     // Need conversion. Pick the source system from the explicit per-system spread.
+    /** @type {import('./types/contracts.js').EvSystem|null} */
     let sourceSystem = null;
+    /** @type {import('./types/contracts.js').NumericStatSpread|null} */
     let sourceEvs = null;
     if (target === 'classic' && evs.champions) {
       sourceSystem = 'champions';
@@ -157,8 +189,9 @@ export const EvConvert = (() => {
       };
     }
 
-    let convertedEvs;
-    let note;
+    /** @type {import('./types/contracts.js').NumericStatSpread} */
+    let convertedEvs = emptySpread();
+    let note = '';
     if (sourceSystem === 'champions' && target === 'classic') {
       convertedEvs = championsToClassic(sourceEvs);
       const used = total(convertedEvs);
@@ -188,6 +221,10 @@ export const EvConvert = (() => {
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildState|null|undefined} build
+   * @param {import('./types/contracts.js').StructuredEvs|null|undefined} evs
+   */
   function pickClassicIvs(build, evs) {
     if (evs && evs.classic_ivs) return evs.classic_ivs;
     if (build && build.ivs) return build.ivs;
@@ -198,13 +235,20 @@ export const EvConvert = (() => {
    * Build a Showdown export-ready member object for the target system.
    * Drops Tera Type when target === 'champions' (Champions has no Tera mechanic).
    */
+  /**
+   * @param {import('./types/contracts.js').BuildState} build
+   * @param {import('./types/contracts.js').EvSystem} targetSystem
+   */
   function memberForTarget(build, targetSystem) {
     const conv = evsForTarget(build, targetSystem);
+    /** @type {import('./types/contracts.js').StructuredEvs} */
+    const memberEvs = { [targetSystem]: conv.evs };
+    /** @type {import('./types/contracts.js').BuildState} */
     const member = {
       ...build,
-      evs: { [targetSystem]: conv.evs },
+      evs: memberEvs,
     };
-    if (conv.ivs) member.evs.classic_ivs = conv.ivs;
+    if (conv.ivs) memberEvs.classic_ivs = conv.ivs;
     delete member.ivs; // IVs are now inside structured evs
     if (targetSystem === 'champions') delete member.tera_type;
     return { member, conversion: conv };
@@ -212,6 +256,15 @@ export const EvConvert = (() => {
 
   // Self-test (runs once on load; logs to console only on failure).
   function selfTest() {
+    /** @type {Array<{
+     * name: string,
+     * in: import('./types/contracts.js').BuildState,
+     * target: import('./types/contracts.js').EvSystem,
+     * expectEvs?: import('./types/contracts.js').StatSpread,
+     * expectConverted: boolean,
+     * expectTotalLte?: number,
+     * expectMinTotal?: number
+     * }>} */
     const cases = [
       // 32/0/0/0/32/2 × 8 = 256/0/0/0/256/16 → cap per-stat → 252/0/0/0/252/16 = 520 → trim smallest → 252/0/0/0/252/8 = 512 → trim → 252/0/0/0/252/4 = 508
       { name: 'champions→classic ×8 with overflow trim',
@@ -302,5 +355,3 @@ export const EvConvert = (() => {
     CLASSIC_TOTAL_CAP,
   };
 })();
-
-if (typeof window !== 'undefined') window.EvConvert = EvConvert;

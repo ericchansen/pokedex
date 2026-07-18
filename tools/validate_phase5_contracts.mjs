@@ -1,8 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -10,23 +9,8 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function loadScript(relPath, sandbox) {
-  const filePath = path.join(ROOT, relPath);
-  let source = fs.readFileSync(filePath, 'utf8');
-  // Strip ES module export declarations so vm.runInContext can parse them
-  source = source.replace(/^export\s+/gm, '');
-  vm.runInContext(source, sandbox, { filename: filePath });
-}
-
-function createSandbox() {
-  const sandbox = vm.createContext({
-    console,
-    window: {},
-    module: { exports: {} },
-    exports: {},
-  });
-  sandbox.window = sandbox;
-  return sandbox;
+function importModule(relPath) {
+  return import(pathToFileURL(path.join(ROOT, relPath)).href);
 }
 
 function assertSubset(actual, expected, label) {
@@ -48,15 +32,13 @@ function assertSubset(actual, expected, label) {
   assert(Object.is(actual, expected), `${label} mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
 }
 
-function runShowdownFixtures() {
+async function runShowdownFixtures() {
   const fixtures = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'fixtures', 'showdown-roundtrip.json'), 'utf8'));
-  const sandbox = createSandbox();
-  loadScript(path.join('site', 'js', 'domain-mappers.js'), sandbox);
-  loadScript(path.join('site', 'js', 'team-export.js'), sandbox);
-  loadScript(path.join('site', 'js', 'showdown-parser.js'), sandbox);
-  vm.runInContext('window.__phase5Showdown = { DomainMappers, TeamExportFormatter, ShowdownParser };', sandbox);
-
-  const { TeamExportFormatter, ShowdownParser, DomainMappers } = sandbox.window.__phase5Showdown || {};
+  const [{ TeamExportFormatter }, { ShowdownParser }, { DomainMappers }] = await Promise.all([
+    importModule(path.join('site', 'js', 'team-export.js')),
+    importModule(path.join('site', 'js', 'showdown-parser.js')),
+    importModule(path.join('site', 'js', 'domain-mappers.js')),
+  ]);
   assert(TeamExportFormatter && ShowdownParser && DomainMappers, 'Showdown fixture sandbox did not load required modules');
 
   for (const fixture of fixtures.cases) {
@@ -67,15 +49,25 @@ function runShowdownFixtures() {
   }
 }
 
-function runDomainContracts() {
-  const sandbox = createSandbox();
-  loadScript(path.join('site', 'js', 'domain-mappers.js'), sandbox);
-  vm.runInContext('window.__phase5Domain = { DomainMappers };', sandbox);
-  const { DomainMappers } = sandbox.window.__phase5Domain || {};
+async function runDomainContracts() {
+  const { DomainMappers } = await importModule(path.join('site', 'js', 'domain-mappers.js'));
   assert(DomainMappers, 'DomainMappers did not load');
 
   const flatClassic = DomainMappers.getEvsForSystem({ evs: { hp: 252, atk: 4 } }, 'classic');
   assert(flatClassic === null, 'Flat EV objects should no longer be accepted as canonical runtime input');
+
+  const importedTeamMember = DomainMappers.createTeamStorageMember({
+    species: 'Iron Bundle',
+    evs: { spa: 252, spe: 252 },
+    ivs: { atk: 0 },
+  }, 'classic');
+  assert(
+    JSON.stringify(importedTeamMember.evs) === JSON.stringify({
+      classic: { spa: 252, spe: 252 },
+      classic_ivs: { atk: 0 },
+    }),
+    'Team input boundaries must convert flat EV/IV spreads into canonical structured data'
+  );
 
   const team = DomainMappers.createTeamStorage({
     ev_system: 'classic',
@@ -87,13 +79,10 @@ function runDomainContracts() {
   assert(Object.keys(team.members[0]).length === 2, 'Canonical team refs should only persist slot and build_id');
 }
 
-function runFingerprintFixtures() {
+async function runFingerprintFixtures() {
   const fixtures = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'fixtures', 'build-fingerprint.json'), 'utf8'));
-  const sandbox = createSandbox();
-  loadScript(path.join('site', 'js', 'buildFingerprint.js'), sandbox);
-  vm.runInContext('window.__phase5Fingerprint = { BuildFingerprint };', sandbox);
-
-  const jsFingerprint = sandbox.window.__phase5Fingerprint?.BuildFingerprint?.buildFingerprint || sandbox.module?.exports?.buildFingerprint;
+  const { BuildFingerprint } = await importModule(path.join('site', 'js', 'buildFingerprint.js'));
+  const jsFingerprint = BuildFingerprint?.buildFingerprint;
   assert(jsFingerprint, 'JS build fingerprint helper did not load');
 
   const pythonSource = `
@@ -126,11 +115,11 @@ print(build_fingerprint(payload.get("build") or {}, payload.get("egg_moves") or 
   }
 }
 
-function main() {
-  runShowdownFixtures();
-  runDomainContracts();
-  runFingerprintFixtures();
+async function main() {
+  await runShowdownFixtures();
+  await runDomainContracts();
+  await runFingerprintFixtures();
   console.log('Phase 5 contract validation passed.');
 }
 
-main();
+await main();

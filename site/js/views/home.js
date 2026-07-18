@@ -1,33 +1,51 @@
+import { AppRoutes } from '../app-routes.js';
+import { DataManager } from '../data.js';
+import { EntityStore } from '../data/entity-store.js';
+import { DomainMappers } from '../domain-mappers.js';
+import { FormMetadata } from '../form-metadata.js';
+import { PokemonViewer } from '../pokemon-viewer.js';
+import { ProgressIndicator } from '../progress-indicator.js';
+import { SlotSelection } from '../slot-selection.js';
+import { SpeciesResolver } from '../species-resolver.js';
+import { AppSelectors } from '../state/app-selectors.js';
+import { AppStore } from '../state/app-store.js';
+import { UIModels } from '../ui-models.js';
+import { UIShared } from '../ui-shared.js';
+import { Feedback } from '../ui/feedback.js';
+import { DetailPanel } from '../ui/surfaces/detail-panel.js';
+import { BrowserSurface } from '../ui/surfaces/browser-surface.js';
+
 /**
  * views/home.js — Boxes view.
  * 200-box dense continuous-scroll grid with lazy rendering.
  */
 
-const {
-  AppStore,
-  AppSelectors,
-  DataManager,
-  UIShared,
-  BrowserSurface,
-  ProgressIndicator,
-  PokemonViewer,
-  AppRoutes,
-} = globalThis;
+
 
 const BoxesView = (() => {
+  /** @type {HTMLElement|null} */
   let containerEl = null;
+  /** @type {IntersectionObserver|null} */
   let observer = null;
+  /** @type {Set<number>} */
   const renderedBoxes = new Set();
+  /** @type {(() => void)|null} */
   let unsubscribeStore = null;
+  /** @type {(() => void)|null} */
+  let unsubscribeInventory = null;
   let rovingSlot = { boxId: 0, slotIdx: 0 };
+  /** @type {MediaQueryList|null} */
   let toolbarMediaQuery = null;
   let secondaryFiltersOpen = false;
 
   // ── Clipboard for copy/paste/cut ─────────────────────────
   // Unified clipboard: { items: [snapshots], isCut: bool, sources: [{boxId,slotIdx,instanceId}] | null }
+  /** @typedef {import('../types/contracts.js').SlotView & {species_id: string|number}} ClipboardItem */
+  /** @type {{items: ClipboardItem[], isCut: boolean, sources: Array<{boxId: number, slotIdx: number, instanceId: string|null}>|null}|null} */
   let clipboard = null;
 
   // ── Drag auto-scroll ──────────────────────────────────────
+  /** @type {number|null} */
   let dragScrollRAF = null;
   let dragScrollDir = 0; // -1 = up, 1 = down, 0 = none
   const EDGE_ZONE = 60; // px from viewport edge that triggers scroll
@@ -35,8 +53,12 @@ const BoxesView = (() => {
   const SLOTS_PER_BOX = 30;
   const PLACEMENT_SEARCH_DEBOUNCE_MS = 150;
 
+  /**
+   * @param {import('../types/contracts.js').SlotView|null|undefined} occupant
+   * @returns {ClipboardItem|null}
+   */
   function snapshotOccupant(occupant) {
-    if (!occupant) return null;
+    if (!occupant?.species_id) return null;
     return {
       species_id: occupant.species_id,
       target_build_id: occupant.target_build_id || null,
@@ -44,6 +66,7 @@ const BoxesView = (() => {
     };
   }
 
+  /** @param {DragEvent} e */
   function handleDragOver(e) {
     const y = e.clientY;
     const vh = window.innerHeight;
@@ -74,8 +97,38 @@ const BoxesView = (() => {
   }
 
   // ── Slot selection action bar ──────────────────────────────
+  /** @type {HTMLElement|null} */
   let slotActionBar = null;
+  /** @type {(() => void)|null} */
   let unsubSlotSelection = null;
+
+  /**
+   * Query a control that is created in this module's own static markup.
+   * @param {ParentNode} root
+   * @param {string} selector
+   * @returns {HTMLElement}
+   */
+  function requiredElement(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLElement)) {
+      throw new Error(`Expected control was not rendered: ${selector}`);
+    }
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requiredInput(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLInputElement)) throw new Error(`Expected input was not rendered: ${selector}`);
+    return element;
+  }
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requiredSelect(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLSelectElement)) throw new Error(`Expected select was not rendered: ${selector}`);
+    return element;
+  }
 
   function ensureSlotActionBar() {
     if (slotActionBar) return slotActionBar;
@@ -92,55 +145,60 @@ const BoxesView = (() => {
     `;
     document.body.appendChild(slotActionBar);
 
-    slotActionBar.querySelector('#slot-bar-copy').addEventListener('click', () => {
+    requiredElement(slotActionBar, '#slot-bar-copy').addEventListener('click', () => {
       const entries = SlotSelection.entries();
       const items = entries.map(({ boxId, slotIdx }) => {
         const box = DataManager.getBox(boxId);
         return snapshotOccupant(box?.slots[slotIdx]);
-      }).filter(Boolean);
+      }).filter((item) => item !== null);
       clipboard = { items, isCut: false, sources: null };
       SlotSelection.clear();
-      UIShared.showToast(`Copied ${items.length} Pokémon`);
+      Feedback.showToast(`Copied ${items.length} Pokémon`);
     });
 
-    slotActionBar.querySelector('#slot-bar-cut').addEventListener('click', () => {
+    requiredElement(slotActionBar, '#slot-bar-cut').addEventListener('click', () => {
       const entries = SlotSelection.entries();
       const paired = entries.map(({ boxId, slotIdx }) => {
         const box = DataManager.getBox(boxId);
         const occupant = box?.slots[slotIdx];
         if (!occupant) return null;
+        const clip = snapshotOccupant(occupant);
+        if (!clip) return null;
         return {
           source: { boxId, slotIdx, instanceId: occupant.state?.id || null },
-          clip: snapshotOccupant(occupant),
+          clip,
         };
-      }).filter(Boolean);
-      clipboard = { items: paired.map(p => p.clip), isCut: true, sources: paired.map(p => p.source) };
+      }).filter((pair) => pair !== null);
+      clipboard = {
+        items: paired.map((pair) => pair.clip),
+        isCut: true,
+        sources: paired.map((pair) => pair.source),
+      };
+      const cutCount = clipboard.items.length;
       SlotSelection.clear();
-      UIShared.showToast(`Cut ${clipboard.items.length} Pokémon`);
+      Feedback.showToast(`Cut ${cutCount} Pokémon`);
     });
 
-    slotActionBar.querySelector('#slot-bar-remove').addEventListener('click', async () => {
+    requiredElement(slotActionBar, '#slot-bar-remove').addEventListener('click', async () => {
       const entries = SlotSelection.entries();
       const count = entries.length;
-      const confirmed = await UIShared.showConfirm(`Remove ${count} Pokémon from their slots?`, {
+      const confirmed = await Feedback.showConfirm(`Remove ${count} Pokémon from their slots?`, {
         title: 'Remove from Boxes',
         confirmLabel: 'Remove',
         detail: 'This removes the selected Pokémon from your HOME inventory. Linked Library Builds are kept.',
       });
       if (!confirmed) return;
       try {
-        const affected = await DataManager.batchRemoveSlots(entries);
+        await DataManager.batchRemoveSlots(entries);
         SlotSelection.clear();
-        for (const boxId of affected) refreshBox(boxId);
-        ProgressIndicator.updateProgress();
-        UIShared.showToast(`Removed ${count} Pokémon`);
+        Feedback.showToast(`Removed ${count} Pokémon`);
       } catch (err) {
         console.error('[Boxes] batchRemoveSlots failed:', err);
-        UIShared.showToast('Failed to remove the selected Pokémon.');
+        Feedback.showToast('Failed to remove the selected Pokémon.');
       }
     });
 
-    slotActionBar.querySelector('#slot-bar-clear').addEventListener('click', () => {
+    requiredElement(slotActionBar, '#slot-bar-clear').addEventListener('click', () => {
       SlotSelection.clear();
     });
 
@@ -162,8 +220,9 @@ const BoxesView = (() => {
     const container = document.getElementById('boxes-container');
     if (!container) return;
     container.querySelectorAll('.slot.occupied').forEach((slot) => {
-      const boxId = parseInt(slot.dataset.boxId, 10);
-      const slotIdx = parseInt(slot.dataset.slotIdx, 10);
+      if (!(slot instanceof HTMLElement)) return;
+      const boxId = parseInt(slot.dataset.boxId || '', 10);
+      const slotIdx = parseInt(slot.dataset.slotIdx || '', 10);
       const selected = SlotSelection.has(boxId, slotIdx);
       slot.classList.toggle('selected', selected);
       slot.setAttribute('aria-selected', String(selected));
@@ -171,6 +230,7 @@ const BoxesView = (() => {
     refreshSlotActionBar();
   }
 
+  /** @param {KeyboardEvent} e */
   function handleSelectionKeydown(e) {
     if (e.key === 'Escape' && SlotSelection.size() > 0) {
       SlotSelection.clear();
@@ -178,6 +238,7 @@ const BoxesView = (() => {
     }
   }
 
+  /** @param {HTMLElement} container */
   function mount(container) {
     containerEl = container;
     rovingSlot = { boxId: 0, slotIdx: 0 };
@@ -230,7 +291,7 @@ const BoxesView = (() => {
 
     renderAllBoxPlaceholders();
     const boxesContainer = container.querySelector('#boxes-container');
-    if (boxesContainer) {
+    if (boxesContainer instanceof HTMLElement) {
       boxesContainer.addEventListener('dblclick', handleBoxHeaderEvent);
       boxesContainer.addEventListener('contextmenu', handleBoxHeaderEvent);
     }
@@ -256,50 +317,46 @@ const BoxesView = (() => {
     document.addEventListener('drop', stopDragScroll);
 
     if (unsubscribeStore) unsubscribeStore();
-    let previousQuery = cloneBrowserQuery(getBrowserQuery());
-    unsubscribeStore = AppStore.subscribe(() => {
-      const nextQuery = cloneBrowserQuery(getBrowserQuery());
-      if (sameBrowserQuery(previousQuery, nextQuery)) return;
-      renderToolbar();
-      applyFilters();
-      previousQuery = nextQuery;
-    });
+    unsubscribeStore = AppStore.subscribe(
+      (state) => AppSelectors.selectBrowserQuery(AppRoutes.sections.boxes, state),
+      () => {
+        renderToolbar();
+        applyFilters();
+      },
+      AppStore.browserQueryEquals
+    );
+    unsubscribeInventory = EntityStore.subscribe('inventory', handleInventoryChange);
 
     // Default to HOME Living Dex preset
     const gamesetSelect = document.getElementById('preset-gameset');
-    if (gamesetSelect && !DataManager.getActivePreset()) {
+    if (gamesetSelect instanceof HTMLSelectElement && !DataManager.getActivePreset()) {
       gamesetSelect.value = 'home';
       gamesetSelect.dispatchEvent(new Event('change'));
     }
 
-    // Refresh all boxes when any instance is edited (gender/gmax changes affect ghosts elsewhere)
-    document.addEventListener('instance-saved', handleInstanceSaved);
-    document.addEventListener('instance-metadata-changed', handleMetadataChanged);
   }
 
-  function handleInstanceSaved(e) {
-    const { boxId } = e?.detail || {};
-    if (boxId != null) refreshBox(boxId);
-    else refreshAllRenderedBoxes();
-    ProgressIndicator.updateProgress();
-  }
-
-  function handleMetadataChanged(e) {
-    const { boxId } = e.detail || {};
-    if (boxId != null) refreshBox(boxId);
-    ProgressIndicator.updateProgress();
+  /** @param {{change: import('../types/contracts.js').EntityChange}} event */
+  function handleInventoryChange(event) {
+    const boxes = event.change.boxes;
+    if (!boxes?.length) {
+      refreshAllRenderedBoxes();
+      return;
+    }
+    for (const boxId of new Set(boxes)) refreshBox(boxId);
   }
 
   function unmount() {
     if (observer) { observer.disconnect(); observer = null; }
     if (unsubscribeStore) { unsubscribeStore(); unsubscribeStore = null; }
+    if (unsubscribeInventory) { unsubscribeInventory(); unsubscribeInventory = null; }
     if (toolbarMediaQuery) {
       toolbarMediaQuery.removeEventListener('change', handleToolbarBreakpointChange);
       toolbarMediaQuery = null;
     }
     if (unsubSlotSelection) { unsubSlotSelection(); unsubSlotSelection = null; }
     const boxesContainer = containerEl?.querySelector('#boxes-container');
-    if (boxesContainer) {
+    if (boxesContainer instanceof HTMLElement) {
       boxesContainer.removeEventListener('dblclick', handleBoxHeaderEvent);
       boxesContainer.removeEventListener('contextmenu', handleBoxHeaderEvent);
     }
@@ -307,13 +364,11 @@ const BoxesView = (() => {
     document.removeEventListener('dragover', handleDragOver);
     document.removeEventListener('dragend', stopDragScroll);
     document.removeEventListener('drop', stopDragScroll);
-    document.removeEventListener('instance-saved', handleInstanceSaved);
-    document.removeEventListener('instance-metadata-changed', handleMetadataChanged);
     stopDragScroll();
     SlotSelection.clear();
     if (slotActionBar) { slotActionBar.remove(); slotActionBar = null; }
     renderedBoxes.clear();
-    UIShared.closePanel();
+    DetailPanel.close();
     containerEl = null;
   }
 
@@ -321,23 +376,11 @@ const BoxesView = (() => {
     return AppSelectors.selectBrowserQuery(AppRoutes.sections.boxes);
   }
 
-  function cloneBrowserQuery(query) {
-    return {
-      ...query,
-      games: Array.isArray(query?.games) ? [...query.games] : [],
-      flags: Array.isArray(query?.flags) ? [...query.flags] : [],
-    };
-  }
-
-  function sameBrowserQuery(a, b) {
-    return !!a && !!b && AppStore.browserQueryEquals(a, b);
-  }
-
   function renderToolbar() {
     const mount = document.getElementById('boxes-browser-toolbar');
     if (!mount) return;
     const currentDisclosure = mount.querySelector('[data-browser-secondary]');
-    if (currentDisclosure) secondaryFiltersOpen = currentDisclosure.open;
+    if (currentDisclosure instanceof HTMLDetailsElement) secondaryFiltersOpen = currentDisclosure.open;
     const toolbarConfig = {
       ...AppSelectors.selectBrowserToolbarConfig(AppRoutes.sections.boxes),
       secondaryOpen: toolbarMediaQuery?.matches ? secondaryFiltersOpen : true,
@@ -348,20 +391,23 @@ const BoxesView = (() => {
     );
   }
 
+  /** @param {MediaQueryListEvent} event */
   function handleToolbarBreakpointChange(event) {
     secondaryFiltersOpen = !event.matches;
     const currentDisclosure = document.querySelector('#boxes-browser-toolbar [data-browser-secondary]');
-    if (currentDisclosure) currentDisclosure.open = secondaryFiltersOpen;
+    if (currentDisclosure instanceof HTMLDetailsElement) currentDisclosure.open = secondaryFiltersOpen;
     renderToolbar();
   }
 
+  /** @param {MouseEvent} event */
   function handleBoxHeaderEvent(event) {
-    const header = event.target.closest('.box-header');
+    const header = event.target instanceof Element ? event.target.closest('.box-header') : null;
     if (!header) return;
     const container = document.getElementById('boxes-container');
     if (!container || !container.contains(header)) return;
     const boxEl = header.closest('.box');
-    const boxId = Number.parseInt(boxEl?.dataset.boxId ?? '', 10);
+    if (!(boxEl instanceof HTMLElement) || !(header instanceof HTMLElement)) return;
+    const boxId = Number.parseInt(boxEl.dataset.boxId ?? '', 10);
     if (Number.isNaN(boxId)) return;
     if (event.type === 'contextmenu') {
       event.preventDefault();
@@ -371,8 +417,9 @@ const BoxesView = (() => {
 
   // ── Lazy rendering with IntersectionObserver ──────────
 
+  /** @param {Element|null} boxEl @param {number} boxId */
   function ensureBoxRendered(boxEl, boxId) {
-    if (!boxEl || renderedBoxes.has(boxId)) return;
+    if (!(boxEl instanceof HTMLElement) || renderedBoxes.has(boxId)) return;
     renderBoxContent(boxEl, boxId);
     renderedBoxes.add(boxId);
     observer?.unobserve(boxEl);
@@ -380,6 +427,7 @@ const BoxesView = (() => {
 
   function renderAllBoxPlaceholders() {
     const container = document.getElementById('boxes-container');
+    if (!container) return;
     container.innerHTML = '';
     renderedBoxes.clear();
     if (observer) observer.disconnect();
@@ -394,12 +442,12 @@ const BoxesView = (() => {
 
       const boxEl = document.createElement('div');
       boxEl.className = 'box';
-      boxEl.dataset.boxId = i;
+      boxEl.dataset.boxId = String(i);
 
       const header = document.createElement('div');
       header.className = 'box-header';
       header.id = `box-header-${i}`;
-      header.textContent = box ? box.name : `HOME ${i + 1}`;
+      header.textContent = box?.name || `HOME ${i + 1}`;
       if (presetBox) {
         const presetLabel = document.createElement('span');
         presetLabel.className = 'box-header-preset';
@@ -423,9 +471,10 @@ const BoxesView = (() => {
     observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
-          const boxId = parseInt(entry.target.dataset.boxId, 10);
+          if (!(entry.target instanceof HTMLElement)) continue;
+          const boxId = parseInt(entry.target.dataset.boxId || '', 10);
           ensureBoxRendered(entry.target, boxId);
-          observer.unobserve(entry.target);
+          observer?.unobserve(entry.target);
         }
       }
     }, { rootMargin: '200px' });
@@ -436,14 +485,21 @@ const BoxesView = (() => {
     // Delay observe to next frame so browser has a layout pass —
     // otherwise observer won't fire for already-visible elements on re-render
     requestAnimationFrame(() => {
+      const currentObserver = observer;
+      if (!currentObserver) return;
       for (const boxEl of container.querySelectorAll('.box')) {
-        observer.observe(boxEl);
+        currentObserver.observe(boxEl);
       }
     });
   }
 
+  /**
+   * @param {HTMLElement} grid
+   * @param {import('../types/contracts.js').InventoryBoxView} box
+   * @param {number} boxId
+   * @param {{title: string, pokemon: import('../types/contracts.js').PresetTarget[]}|null|undefined} presetBox
+   */
   function populateBoxGrid(grid, box, boxId, presetBox) {
-    if (!grid || !box) return;
     const fragment = document.createDocumentFragment();
     let row = null;
     for (let i = 0; i < box.slots.length; i++) {
@@ -456,14 +512,15 @@ const BoxesView = (() => {
       const occupant = box.slots[i];
       const target = presetBox && i < presetBox.pokemon.length ? presetBox.pokemon[i] : null;
       if (occupant && occupant.species_id) {
-        row.appendChild(createOccupiedSlot(occupant, boxId, i, target));
+        row?.appendChild(createOccupiedSlot(occupant, boxId, i, target));
       } else {
-        row.appendChild(createEmptySlot(boxId, i, target));
+        row?.appendChild(createEmptySlot(boxId, i, target));
       }
     }
     grid.appendChild(fragment);
   }
 
+  /** @param {HTMLElement} boxEl @param {number} boxId */
   function renderBoxContent(boxEl, boxId) {
     const box = DataManager.getBox(boxId);
     if (!box) return;
@@ -471,6 +528,7 @@ const BoxesView = (() => {
     const preset = DataManager.getActivePreset();
     const presetBox = preset ? preset.boxes[boxId] : null;
     const grid = boxEl.querySelector('.box-grid');
+    if (!(grid instanceof HTMLElement)) return;
     const query = getBrowserQuery();
 
     populateBoxGrid(grid, box, boxId, presetBox);
@@ -483,18 +541,21 @@ const BoxesView = (() => {
     for (const id of renderedBoxes) refreshBox(id);
   }
 
+  /** @param {number} boxId */
   function refreshBox(boxId) {
     const container = document.getElementById('boxes-container');
+    if (!container) return;
     const boxEl = container.querySelector(`.box[data-box-id="${boxId}"]`);
-    if (!boxEl) return;
+    if (!(boxEl instanceof HTMLElement)) return;
 
     const box = DataManager.getBox(boxId);
     if (!box) return;
 
     const header = boxEl.querySelector('.box-header');
+    if (!(header instanceof HTMLElement)) return;
     const preset = DataManager.getActivePreset();
     const presetBox = preset ? preset.boxes[boxId] : null;
-    header.textContent = box.name;
+    header.textContent = box.name || `HOME ${boxId + 1}`;
     if (presetBox) {
       const presetLabel = document.createElement('span');
       presetLabel.className = 'box-header-preset';
@@ -503,6 +564,7 @@ const BoxesView = (() => {
     }
 
     const grid = boxEl.querySelector('.box-grid');
+    if (!(grid instanceof HTMLElement)) return;
     const query = getBrowserQuery();
     grid.innerHTML = '';
     populateBoxGrid(grid, box, boxId, presetBox);
@@ -511,10 +573,12 @@ const BoxesView = (() => {
     applyFiltersToBox(boxEl, query);
   }
 
+  /** @param {number} boxId @param {HTMLElement} headerEl */
   async function renameBox(boxId, headerEl) {
     const box = DataManager.getBox(boxId);
-    const oldName = box.name;
-    const newName = await UIShared.showPrompt('Rename box:', oldName, { placeholder: 'Box name…' });
+    if (!box) return;
+    const oldName = box.name || `HOME ${boxId + 1}`;
+    const newName = await Feedback.showPrompt('Rename box:', oldName, { placeholder: 'Box name…' });
     if (!newName || newName === oldName) return;
     headerEl.textContent = newName;
     const preset = DataManager.getActivePreset();
@@ -536,15 +600,15 @@ const BoxesView = (() => {
         presetLabel.textContent = ` — ${presetBox.title}`;
         headerEl.appendChild(presetLabel);
       }
-      UIShared.showToast('Rename failed — reverted');
+      Feedback.showToast('Rename failed — reverted');
     }
   }
 
   // ── Preset selector ──────────────────────────────────
 
   function wirePresetSelector() {
-    const gamesetSelect = document.getElementById('preset-gameset');
-    const layoutSelect = document.getElementById('preset-layout');
+    const gamesetSelect = requiredSelect(document, '#preset-gameset');
+    const layoutSelect = requiredSelect(document, '#preset-layout');
 
     gamesetSelect.addEventListener('change', async () => {
       const gameSet = gamesetSelect.value;
@@ -560,7 +624,7 @@ const BoxesView = (() => {
         `<option value="${l.id}">${l.name} (${l.boxCount} boxes)</option>`
       ).join('');
       layoutSelect.hidden = false;
-      await activatePreset(gameSet, layouts[0].id);
+      if (layouts[0]) await activatePreset(gameSet, layouts[0].id);
     });
 
     layoutSelect.addEventListener('change', async () => {
@@ -569,6 +633,7 @@ const BoxesView = (() => {
     });
   }
 
+  /** @param {string} gameSet @param {string} layoutId */
   async function activatePreset(gameSet, layoutId) {
     try {
       await DataManager.loadPreset(gameSet, layoutId);
@@ -576,7 +641,7 @@ const BoxesView = (() => {
       ProgressIndicator.updateProgress();
     } catch (err) {
       console.error('[Boxes] activatePreset failed:', err);
-      UIShared.showToast('Failed to load preset');
+      Feedback.showToast('Failed to load preset');
     }
   }
 
@@ -588,8 +653,9 @@ const BoxesView = (() => {
     if (!container) return;
     for (const boxId of renderedBoxes) {
       const boxEl = container.querySelector(`.box[data-box-id="${boxId}"]`);
-      if (!boxEl) continue;
+      if (!(boxEl instanceof HTMLElement)) continue;
       for (const slot of boxEl.querySelectorAll('.slot')) {
+        if (!(slot instanceof HTMLElement)) continue;
         applyFilterToSlot(slot, query);
         applySearchToSlot(slot, query.search);
       }
@@ -597,9 +663,11 @@ const BoxesView = (() => {
     updateHomeSearchEmptyState(query.search);
   }
 
+  /** @param {HTMLElement} boxEl @param {import('../types/contracts.js').BrowserQuery} [query] */
   function applyFiltersToBox(boxEl, query = getBrowserQuery()) {
     const slots = boxEl.querySelectorAll('.slot');
     for (const slot of slots) {
+      if (!(slot instanceof HTMLElement)) continue;
       applyFilterToSlot(slot, query);
       applySearchToSlot(slot, query.search);
     }
@@ -610,6 +678,7 @@ const BoxesView = (() => {
     return getBrowserQuery().search;
   }
 
+  /** @param {HTMLElement} slot @param {string} search */
   function applySearchToSlot(slot, search) {
     search = (search || '').toLowerCase().trim();
     const isPresetGhost = slot.classList.contains('preset-ghost');
@@ -634,6 +703,7 @@ const BoxesView = (() => {
     else slot.dataset.glow = isOccupied ? 'search-owned' : 'search-unowned';
   }
 
+  /** @param {string} query */
   function updateHomeSearchEmptyState(query) {
     const anchor = document.getElementById('boxes-search-empty-anchor');
     if (!anchor) return;
@@ -650,6 +720,10 @@ const BoxesView = (() => {
     anchor.appendChild(message);
   }
 
+  /**
+   * @param {HTMLElement} slot
+   * @param {import('../types/contracts.js').BrowserQuery} activeFilters
+   */
   function applyFilterToSlot(slot, activeFilters) {
     if (!activeFilters) activeFilters = getBrowserQuery();
     const speciesId = slot.dataset.speciesId;
@@ -664,21 +738,22 @@ const BoxesView = (() => {
       const entry = DataManager.resolveSpecies(speciesId).entry;
       if (!entry) { shouldDim = true; }
       else {
-        if (!AppSelectors.typeMatches(entry.types, activeFilters.type)) shouldDim = true;
+        if (!AppSelectors.typeMatches(entry.types || [], activeFilters.type)) shouldDim = true;
         if (!AppSelectors.generationMatches(entry.gen || DataManager.dexNumToGen(entry.num), activeFilters.generation)) shouldDim = true;
         if (activeFilters.games.length > 0) {
           // FR-039 / FR-054: multi-select game filter is AND (intersection). Live lookup via DataManager.
           if (!activeFilters.games.every(game => DataManager.isInGame(speciesId, game))) shouldDim = true;
         }
         if (!shouldDim && activeFilters.flags && activeFilters.flags.length > 0) {
-          const liveSlot = DataManager.getSlot(slot.dataset.boxId, parseInt(slot.dataset.slotIdx));
+          const liveSlot = DataManager.getSlot(Number(slot.dataset.boxId), Number(slot.dataset.slotIdx));
           const state = liveSlot?.state || {};
+          /** @type {Record<string, keyof import('../types/contracts.js').BuildState>} */
           const FLAG_STATE_KEYS = {
             shiny: 'shiny', genned: 'genned', gigantamax: 'gigantamax',
             alpha: 'alpha', event_origin: 'event_origin', from_go: 'from_go',
             transferred_to_champions: 'transferred_to_champions', ev_guesstimate: 'ev_guesstimate',
           };
-          if (!activeFilters.flags.every(key => !!state[FLAG_STATE_KEYS[key] ?? key])) shouldDim = true;
+          if (!activeFilters.flags.every(key => !!state[FLAG_STATE_KEYS[key] || 'shiny'])) shouldDim = true;
         }
       }
     } else {
@@ -691,15 +766,19 @@ const BoxesView = (() => {
     slot.classList.toggle('slot-dimmed', shouldDim);
   }
 
+  /**
+   * @param {HTMLElement} slot
+   * @param {import('../types/contracts.js').BrowserQuery} [activeFilters]
+   */
   function matchesGhostFilters(slot, activeFilters = getBrowserQuery()) {
     const tooltipEl = slot.querySelector('.tooltip');
     if (!tooltipEl) return true;
-    const name = tooltipEl.textContent;
+    const name = tooltipEl.textContent || '';
     const resolved = DataManager.resolveSpecies(name);
     const entry = resolved.entry;
     if (!entry) return true;
 
-    if (!AppSelectors.typeMatches(entry.types, activeFilters.type)) return false;
+    if (!AppSelectors.typeMatches(entry.types || [], activeFilters.type)) return false;
     if (!AppSelectors.generationMatches(entry.gen || DataManager.dexNumToGen(entry.num), activeFilters.generation)) return false;
     if (activeFilters.games.length > 0) {
       const targetSlug = resolved.slug || entry.slug;
@@ -712,6 +791,10 @@ const BoxesView = (() => {
   // ── IV badge helper ───────────────────────────────────
   const IV_STAT_KEYS = DomainMappers.STAT_KEYS;
 
+  /**
+   * @param {import('../types/contracts.js').IvSpread|null|undefined} ivs
+   * @param {string|null|undefined} nature
+   */
   function getIvBadgeLabel(ivs, nature) {
     if (!ivs || typeof ivs !== 'object') return null;
     const defined = IV_STAT_KEYS.filter(k => typeof ivs[k] === 'number');
@@ -725,13 +808,13 @@ const BoxesView = (() => {
 
     // 5P: exactly 5 perfect, the imperfect stat is the nature's minus stat
     if (perfect.length === 5 && imperfect.length === 1) {
-      const effect = DataManager.getNatureEffect(nature);
+      const effect = DataManager.getNatureEffect(nature || '');
       if (effect?.minus && imperfect[0] === effect.minus) return '5P';
     }
     // 5P alt: only 5 IVs defined (6th omitted = don't care), the missing stat is nature's minus
     if (defined.length === 5 && perfect.length === 5) {
       const missing = IV_STAT_KEYS.find(k => typeof ivs[k] !== 'number');
-      const effect = DataManager.getNatureEffect(nature);
+      const effect = DataManager.getNatureEffect(nature || '');
       if (effect?.minus && missing === effect.minus) return '5P';
     }
 
@@ -742,11 +825,13 @@ const BoxesView = (() => {
   }
 
   // ── State-aware sprite resolution ─────────────────────
-  const GENDER_SPRITE_SPECIES = SpeciesResolver.GENDER_SPRITE_SPECIES;
-
   /**
    * Prepend state-aware sprite slugs to a resolved object's candidates.
    * Driven by FormMetadata registry — no per-dimension if-blocks.
+   */
+  /**
+   * @param {import('../types/contracts.js').SpeciesResolution} resolved
+   * @param {import('../types/contracts.js').BuildState|Partial<Record<import('../types/contracts.js').FormMetadataKey, import('../types/contracts.js').InputValue>>|null|undefined} state
    */
   function applyStatefulSprites(resolved, state) {
     if (!state || !resolved) return resolved;
@@ -758,16 +843,11 @@ const BoxesView = (() => {
     return resolved;
   }
 
-  /**
-   * Build tooltip suffix from state metadata.
-   * Driven by FormMetadata registry — no hardcoded keys or special cases.
-   */
-  function buildMetadataSuffix(state, resolvedSlug) {
-    return FormMetadata.buildTooltipSuffix(state, resolvedSlug);
-  }
-
+  /** @param {HTMLElement} slot */
   function getSlotStateDetails(slot) {
+    /** @type {string[]} */
     const states = [];
+    /** @param {string} label */
     const add = (label) => states.push(label);
 
     switch (slot.dataset.preset) {
@@ -796,13 +876,17 @@ const BoxesView = (() => {
     return states;
   }
 
+  /**
+   * @param {HTMLElement} slot
+   * @param {{boxId: number, slotIdx: number, name?: string, occupied?: boolean}} options
+   */
   function finalizeSlotAccessibility(slot, { boxId, slotIdx, name = '', occupied = false }) {
     const states = getSlotStateDetails(slot);
     const location = `Box ${boxId + 1}, slot ${slotIdx + 1}`;
     const compactBadges = [
       slot.querySelector('.slot-iv-badge'),
       slot.querySelector('.slot-egg-badge'),
-    ].filter(Boolean);
+    ].filter((badge) => badge instanceof HTMLElement);
     const badgeDetails = compactBadges.map((badge) => badge.title).filter(Boolean);
     compactBadges.forEach((badge) => badge.setAttribute('aria-hidden', 'true'));
     slot.querySelectorAll('img').forEach((image) => {
@@ -828,26 +912,29 @@ const BoxesView = (() => {
 
   }
 
+  /** @param {number} boxId @param {number} slotIdx */
   function focusRovingSlot(boxId, slotIdx) {
     const boxCount = DataManager.getBoxCount();
     if (boxId < 0 || boxId >= boxCount || slotIdx < 0 || slotIdx >= SLOTS_PER_BOX) return;
     const container = document.getElementById('boxes-container');
+    if (!container) return;
     const boxEl = container?.querySelector(`.box[data-box-id="${boxId}"]`);
-    if (!boxEl) return;
+    if (!(boxEl instanceof HTMLElement)) return;
 
     ensureBoxRendered(boxEl, boxId);
 
     container.querySelector('.slot[tabindex="0"]')?.setAttribute('tabindex', '-1');
     rovingSlot = { boxId, slotIdx };
     const target = boxEl.querySelector(`.slot[data-slot-idx="${slotIdx}"]`);
-    if (!target) return;
+    if (!(target instanceof HTMLElement)) return;
     target.tabIndex = 0;
     target.focus();
   }
 
+  /** @param {KeyboardEvent} event */
   function handleSlotKeydown(event) {
-    const slot = event.target.closest('.slot');
-    if (!slot) return;
+    const slot = event.target instanceof Element ? event.target.closest('.slot') : null;
+    if (!(slot instanceof HTMLElement)) return;
     const boxId = Number(slot.dataset.boxId);
     const slotIdx = Number(slot.dataset.slotIdx);
     const currentIndex = boxId * SLOTS_PER_BOX + slotIdx;
@@ -885,14 +972,15 @@ const BoxesView = (() => {
    * Reads slot state from DataManager at event time (no stale closures).
    * Called once per grid; idempotent via data attribute guard.
    */
+  /** @param {HTMLElement} grid */
   function attachGridDelegation(grid) {
     if (grid.dataset.delegated) return;
     grid.dataset.delegated = '1';
     grid.addEventListener('keydown', handleSlotKeydown);
 
     grid.addEventListener('click', async (e) => {
-      const slot = e.target.closest('.slot');
-      if (!slot) return;
+      const slot = e.target instanceof Element ? e.target.closest('.slot') : null;
+      if (!(slot instanceof HTMLElement)) return;
       const boxId = Number(slot.dataset.boxId);
       const slotIdx = Number(slot.dataset.slotIdx);
       rovingSlot = { boxId, slotIdx };
@@ -921,6 +1009,7 @@ const BoxesView = (() => {
         const occupant = DataManager.getSlot(boxId, slotIdx);
         if (!occupant) return;
         const speciesId = slot.dataset.speciesId;
+        if (!speciesId) return;
         const resolved = DataManager.resolveSpecies(speciesId);
         const linkedBuildId = typeof occupant.target_build_id === 'string' ? occupant.target_build_id : null;
         PokemonViewer.openPokemonViewer({
@@ -941,11 +1030,14 @@ const BoxesView = (() => {
         placementTarget = { boxId, slotIdx };
 
         // Build initial state from preset requires + defaults (data-driven, no per-field if's)
+        /** @type {import('../types/contracts.js').BuildState} */
         const placementState = {};
         try {
           if (slot.dataset.presetDefaults) Object.assign(placementState, JSON.parse(slot.dataset.presetDefaults));
           if (slot.dataset.presetRequires) Object.assign(placementState, JSON.parse(slot.dataset.presetRequires));
-        } catch (_) { /* corrupted dataset, ignore */ }
+        } catch (error) {
+          console.warn('[Boxes] ignored malformed preset placement data', error);
+        }
 
         // Extract form from preset PID (e.g., "vivillon-icy-snow" → species "vivillon", form info in slug)
         if (resolved.entry?.formeOrder || resolved.entry?.otherFormes) {
@@ -969,8 +1061,8 @@ const BoxesView = (() => {
     });
 
     grid.addEventListener('contextmenu', (e) => {
-      const slot = e.target.closest('.slot');
-      if (!slot) return;
+      const slot = e.target instanceof Element ? e.target.closest('.slot') : null;
+      if (!(slot instanceof HTMLElement)) return;
       e.preventDefault();
       const boxId = Number(slot.dataset.boxId);
       const slotIdx = Number(slot.dataset.slotIdx);
@@ -996,10 +1088,15 @@ const BoxesView = (() => {
 
   // ── Slot creation ─────────────────────────────────────
 
+  /**
+   * @param {import('../types/contracts.js').SlotView} occupant
+   * @param {number} boxId
+   * @param {number} slotIdx
+   * @param {import('../types/contracts.js').PresetTarget|null|undefined} presetTarget
+   */
   function createOccupiedSlot(occupant, boxId, slotIdx, presetTarget) {
-    const rawId = occupant.species_id;
-    const presetPid = presetTarget?.pid || presetTarget || null;
-
+    const rawId = occupant.species_id ?? '';
+    const presetPid = presetTarget?.pid || null;
     // species_id is now form-preserving (e.g. "floette-yellow" not "floette").
     // Legacy fallback: old data may have collapsed species_id — use preset to recover form.
     let resolved = DataManager.resolveSpecies(rawId);
@@ -1017,8 +1114,8 @@ const BoxesView = (() => {
 
     const slot = document.createElement('div');
     slot.className = 'slot occupied';
-    slot.dataset.boxId = boxId;
-    slot.dataset.slotIdx = slotIdx;
+    slot.dataset.boxId = String(boxId);
+    slot.dataset.slotIdx = String(slotIdx);
     slot.dataset.speciesId = slug;
     // Search text: include display name, slug, and entry name for broad matching
     slot.dataset.searchText = [name, slug, entry?.name].filter(Boolean).join(' ').toLowerCase();
@@ -1100,13 +1197,16 @@ const BoxesView = (() => {
     return slot;
   }
 
+  /**
+   * @param {number} boxId
+   * @param {number} slotIdx
+   * @param {import('../types/contracts.js').PresetTarget|null|undefined} presetTarget
+   */
   function createEmptySlot(boxId, slotIdx, presetTarget) {
     const slot = document.createElement('div');
     slot.className = 'slot empty';
-    slot.dataset.boxId = boxId;
-    slot.dataset.slotIdx = slotIdx;
-
-    const presetPid = presetTarget?.pid || presetTarget || null;
+    slot.dataset.boxId = String(boxId);
+    slot.dataset.slotIdx = String(slotIdx);
 
     // FR-2.3a/b empty-slot semantics:
     //   • Templated (preset ghost): click → open reference viewer for the expected species.
@@ -1175,9 +1275,11 @@ const BoxesView = (() => {
 
   // ── Drag & drop (FR-2.4) ──────────────────────────────
 
+  /** @param {HTMLElement} slot @param {number} boxId @param {number} slotIdx */
   function attachDragSource(slot, boxId, slotIdx) {
     slot.draggable = true;
     slot.addEventListener('dragstart', (e) => {
+      if (!e.dataTransfer) return;
       e.dataTransfer.effectAllowed = 'move';
       // If this slot is part of a multi-selection, carry the whole selection
       if (SlotSelection.has(boxId, slotIdx) && SlotSelection.size() > 1) {
@@ -1196,10 +1298,12 @@ const BoxesView = (() => {
     });
   }
 
+  /** @param {HTMLElement} slot @param {number} boxId @param {number} slotIdx */
   function attachDropTarget(slot, boxId, slotIdx) {
     slot.addEventListener('dragover', (e) => {
-      if (!e.dataTransfer.types.includes('application/x-pc-slot') &&
-          !e.dataTransfer.types.includes('application/x-pc-slots')) return;
+      if (!e.dataTransfer ||
+          (!e.dataTransfer.types.includes('application/x-pc-slot') &&
+          !e.dataTransfer.types.includes('application/x-pc-slots'))) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       slot.classList.add('drop-target');
@@ -1212,18 +1316,21 @@ const BoxesView = (() => {
       e.preventDefault();
 
       // Batch move (multi-select drag)
+      if (!e.dataTransfer) return;
       const rawMulti = e.dataTransfer.getData('application/x-pc-slots');
       if (rawMulti) {
-        let entries;
-        try { entries = JSON.parse(rawMulti); } catch { return; }
-        DataManager.batchMoveSlots(entries, boxId, slotIdx).then((affected) => {
+        /** @type {unknown} */
+        let parsed;
+        try { parsed = JSON.parse(rawMulti); } catch { return; }
+        if (!Array.isArray(parsed)) return;
+        const entries = parsed.filter((entry) =>
+          entry && typeof entry === 'object' &&
+          typeof entry.boxId === 'number' && typeof entry.slotIdx === 'number');
+        DataManager.batchMoveSlots(entries, boxId, slotIdx).then(() => {
           SlotSelection.clear();
-          for (const id of affected) refreshBox(id);
-          refreshBox(boxId);
-          ProgressIndicator.updateProgress();
         }).catch((err) => {
           console.error('batchMoveSlots failed', err);
-          UIShared.showToast('Batch move failed: ' + (err.message || err));
+          Feedback.showToast('Batch move failed: ' + (err instanceof Error ? err.message : String(err)));
         });
         return;
       }
@@ -1231,33 +1338,38 @@ const BoxesView = (() => {
       // Single move
       const raw = e.dataTransfer.getData('application/x-pc-slot');
       if (!raw) return;
-      let src;
-      try { src = JSON.parse(raw); } catch { return; }
-      if (src.boxId === boxId && src.slotIdx === slotIdx) return;
-      DataManager.moveSlot(src.boxId, src.slotIdx, boxId, slotIdx).then(() => {
-        refreshBox(src.boxId);
-        refreshBox(boxId);
-        ProgressIndicator.updateProgress();
-      }).catch((err) => {
+      /** @type {unknown} */
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch { return; }
+      if (!parsed || typeof parsed !== 'object' ||
+          !('boxId' in parsed) || !('slotIdx' in parsed) ||
+          typeof parsed.boxId !== 'number' || typeof parsed.slotIdx !== 'number') return;
+      const fromBox = parsed.boxId;
+      const fromSlot = parsed.slotIdx;
+      if (fromBox === boxId && fromSlot === slotIdx) return;
+      DataManager.moveSlot(fromBox, fromSlot, boxId, slotIdx).catch((err) => {
         console.error('moveSlot failed', err);
-        UIShared.showToast('Move failed: ' + (err.message || err));
+        Feedback.showToast('Move failed: ' + (err instanceof Error ? err.message : String(err)));
       });
     });
   }
 
   // ── Placement flow ────────────────────────────────────
 
+  /** @type {{boxId: number, slotIdx: number}|null} */
   let placementTarget = null;
+  /** @type {ReturnType<typeof setTimeout>|null} */
   let placementDebounce = null;
 
+  /** @param {number} boxId @param {number} slotIdx @param {string|null} presetTarget */
   function openPlacement(boxId, slotIdx, presetTarget) {
     placementTarget = { boxId, slotIdx };
-    const bar = document.getElementById('placement-bar');
+    const bar = requiredElement(document, '#placement-bar');
     bar.hidden = false;
-    const input = document.getElementById('placement-search');
+    const input = requiredInput(document, '#placement-search');
     input.value = '';
     input.focus();
-    document.getElementById('placement-results').innerHTML = '';
+    requiredElement(document, '#placement-results').innerHTML = '';
 
     if (presetTarget) {
       const resolved = DataManager.resolveSpecies(presetTarget);
@@ -1266,34 +1378,35 @@ const BoxesView = (() => {
     }
 
     input.oninput = () => {
-      clearTimeout(placementDebounce);
+      if (placementDebounce !== null) clearTimeout(placementDebounce);
       placementDebounce = setTimeout(() => searchPlacement(input.value), PLACEMENT_SEARCH_DEBOUNCE_MS);
     };
     input.onkeydown = (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         const first = document.querySelector('#placement-results .placement-result');
-        if (first) first.click();
+        if (first instanceof HTMLElement) first.click();
       } else if (e.key === 'Escape') {
         closePlacement();
       }
     };
-    document.getElementById('placement-cancel').onclick = closePlacement;
+    requiredElement(document, '#placement-cancel').onclick = closePlacement;
   }
 
   function closePlacement() {
     const target = placementTarget;
     placementTarget = null;
-    const bar = document.getElementById('placement-bar');
+    const bar = requiredElement(document, '#placement-bar');
     bar.hidden = true;
-    document.getElementById('placement-search').value = '';
-    document.getElementById('placement-results').innerHTML = '';
+    requiredInput(document, '#placement-search').value = '';
+    requiredElement(document, '#placement-results').innerHTML = '';
     if (target) focusRovingSlot(target.boxId, target.slotIdx);
   }
 
+  /** @param {string} query */
   function searchPlacement(query) {
-    const results = DataManager.searchSpecies(query);
-    const container = document.getElementById('placement-results');
+    const results = DataManager.searchSpecies(query).filter((result) => result !== null);
+    const container = requiredElement(document, '#placement-results');
     if (!results.length) {
       container.innerHTML = query.length > 0 ? '<div class="placement-empty">No matches</div>' : '';
       return;
@@ -1307,11 +1420,13 @@ const BoxesView = (() => {
     `).join('');
 
     for (const el of container.querySelectorAll('.placement-result')) {
+      if (!(el instanceof HTMLElement)) continue;
       el.addEventListener('click', async () => {
         if (!placementTarget) return;
         const slug = el.dataset.slug;
+        if (!slug) return;
         const entry = DataManager.getPokedexEntry(slug);
-        const templates = entry ? (DataManager.getCompetitiveSets(entry.id) || []) : [];
+        const templates = entry ? (DataManager.getCompetitiveSets(entry.id ?? entry.num) || []) : [];
 
         // Species that need extra metadata before placement — derived from FormMetadata registry
         const metaControls = FormMetadata.getPlacementControls(slug);
@@ -1330,6 +1445,11 @@ const BoxesView = (() => {
    * Picking a template seeds state + links template; "Blank" places an empty mon.
    * metaControls: [{key, type, options, labels?}] from FormMetadata.getPlacementControls
    */
+  /**
+   * @param {string} slug
+   * @param {import('../types/contracts.js').BuildState[]} templates
+   * @param {{metaControls?: import('../types/contracts.js').FormControl[]}} [opts]
+   */
   function showTemplatePicker(slug, templates, opts = {}) {
     const existing = document.querySelector('.template-picker');
     if (existing) existing.remove();
@@ -1337,10 +1457,11 @@ const BoxesView = (() => {
     const { metaControls = [] } = opts;
 
     const STAT_ABBR = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
+    /** @param {import('../types/contracts.js').BuildState} t */
     function buildEvLine(t) {
       const system = DomainMappers.getPreferredEvSystem(t, t.ev_system || 'classic');
       const evs = DomainMappers.getEvsForSystem(t, system) || {};
-      const parts = Object.entries(STAT_ABBR)
+      const parts = /** @type {Array<[import('../types/contracts.js').StatKey, string]>} */ (Object.entries(STAT_ABBR))
         .filter(([k]) => Number(evs[k]) > 0)
         .map(([k]) => `${evs[k]} ${STAT_ABBR[k]}`);
       const isChampions = system === 'champions';
@@ -1394,8 +1515,8 @@ const BoxesView = (() => {
       </button>
     `;
     // Ensure a positioned ancestor for the absolute-positioned picker
-    const bar = document.getElementById('placement-bar');
-    if (bar && getComputedStyle(bar).position === 'static') {
+    const bar = requiredElement(document, '#placement-bar');
+    if (getComputedStyle(bar).position === 'static') {
       bar.style.position = 'relative';
     }
     bar.appendChild(picker);
@@ -1411,25 +1532,29 @@ const BoxesView = (() => {
 
     /** Collect form metadata from the picker UI */
     function getFormMeta() {
+      /** @type {import('../types/contracts.js').BuildState} */
       const meta = {};
       const genderBtn = picker.querySelector('.gender-btn.selected');
-      if (genderBtn) meta.gender = genderBtn.dataset.gender;
+      if (genderBtn instanceof HTMLElement) meta.gender = genderBtn.dataset.gender || null;
       for (const sel of picker.querySelectorAll('.form-meta-select')) {
-        meta[sel.dataset.key] = sel.value;
+        if (!(sel instanceof HTMLSelectElement)) continue;
+        if (sel.dataset.key === 'cream') meta.cream = sel.value;
+        if (sel.dataset.key === 'sweet') meta.sweet = sel.value;
       }
       return Object.keys(meta).length ? meta : null;
     }
 
     picker.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.template-picker-option');
-      if (!btn) return;
+      const btn = e.target instanceof Element ? e.target.closest('.template-picker-option') : null;
+      if (!(btn instanceof HTMLElement)) return;
       e.stopPropagation();
-      const idx = parseInt(btn.dataset.idx, 10);
+      const idx = parseInt(btn.dataset.idx || '', 10);
       const formMeta = getFormMeta();
       if (idx < 0) {
         await placeSlot(slug, null, formMeta);
       } else {
         const t = templates[idx];
+        if (!t) return;
         const state = {
           nature: t.nature || null,
           ability: t.ability || null,
@@ -1441,12 +1566,17 @@ const BoxesView = (() => {
           ev_system: t.ev_system || null,
           ...formMeta,
         };
-        await placeSlot(slug, t.id, state);
+        await placeSlot(slug, t.id || null, state);
       }
       picker.remove();
     });
   }
 
+  /**
+   * @param {string} slug
+   * @param {string|null} templateId
+   * @param {import('../types/contracts.js').BuildState|null} [state]
+   */
   async function placeSlot(slug, templateId, state = null) {
     if (!placementTarget) return;
     const { boxId, slotIdx } = placementTarget;
@@ -1454,15 +1584,19 @@ const BoxesView = (() => {
       await DataManager.placeInSlot(boxId, slotIdx, slug, templateId, state);
     } catch (err) {
       console.error('[Boxes] placeSlot failed:', err);
-      UIShared.showToast('Failed to place Pokémon');
+      Feedback.showToast('Failed to place Pokémon');
     }
-    refreshBox(boxId);
-    ProgressIndicator.updateProgress();
     closePlacement();
   }
 
   // ── Slot actions (remove/move) ────────────────────────
 
+  /**
+   * @param {number} boxId
+   * @param {number} slotIdx
+   * @param {import('../types/contracts.js').SlotView} occupant
+   * @param {MouseEvent} event
+   */
   function showSlotActions(boxId, slotIdx, occupant, event) {
     const existing = document.querySelector('.slot-action-menu');
     if (existing) existing.remove();
@@ -1494,46 +1628,40 @@ const BoxesView = (() => {
 
     document.body.appendChild(menu);
 
-    menu.querySelector('[data-action="edit"]').addEventListener('click', () => {
+    requiredElement(menu, '[data-action="edit"]').addEventListener('click', () => {
       menu.remove();
-      PokemonViewer.openInstanceEditor(boxId, slotIdx, {
-        onSaved: () => {
-          refreshAllRenderedBoxes();
-          ProgressIndicator.updateProgress();
-        },
-      });
+      PokemonViewer.openInstanceEditor(boxId, slotIdx);
     });
 
-    menu.querySelector('[data-action="copy"]').addEventListener('click', () => {
-      clipboard = { items: [snapshotOccupant(occupant)], isCut: false, sources: null };
+    requiredElement(menu, '[data-action="copy"]').addEventListener('click', () => {
+      const item = snapshotOccupant(occupant);
+      if (item) clipboard = { items: [item], isCut: false, sources: null };
       menu.remove();
     });
 
-    menu.querySelector('[data-action="cut"]').addEventListener('click', () => {
-      clipboard = { items: [snapshotOccupant(occupant)], isCut: true, sources: [{ boxId, slotIdx, instanceId: occupant.state?.id || null }] };
+    requiredElement(menu, '[data-action="cut"]').addEventListener('click', () => {
+      const item = snapshotOccupant(occupant);
+      if (item) clipboard = { items: [item], isCut: true, sources: [{ boxId, slotIdx, instanceId: occupant.state?.id || null }] };
       menu.remove();
     });
 
-    menu.querySelector('[data-action="transfer"]').addEventListener('click', async () => {
+    requiredElement(menu, '[data-action="transfer"]').addEventListener('click', async () => {
       await DataManager.updateSlotIdentityField(boxId, slotIdx, 'transferred_to_champions', !isTransferred);
       menu.remove();
-      refreshBox(boxId);
     });
 
-    menu.querySelector('[data-action="event"]').addEventListener('click', async () => {
+    requiredElement(menu, '[data-action="event"]').addEventListener('click', async () => {
       await DataManager.updateSlotIdentityField(boxId, slotIdx, 'event_origin', !isEventPokemon);
       menu.remove();
-      refreshBox(boxId);
     });
 
-    menu.querySelector('[data-action="go"]').addEventListener('click', async () => {
+    requiredElement(menu, '[data-action="go"]').addEventListener('click', async () => {
       await DataManager.updateSlotIdentityField(boxId, slotIdx, 'from_go', !isFromGo);
       menu.remove();
-      refreshBox(boxId);
     });
 
-    menu.querySelector('[data-action="remove"]').addEventListener('click', async () => {
-      const confirmed = await UIShared.showConfirm(`Remove ${name} from Box ${boxId + 1}, slot ${slotIdx + 1}?`, {
+    requiredElement(menu, '[data-action="remove"]').addEventListener('click', async () => {
+      const confirmed = await Feedback.showConfirm(`Remove ${name} from Box ${boxId + 1}, slot ${slotIdx + 1}?`, {
         title: 'Remove from Slot',
         confirmLabel: 'Remove',
         detail: 'This removes the Pokémon from your HOME inventory. Any linked Library Build is kept.',
@@ -1542,23 +1670,22 @@ const BoxesView = (() => {
       try {
         await DataManager.removeFromSlot(boxId, slotIdx);
         menu.remove();
-        refreshBox(boxId);
         focusRovingSlot(boxId, slotIdx);
-        ProgressIndicator.updateProgress();
-        UIShared.showToast(`${name} removed from Box ${boxId + 1}.`);
+        Feedback.showToast(`${name} removed from Box ${boxId + 1}.`);
       } catch (err) {
         console.error('[Boxes] removeFromSlot failed:', err);
-        UIShared.showToast(`Failed to remove ${name}.`);
+        Feedback.showToast(`Failed to remove ${name}.`);
       }
     });
 
-    menu.querySelector('[data-action="move"]').addEventListener('click', () => {
+    requiredElement(menu, '[data-action="move"]').addEventListener('click', () => {
       menu.remove();
       promptMoveSlot(boxId, slotIdx, occupant);
     });
 
+    /** @param {MouseEvent} e */
     const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
+      if (!(e.target instanceof Node) || !menu.contains(e.target)) {
         menu.remove();
         document.removeEventListener('click', closeMenu);
       }
@@ -1566,10 +1693,17 @@ const BoxesView = (() => {
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
   }
 
+  /**
+   * @param {number} boxId
+   * @param {number} slotIdx
+   * @param {MouseEvent} event
+   * @param {string|null} presetTarget
+   */
   function showPasteMenu(boxId, slotIdx, event, presetTarget) {
     const existing = document.querySelector('.slot-action-menu');
     if (existing) existing.remove();
     if (!clipboard?.items?.length) return;
+    const activeClipboard = clipboard;
 
     const menu = document.createElement('div');
     menu.className = 'slot-action-menu';
@@ -1577,12 +1711,12 @@ const BoxesView = (() => {
     menu.style.top = event.clientY + 'px';
 
     let buttonsHtml = `<div class="slot-action-title">Slot Actions</div>`;
-    const cutLabel = clipboard.isCut ? ' (move)' : '';
-    if (clipboard.items.length === 1) {
-      const name = DataManager.resolveSpecies(clipboard.items[0].species_id).name || clipboard.items[0].species_id;
+    const cutLabel = activeClipboard.isCut ? ' (move)' : '';
+    if (activeClipboard.items.length === 1) {
+      const name = DataManager.resolveSpecies(activeClipboard.items[0].species_id).name || activeClipboard.items[0].species_id;
       buttonsHtml += `<button class="slot-action-btn" data-action="paste">📋 Paste ${name}${cutLabel}</button>`;
     } else {
-      buttonsHtml += `<button class="slot-action-btn" data-action="paste-multi">📋 Paste ${clipboard.items.length} Pokémon here${cutLabel}</button>`;
+      buttonsHtml += `<button class="slot-action-btn" data-action="paste-multi">📋 Paste ${activeClipboard.items.length} Pokémon here${cutLabel}</button>`;
     }
     buttonsHtml += `<button class="slot-action-btn" data-action="place">${presetTarget ? '👻 Place from template' : '🔍 Search & place...'}</button>`;
     buttonsHtml += `<button class="slot-action-btn" data-action="clear-clipboard">✕ Clear clipboard</button>`;
@@ -1590,43 +1724,43 @@ const BoxesView = (() => {
 
     document.body.appendChild(menu);
 
-    if (clipboard.items.length === 1) {
-      menu.querySelector('[data-action="paste"]').addEventListener('click', async () => {
+    if (activeClipboard.items.length === 1) {
+      requiredElement(menu, '[data-action="paste"]').addEventListener('click', async () => {
         menu.remove();
-        const item = clipboard.items[0];
+        const item = activeClipboard.items[0];
+        if (!item.species_id) return;
         const newState = structuredClone(item.state);
         newState.id = undefined;
         newState.kind = 'instance';
         await DataManager.placeInSlot(boxId, slotIdx, item.species_id, item.target_build_id, newState);
-        if (clipboard.isCut && clipboard.sources?.length) {
-          const src = clipboard.sources[0];
+        if (activeClipboard.isCut && activeClipboard.sources?.length) {
+          const src = activeClipboard.sources[0];
           if (src.boxId !== boxId || src.slotIdx !== slotIdx) {
             const current = DataManager.getSlot(src.boxId, src.slotIdx);
             if (current && (!src.instanceId || current.state?.id === src.instanceId)) {
               await DataManager.removeFromSlot(src.boxId, src.slotIdx);
-              refreshBox(src.boxId);
             }
           }
           clipboard = null;
         }
-        refreshBox(boxId);
-        ProgressIndicator.updateProgress();
       });
     }
 
-    if (clipboard.items.length > 1) {
-      menu.querySelector('[data-action="paste-multi"]').addEventListener('click', async () => {
+    if (activeClipboard.items.length > 1) {
+      requiredElement(menu, '[data-action="paste-multi"]').addEventListener('click', async () => {
         menu.remove();
         const slotsPerBox = SLOTS_PER_BOX;
         const boxCount = DataManager.getBoxCount();
         let b = boxId, s = slotIdx;
-        const batchEntries = [];
         const placedIndices = new Set();
-        for (let i = 0; i < clipboard.items.length; i++) {
+        /** @type {Array<{boxId: number, slotIdx: number, speciesId: string|number, buildId?: string|null, state?: import('../types/contracts.js').BuildState|null}>} */
+        const batchEntries = [];
+        for (let i = 0; i < activeClipboard.items.length; i++) {
           if (b >= boxCount) break;
           const slot = DataManager.getSlot(b, s);
           if (!slot || !slot.species_id) {
-            const item = clipboard.items[i];
+            const item = activeClipboard.items[i];
+            if (!item.species_id) continue;
             const newState = structuredClone(item.state);
             newState.id = undefined;
             newState.kind = 'instance';
@@ -1636,37 +1770,32 @@ const BoxesView = (() => {
           s++;
           if (s >= slotsPerBox) { s = 0; b++; }
         }
-        const affectedBoxes = new Set();
         if (batchEntries.length) {
-          const boxes = await DataManager.batchPlaceSlots(batchEntries);
-          for (const id of boxes) affectedBoxes.add(id);
+          await DataManager.batchPlaceSlots(batchEntries);
         }
-        if (clipboard.isCut && clipboard.sources?.length) {
+        if (activeClipboard.isCut && activeClipboard.sources?.length) {
           const cutEntries = [];
-          for (let i = 0; i < clipboard.sources.length; i++) {
+          for (let i = 0; i < activeClipboard.sources.length; i++) {
             if (!placedIndices.has(i)) continue;
-            const src = clipboard.sources[i];
+            const src = activeClipboard.sources[i];
             const current = DataManager.getSlot(src.boxId, src.slotIdx);
             if (current && (!src.instanceId || current.state?.id === src.instanceId)) {
               cutEntries.push({ boxId: src.boxId, slotIdx: src.slotIdx });
             }
           }
           if (cutEntries.length) {
-            const cutBoxes = await DataManager.batchClearSlots(cutEntries);
-            for (const id of cutBoxes) affectedBoxes.add(id);
+            await DataManager.batchClearSlots(cutEntries);
           }
-          if (clipboard.sources.length > placedIndices.size) {
-            UIShared.showToast(`${clipboard.sources.length - placedIndices.size} Pokémon not moved (destination occupied)`, 'warning');
+          if (activeClipboard.sources.length > placedIndices.size) {
+            Feedback.showToast(`${activeClipboard.sources.length - placedIndices.size} Pokémon not moved (destination occupied)`, 4000);
           }
         }
         clipboard = null;
-        for (const id of affectedBoxes) refreshBox(id);
-        ProgressIndicator.updateProgress();
-        UIShared.showToast(`Pasted ${batchEntries.length} Pokémon`);
+        Feedback.showToast(`Pasted ${batchEntries.length} Pokémon`);
       });
     }
 
-    menu.querySelector('[data-action="place"]').addEventListener('click', async () => {
+    requiredElement(menu, '[data-action="place"]').addEventListener('click', async () => {
       menu.remove();
       if (presetTarget) {
         const resolved = DataManager.resolveSpecies(presetTarget);
@@ -1674,14 +1803,17 @@ const BoxesView = (() => {
         placementTarget = { boxId, slotIdx };
         // Seed placement state from ghost slot's requires/defaults if available
         const slotEl = document.querySelector(`.slot[data-box-id='${boxId}'][data-slot-idx='${slotIdx}']`);
+        /** @type {import('../types/contracts.js').BuildState|null} */
         let placementState = null;
-        if (slotEl) {
+        if (slotEl instanceof HTMLElement) {
           try {
             const req = slotEl.dataset.presetRequires ? JSON.parse(slotEl.dataset.presetRequires) : {};
             const def = slotEl.dataset.presetDefaults ? JSON.parse(slotEl.dataset.presetDefaults) : {};
-            placementState = { ...def, ...req };
-            if (!Object.keys(placementState).length) placementState = null;
-          } catch (_) { /* ignore malformed JSON */ }
+            const mergedState = { ...def, ...req };
+            placementState = Object.keys(mergedState).length ? mergedState : null;
+          } catch (error) {
+            console.warn('[Boxes] ignored malformed preset menu data', error);
+          }
         }
         await placeSlot(slug, null, placementState);
       } else {
@@ -1689,13 +1821,14 @@ const BoxesView = (() => {
       }
     });
 
-    menu.querySelector('[data-action="clear-clipboard"]').addEventListener('click', () => {
+    requiredElement(menu, '[data-action="clear-clipboard"]').addEventListener('click', () => {
       clipboard = null;
       menu.remove();
     });
 
+    /** @param {MouseEvent} e */
     const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
+      if (!(e.target instanceof Node) || !menu.contains(e.target)) {
         menu.remove();
         document.removeEventListener('click', closeMenu);
       }
@@ -1703,27 +1836,28 @@ const BoxesView = (() => {
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
   }
 
+  /**
+   * @param {number} fromBox
+   * @param {number} fromSlot
+   * @param {import('../types/contracts.js').SlotView} occupant
+   */
   async function promptMoveSlot(fromBox, fromSlot, occupant) {
     const name = DataManager.resolveSpecies(occupant.species_id).name || occupant.species_id;
-    const toBox = await UIShared.showPrompt(`Move ${name} to which box? (1-200)`, String(fromBox + 1), { placeholder: '1–200' });
+    const toBox = await Feedback.showPrompt(`Move ${name} to which box? (1-200)`, String(fromBox + 1), { placeholder: '1–200' });
     if (!toBox) return;
-    const toSlot = await UIShared.showPrompt(`Which slot in Box ${toBox}? (1-${SLOTS_PER_BOX})`, '1', { placeholder: `1–${SLOTS_PER_BOX}` });
+    const toSlot = await Feedback.showPrompt(`Which slot in Box ${toBox}? (1-${SLOTS_PER_BOX})`, '1', { placeholder: `1–${SLOTS_PER_BOX}` });
     if (!toSlot) return;
 
     const targetBox = parseInt(toBox, 10) - 1;
     const targetSlot = parseInt(toSlot, 10) - 1;
     if (isNaN(targetBox) || isNaN(targetSlot) || targetBox < 0 || targetBox >= 200 || targetSlot < 0 || targetSlot >= SLOTS_PER_BOX) {
-      UIShared.showToast('Invalid box or slot number.');
+      Feedback.showToast('Invalid box or slot number.');
       return;
     }
 
-    DataManager.moveSlot(fromBox, fromSlot, targetBox, targetSlot).then(() => {
-      refreshBox(fromBox);
-      refreshBox(targetBox);
-      ProgressIndicator.updateProgress();
-    }).catch(err => {
+    DataManager.moveSlot(fromBox, fromSlot, targetBox, targetSlot).catch(err => {
       console.error('[Boxes] moveSlot failed:', err);
-      UIShared.showToast('Move failed — check console');
+      Feedback.showToast('Move failed — check console');
     });
   }
 

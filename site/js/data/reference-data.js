@@ -1,9 +1,17 @@
+import { SpeciesResolver } from '../species-resolver.js';
+import { ApiClient } from './api-client.js';
+
 /**
  * data/reference-data.js - Loading and normalization helpers for reference datasets.
  */
 export const ReferenceData = (() => {
+  /** @type {import('../types/contracts.js').LearnsetsData|null} */
   let learnsetsData = null;
+  /** @type {import('../types/contracts.js').FactorySetsData|null} */
   let factorySetsData = null;
+  /** @type {Promise<{movesData: import('../types/contracts.js').ReferenceDataMap, itemsData: import('../types/contracts.js').ReferenceDataMap, abilitiesData: import('../types/contracts.js').ReferenceDataMap}>|null} */
+  let editorDataPromise = null;
+  /** @type {Map<string, import('../types/contracts.js').PresetData>} */
   const presetDataByGameSet = new Map();
 
   async function loadCoreData() {
@@ -17,6 +25,34 @@ export const ReferenceData = (() => {
       }
     }
 
+    const buildsRequest = /** @type {Promise<{builds?: import('../types/contracts.js').StoredBuild[], pokemon?: import('../types/contracts.js').StoredBuild[]}>} */ (
+      ApiClient.getJson('/api/builds')
+    );
+    const teamsRequest = /** @type {Promise<{teams?: import('../types/contracts.js').Team[]}>} */ (
+      ApiClient.getJson('/api/teams')
+    );
+    const pokedexRequest = /** @type {Promise<Record<string, import('../types/contracts.js').PokedexEntry>>} */ (
+      ApiClient.getJson('/data/reference/pokedex.json')
+    );
+    const championsRequest = /** @type {Promise<{dex_ids?: number[], mega_slugs?: string[]}>} */ (
+      ApiClient.getJson('/data/champions_filter.json')
+    );
+    const slugFilterRequest = /** @type {Promise<{slugs?: string[]}>} */ (
+      ApiClient.getJson('/data/sv_filter.json')
+    );
+    const plaRequest = /** @type {Promise<{pokemon?: string[]}>} */ (
+      ApiClient.getJson('/data/reference/legends_arceus_pokemon.json')
+    );
+    const lzaRequest = /** @type {Promise<{pokemon?: string[]}>} */ (
+      ApiClient.getJson('/data/reference/legends_za_pokemon.json')
+    );
+    const naturesRequest = /** @type {Promise<import('../types/contracts.js').ReferenceDataMap>} */ (
+      ApiClient.getJson('/data/reference/natures.json')
+    );
+    const inventoryRequest = /** @type {Promise<import('../types/contracts.js').Inventory>} */ (
+      ApiClient.getJson('/api/inventory')
+    );
+
     const [
       buildsData,
       teamsData,
@@ -25,24 +61,18 @@ export const ReferenceData = (() => {
       svFilterData,
       plaFilterData,
       lzaFilterData,
-      movesData,
-      itemsData,
-      abilitiesData,
       naturesData,
       inventoryData,
     ] = await Promise.all([
-      ApiClient.getJson('/api/builds'),
-      ApiClient.getJson('/api/teams'),
-      ApiClient.getJson('/data/reference/pokedex.json'),
-      ApiClient.getJson('/data/champions_filter.json'),
-      ApiClient.getJson('/data/sv_filter.json'),
-      ApiClient.getJson('/data/reference/legends_arceus_pokemon.json'),
-      ApiClient.getJson('/data/reference/legends_za_pokemon.json'),
-      ApiClient.getJson('/data/reference/moves.json'),
-      ApiClient.getJson('/data/reference/items.json'),
-      ApiClient.getJson('/data/reference/abilities.json'),
-      ApiClient.getJson('/data/reference/natures.json'),
-      ApiClient.getJson('/api/inventory'),
+      buildsRequest,
+      teamsRequest,
+      pokedexRequest,
+      championsRequest,
+      slugFilterRequest,
+      plaRequest,
+      lzaRequest,
+      naturesRequest,
+      inventoryRequest,
     ]);
 
     return {
@@ -53,14 +83,36 @@ export const ReferenceData = (() => {
       svFilterData,
       plaFilterData,
       lzaFilterData,
-      movesData,
-      itemsData,
-      abilitiesData,
       naturesData,
       inventoryData,
     };
   }
 
+  async function loadEditorData() {
+    if (!editorDataPromise) {
+      editorDataPromise = Promise.all([
+        /** @type {Promise<import('../types/contracts.js').ReferenceDataMap>} */ (ApiClient.getJson('/data/reference/moves.json')),
+        /** @type {Promise<import('../types/contracts.js').ReferenceDataMap>} */ (ApiClient.getJson('/data/reference/items.json')),
+        /** @type {Promise<import('../types/contracts.js').ReferenceDataMap>} */ (ApiClient.getJson('/data/reference/abilities.json')),
+      ])
+        .then(([movesData, itemsData, abilitiesData]) => ({
+          movesData,
+          itemsData,
+          abilitiesData,
+        }))
+        .catch((error) => {
+          editorDataPromise = null;
+          throw error;
+        });
+    }
+    return editorDataPromise;
+  }
+
+  /**
+   * @param {Record<string, import('../types/contracts.js').PokedexEntry>} pokedexData
+   * @param {{spriteBase?: string}} [options]
+   * @returns {import('../types/contracts.js').PokedexEntry[]}
+   */
   function buildPokedexEntries(pokedexData, options = {}) {
     const spriteBase = options.spriteBase || '';
     const baseSlugByName = new Map();
@@ -114,10 +166,18 @@ export const ReferenceData = (() => {
     return entries;
   }
 
+  /**
+   * @param {{
+   * movesData?: import('../types/contracts.js').ReferenceDataMap,
+   * itemsData?: import('../types/contracts.js').ReferenceDataMap,
+   * abilitiesData?: import('../types/contracts.js').ReferenceDataMap,
+   * naturesData?: import('../types/contracts.js').ReferenceDataMap
+   * }} data
+   */
   function buildReferenceLists({ movesData = {}, itemsData = {}, abilitiesData = {}, naturesData = {} }) {
     return {
       movesList: Object.entries(movesData)
-        .filter(([, move]) => move.num > 0 && !move.isNonstandard)
+        .filter(([, move]) => (move.num || 0) > 0 && !move.isNonstandard)
         .map(([slug, move]) => ({
           slug,
           name: move.name,
@@ -128,11 +188,11 @@ export const ReferenceData = (() => {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       itemsList: Object.entries(itemsData)
-        .filter(([, item]) => item.num > 0 && !item.isNonstandard)
+        .filter(([, item]) => (item.num || 0) > 0 && !item.isNonstandard)
         .map(([slug, item]) => ({ slug, name: item.name, nameLower: item.name.toLowerCase() }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       abilitiesList: Object.entries(abilitiesData)
-        .filter(([, ability]) => ability.num > 0 && !ability.isNonstandard)
+        .filter(([, ability]) => (ability.num || 0) > 0 && !ability.isNonstandard)
         .map(([slug, ability]) => ({ slug, name: ability.name, nameLower: ability.name.toLowerCase() }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       naturesList: Object.entries(naturesData)
@@ -148,29 +208,37 @@ export const ReferenceData = (() => {
 
   async function loadLearnsets() {
     if (!learnsetsData) {
-      learnsetsData = await ApiClient.getJson('/data/reference/learnsets.json');
+      learnsetsData = await /** @type {Promise<import('../types/contracts.js').LearnsetsData>} */ (
+        ApiClient.getJson('/data/reference/learnsets.json')
+      );
     }
     return learnsetsData;
   }
 
   async function loadFactorySets() {
     if (!factorySetsData) {
-      factorySetsData = await ApiClient.getJson('/data/reference/bss-factory-sets.json');
+      factorySetsData = await /** @type {Promise<import('../types/contracts.js').FactorySetsData>} */ (
+        ApiClient.getJson('/data/reference/bss-factory-sets.json')
+      );
     }
     return factorySetsData;
   }
 
+  /** @param {string} gameSet */
   async function loadPresetData(gameSet) {
     const key = String(gameSet || '').trim();
     if (!key) return {};
     if (!presetDataByGameSet.has(key)) {
-      presetDataByGameSet.set(key, await ApiClient.getJson(`/data/presets/${key}.json`));
+      presetDataByGameSet.set(key, await /** @type {Promise<import('../types/contracts.js').PresetData>} */ (
+        ApiClient.getJson(`/data/presets/${key}.json`)
+      ));
     }
-    return presetDataByGameSet.get(key);
+    return presetDataByGameSet.get(key) || {};
   }
 
   return {
     loadCoreData,
+    loadEditorData,
     buildPokedexEntries,
     buildReferenceLists,
     loadLearnsets,
@@ -178,7 +246,3 @@ export const ReferenceData = (() => {
     loadPresetData,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.ReferenceData = ReferenceData;
-}

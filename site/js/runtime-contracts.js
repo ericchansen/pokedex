@@ -116,7 +116,3 @@ export const RuntimeContracts = (() => {
     detailContexts,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.RuntimeContracts = RuntimeContracts;
-}

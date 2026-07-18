@@ -1,3 +1,7 @@
+import { DataManager } from './data.js';
+import { AppSelectors } from './state/app-selectors.js';
+import { AppStore } from './state/app-store.js';
+
 /**
  * selection.js — Cross-tab build selection registry.
  *
@@ -7,22 +11,27 @@
  */
 
 export const Selection = (() => {
+  /** @param {string} buildId */
   function has(buildId) {
     return AppStore.hasSelectedBuildId(buildId);
   }
 
+  /** @param {string} buildId */
   function add(buildId) {
     return AppStore.addSelectedBuildId(buildId);
   }
 
+  /** @param {string} buildId */
   function remove(buildId) {
     return AppStore.removeSelectedBuildId(buildId);
   }
 
+  /** @param {string} buildId */
   function toggle(buildId) {
     return AppStore.toggleSelectedBuildId(buildId);
   }
 
+  /** @param {string[]} buildIds */
   function addMany(buildIds) {
     const next = AppStore.getSelectedBuildIds();
     let mutated = false;
@@ -36,6 +45,7 @@ export const Selection = (() => {
     return true;
   }
 
+  /** @param {string[]} buildIds */
   function removeMany(buildIds) {
     const removeSet = new Set((buildIds || []).filter(Boolean));
     const next = AppStore.getSelectedBuildIds().filter((id) => !removeSet.has(id));
@@ -74,18 +84,16 @@ export const Selection = (() => {
    * Subscribe to selection changes. Returns an unsubscribe function.
    * Subscribers are called after every mutation (no diff payload — recompute).
    */
+  /** @param {() => void} fn */
   function subscribe(fn) {
     if (typeof fn !== 'function') return () => {};
-    let previousSignature = AppStore.getSelectedBuildIds().join('\u0000');
-    return AppStore.subscribe((state) => {
-      const currentIds = typeof AppSelectors !== 'undefined'
-        ? AppSelectors.selectSelection(state).ids
-        : (state.selection?.ids || []);
-      const signature = currentIds.join('\u0000');
-      if (signature === previousSignature) return;
-      previousSignature = signature;
-      try { fn(); } catch (error) { console.error('[Selection] subscriber threw', error); }
-    });
+    return AppStore.subscribe(
+      (state) => AppSelectors.selectSelection(state).ids,
+      () => {
+        try { fn(); } catch (error) { console.error('[Selection] subscriber threw', error); }
+      },
+      (a, b) => a.length === b.length && a.every((id, index) => id === b[index])
+    );
   }
 
   return {
@@ -94,5 +102,3 @@ export const Selection = (() => {
     size, ids, getBuilds, subscribe,
   };
 })();
-
-if (typeof window !== 'undefined') window.Selection = Selection;

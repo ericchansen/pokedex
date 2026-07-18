@@ -1,7 +1,19 @@
+import { SpeciesResolver } from '../species-resolver.js';
+import { ReferenceData } from './reference-data.js';
+
 export const PresetService = (() => {
+  /** @typedef {{
+   * getBox?: (boxId: number) => import('../types/contracts.js').InventoryBoxView|null,
+   * getResolverContext?: () => import('../types/contracts.js').SpeciesResolverContext,
+   * loadPresetData?: (gameSet: string) => Promise<import('../types/contracts.js').PresetData>
+   * }} PresetContext
+   */
+  /** @type {import('../types/contracts.js').ActivePreset|null} */
   let activePreset = null; // { gameSet, layoutId, name, boxes: [{title, pokemon: [slug]}] }
+  /** @type {PresetContext|null} */
   let _ctx = null;
 
+  /** @param {PresetContext} ctx */
   function init(ctx) {
     _ctx = ctx || null;
   }
@@ -10,6 +22,7 @@ export const PresetService = (() => {
     return _ctx || {};
   }
 
+  /** @param {string} gameSet @returns {Promise<import('../types/contracts.js').PresetData>} */
   async function getPresetData(gameSet) {
     const { loadPresetData } = getContext();
     if (typeof loadPresetData === 'function') {
@@ -19,17 +32,21 @@ export const PresetService = (() => {
   }
 
   function getResolverContext() {
-    return typeof getContext().getResolverContext === 'function'
-      ? getContext().getResolverContext()
-      : null;
+    const getter = getContext().getResolverContext;
+    return typeof getter === 'function'
+      ? getter()
+      : {};
   }
 
+  /** @param {number} boxId */
   function getBox(boxId) {
-    return typeof getContext().getBox === 'function'
-      ? getContext().getBox(boxId)
+    const getter = getContext().getBox;
+    return typeof getter === 'function'
+      ? getter(boxId)
       : null;
   }
 
+  /** @param {string} gameSet */
   async function loadPresetIndex(gameSet) {
     const data = await getPresetData(gameSet);
     return Object.entries(data).map(([id, layout]) => ({
@@ -51,6 +68,7 @@ export const PresetService = (() => {
    * Slug-ify ability marker text: "battle-bond" → "Battle Bond" for storage.
    * The reverse is handled by NORMALIZERS in matchesPreset.
    */
+  /** @param {string|null|undefined} slug */
   function abilitySlugToName(slug) {
     if (!slug) return null;
     return String(slug)
@@ -66,11 +84,17 @@ export const PresetService = (() => {
    *   parseSyntheticPid("alcremie", { cream: "Vanilla Cream", sweet: "Strawberry" })
    *   → "alcremie|cream=Vanilla Cream|sweet=Strawberry"
    */
+  /**
+   * @param {string} speciesKey
+   * @param {Partial<Record<import('../types/contracts.js').FormMetadataKey, import('../types/contracts.js').InputValue>>} requires
+   */
   function syntheticPid(speciesKey, requires) {
     const parts = [speciesKey || ''];
     if (requires && typeof requires === 'object') {
       const keys = Object.keys(requires).sort();
-      for (const k of keys) parts.push(`${k}=${requires[k]}`);
+      for (const k of /** @type {import('../types/contracts.js').FormMetadataKey[]} */ (keys)) {
+        parts.push(`${k}=${requires[k]}`);
+      }
     }
     return parts.join('|');
   }
@@ -91,6 +115,12 @@ export const PresetService = (() => {
    *     defaults: {}        // LENIENT defaults (unset OK)
    *   }
    */
+  /**
+   * @param {string|import('../types/contracts.js').PresetTarget|null|undefined} rawInput
+   * @param {boolean} gmaxFlag
+   * @param {import('../types/contracts.js').SpeciesResolverContext} resolverCtx
+   * @returns {import('../types/contracts.js').PresetTarget}
+   */
   function parsePid(rawInput, gmaxFlag, resolverCtx) {
     if (rawInput === null || rawInput === undefined) {
       return { pid: null, species: null, speciesKey: null, requires: {}, defaults: {} };
@@ -101,7 +131,9 @@ export const PresetService = (() => {
       // Form 1: structured target with requires (preferred new form)
       //   { species: "Alcremie", requires: { cream: "Vanilla Cream", sweet: "Strawberry" } }
       if (rawInput.species || rawInput.speciesKey || rawInput.requires) {
+        /** @type {Partial<Record<import('../types/contracts.js').FormMetadataKey, import('../types/contracts.js').InputValue>>} */
         const requires = { ...(rawInput.requires || {}) };
+        /** @type {Partial<Record<import('../types/contracts.js').FormMetadataKey, import('../types/contracts.js').InputValue>>} */
         const defaults = { ...(rawInput.defaults || {}) };
         // Legacy fields → requires (backwards compat in structured form)
         if (rawInput.gmax) requires.gigantamax = true;
@@ -114,7 +146,7 @@ export const PresetService = (() => {
           speciesKey = probe.slug || species.toLowerCase().replace(/[\s'-]+/g, '');
         }
         return {
-          pid: rawInput.pid || syntheticPid(speciesKey || species, requires),
+          pid: rawInput.pid || syntheticPid(speciesKey || species || '', requires),
           species,
           speciesKey,
           requires,
@@ -133,7 +165,9 @@ export const PresetService = (() => {
     }
 
     const rawPid = rawInput;
+    /** @type {Partial<Record<import('../types/contracts.js').FormMetadataKey, import('../types/contracts.js').InputValue>>} */
     const requires = {};
+    /** @type {Partial<Record<import('../types/contracts.js').FormMetadataKey, import('../types/contracts.js').InputValue>>} */
     const defaults = {};
 
     // 1. Strip ability marker (double-hyphen): "rockruff--own-tempo"
@@ -190,6 +224,7 @@ export const PresetService = (() => {
     };
   }
 
+  /** @param {string} gameSet @param {string} layoutId */
   async function loadPreset(gameSet, layoutId) {
     const data = await getPresetData(gameSet);
     const layout = data[layoutId];
@@ -217,21 +252,29 @@ export const PresetService = (() => {
     return activePreset;
   }
 
+  /** @param {import('../types/contracts.js').SpeciesInput} presetSlug */
   function normalizePresetSlug(presetSlug) {
     return SpeciesResolver.normalizePresetSlug(presetSlug, getResolverContext());
   }
 
   /**
    * Test whether an occupant slot satisfies a preset target.
-   * @param {object|string} occupant — full slot { species_id, state } or plain species string
-   * @param {string|object} presetTarget — raw PID or parsed PresetTarget { speciesKey, gender, gmax }
+   * @param {import('../types/contracts.js').SlotView|import('../types/contracts.js').SlotStorage|string|null} occupant - slot or species string
+   * @param {string|import('../types/contracts.js').PresetTarget} presetTarget - raw PID or parsed target
    * @returns {boolean}
    */
   function slotMatchesPreset(occupant, presetTarget) {
     const ctx = getResolverContext();
     const isObj = occupant !== null && typeof occupant === 'object';
-    const speciesInput = isObj ? (occupant.state?.species || occupant.species_id) : occupant;
-    const instanceState = isObj ? (occupant.state || null) : null;
+    const slot = isObj
+      ? /** @type {import('../types/contracts.js').SlotView|import('../types/contracts.js').SlotStorage} */ (occupant)
+      : null;
+    const state = slot && 'state' in slot ? slot.state : slot?.build;
+    /** @type {import('../types/contracts.js').SpeciesInput} */
+    const speciesInput = typeof occupant === 'string'
+      ? occupant
+      : (state?.species || (slot && 'species_id' in slot ? slot.species_id : undefined) || '');
+    const instanceState = state || undefined;
     return SpeciesResolver.matchesPreset(speciesInput, presetTarget, ctx, instanceState);
   }
 
@@ -270,7 +313,3 @@ export const PresetService = (() => {
     slotMatchesPreset,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.PresetService = PresetService;
-}

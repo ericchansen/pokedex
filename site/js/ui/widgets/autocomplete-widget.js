@@ -1,14 +1,22 @@
 /**
  * ui/widgets/autocomplete-widget.js - Shared autocomplete widget.
  */
+import { escapeHtml } from '../dom.js';
+
 export const AutocompleteWidget = (() => {
+  /**
+   * @template {string|{name?: string}} T
+   * @param {HTMLInputElement} input
+   * @param {(query: string) => T[]|Promise<T[]>} searchFn
+   * @param {{onSelect?: (item: T) => void, formatItem?: (item: T) => string, escapeHtml?: (value: string) => string}} [options]
+   */
   function create(input, searchFn, options = {}) {
     const { onSelect, formatItem } = options;
-    const escapeHtml = options.escapeHtml || UIShared.escapeHtml;
+    const escape = options.escapeHtml || escapeHtml;
 
     const wrapper = document.createElement('div');
     wrapper.className = 'autocomplete-wrapper';
-    input.parentNode.insertBefore(wrapper, input);
+    input.parentNode?.insertBefore(wrapper, input);
     wrapper.appendChild(input);
 
     const dropdown = document.createElement('div');
@@ -16,26 +24,31 @@ export const AutocompleteWidget = (() => {
     wrapper.appendChild(dropdown);
 
     let activeIndex = -1;
+    /** @type {T[]} */
     let items = [];
 
     function render() {
       dropdown.innerHTML = items.map((item, index) => {
-        const text = formatItem ? formatItem(item) : escapeHtml(item.name || item);
+        const text = formatItem
+          ? formatItem(item)
+          : escape(typeof item === 'string' ? item : (item.name || ''));
         return `<div class="autocomplete-item${index === activeIndex ? ' active' : ''}" data-index="${index}">${text}</div>`;
       }).join('');
       dropdown.style.display = items.length ? 'block' : 'none';
     }
 
+    /** @param {T} item */
     function select(item) {
-      input.value = item.name || item;
+      input.value = typeof item === 'string' ? item : (item.name || '');
       dropdown.style.display = 'none';
       items = [];
       if (onSelect) onSelect(item);
     }
 
+    /** @type {number|undefined} */
     let debounceTimer;
     input.addEventListener('input', () => {
-      clearTimeout(debounceTimer);
+      if (debounceTimer !== undefined) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(async () => {
         const result = searchFn(input.value);
         items = result instanceof Promise ? await result : result;
@@ -64,18 +77,24 @@ export const AutocompleteWidget = (() => {
     });
 
     dropdown.addEventListener('click', (event) => {
-      const itemEl = event.target.closest('.autocomplete-item');
-      if (itemEl) select(items[Number(itemEl.dataset.index)]);
+      const itemEl = event.target instanceof Element
+        ? event.target.closest('.autocomplete-item')
+        : null;
+      if (itemEl instanceof HTMLElement) {
+        const item = items[Number(itemEl.dataset.index)];
+        if (item !== undefined) select(item);
+      }
     });
 
     document.addEventListener('click', (event) => {
-      if (!wrapper.contains(event.target)) {
+      if (!(event.target instanceof Node) || !wrapper.contains(event.target)) {
         dropdown.style.display = 'none';
       }
     });
 
     return {
       wrapper,
+      /** @param {string} value */
       setValue(value) {
         input.value = value;
       },
@@ -84,7 +103,3 @@ export const AutocompleteWidget = (() => {
 
   return { create };
 })();
-
-if (typeof window !== 'undefined') {
-  window.AutocompleteWidget = AutocompleteWidget;
-}

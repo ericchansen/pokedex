@@ -1,18 +1,27 @@
+import { AppRoutes } from '../app-routes.js';
+
 /**
  * state/app-store.js - Central runtime store for shell/query/selection/detail state.
  */
 export const AppStore = (() => {
+  /** @typedef {import('../types/contracts.js').RouteSection} RouteSection */
+  /** @typedef {import('../types/contracts.js').BrowserQuery} BrowserQuery */
+  /** @typedef {import('../types/contracts.js').AppState} AppState */
+  /** @typedef {{selector: (state: AppState) => unknown, listener: (value: unknown, previous: unknown) => void, equality: (a: unknown, b: unknown) => boolean, value: unknown}} Subscription */
+  /** @type {Record<RouteSection, RouteSection>} */
   const SEC = {
-    boxes: globalThis.AppRoutes?.sections?.boxes || 'boxes',
-    inventory: globalThis.AppRoutes?.sections?.inventory || 'inventory',
-    builds: globalThis.AppRoutes?.sections?.builds || 'builds',
-    teams: globalThis.AppRoutes?.sections?.teams || 'teams',
-    settings: globalThis.AppRoutes?.sections?.settings || 'settings',
+    boxes: AppRoutes?.sections?.boxes || 'boxes',
+    inventory: AppRoutes?.sections?.inventory || 'inventory',
+    builds: AppRoutes?.sections?.builds || 'builds',
+    teams: AppRoutes?.sections?.teams || 'teams',
+    settings: AppRoutes?.sections?.settings || 'settings',
   };
 
   const SELECTION_KEY = 'pokechamp.selection';
   const VIEWER_LAYOUT_KEY = 'viewerLayout';
-  const listeners = new Set();
+  /** @type {Set<Subscription>} */
+  const subscriptions = new Set();
+  /** @type {readonly RouteSection[]} */
   const QUERY_ROUTES = Object.freeze([
     SEC.boxes,
     SEC.inventory,
@@ -24,7 +33,7 @@ export const AppStore = (() => {
   function loadSelectionIds() {
     try {
       const raw = localStorage.getItem(SELECTION_KEY);
-      const parsed = JSON.parse(raw || '[]');
+      const parsed = /** @type {unknown} */ (JSON.parse(raw || '[]'));
       return Array.isArray(parsed)
         ? [...new Set(parsed.filter((value) => typeof value === 'string' && value))]
         : [];
@@ -44,24 +53,27 @@ export const AppStore = (() => {
   }
 
   function getActiveQueryRoute() {
-    return globalThis.AppRoutes?.sectionForHash?.()
-      || globalThis.AppRoutes?.DEFAULT_SECTION
+    return AppRoutes?.sectionForHash?.()
+      || AppRoutes?.DEFAULT_SECTION
       || 'boxes';
   }
 
+  /** @param {string|null|undefined} route @returns {RouteSection} */
   function normalizeQueryRoute(route) {
     const normalized = String(route || getActiveQueryRoute() || '').trim();
-    return QUERY_ROUTES.includes(normalized)
-      ? normalized
-      : (globalThis.AppRoutes?.DEFAULT_SECTION || 'boxes');
+    return QUERY_ROUTES.includes(/** @type {RouteSection} */ (normalized))
+      ? /** @type {RouteSection} */ (normalized)
+      : (AppRoutes?.DEFAULT_SECTION || 'boxes');
   }
 
+  /** @param {unknown} values */
   function normalizeStringArray(values) {
     return [...new Set((Array.isArray(values) ? values : [])
       .map((value) => String(value || '').trim())
       .filter(Boolean))];
   }
 
+  /** @param {string|null|undefined} route @returns {BrowserQuery} */
   function createDefaultBrowserQuery(route) {
     const normalizedRoute = normalizeQueryRoute(route);
     return {
@@ -79,6 +91,11 @@ export const AppStore = (() => {
     };
   }
 
+  /**
+   * @param {string|null|undefined} route
+   * @param {Partial<BrowserQuery>} [query]
+   * @returns {BrowserQuery}
+   */
   function normalizeBrowserQuery(route, query = {}) {
     const normalizedRoute = normalizeQueryRoute(route);
     const defaults = createDefaultBrowserQuery(normalizedRoute);
@@ -99,6 +116,7 @@ export const AppStore = (() => {
     };
   }
 
+  /** @param {string|null|undefined} route @param {Partial<BrowserQuery>|undefined} query */
   function cloneBrowserQuery(route, query) {
     const normalized = normalizeBrowserQuery(route, query);
     return {
@@ -107,14 +125,17 @@ export const AppStore = (() => {
     };
   }
 
+  /** @param {Partial<Record<RouteSection, BrowserQuery>>} [byRoute] */
   function cloneQueryState(byRoute = {}) {
-    const out = {};
+    /** @type {Record<RouteSection, BrowserQuery>} */
+    const out = /** @type {Record<RouteSection, BrowserQuery>} */ ({});
     for (const route of QUERY_ROUTES) {
       out[route] = cloneBrowserQuery(route, byRoute[route]);
     }
     return out;
   }
 
+  /** @param {BrowserQuery} a @param {BrowserQuery} b */
   function browserQueryEquals(a, b) {
     const aFlags = a.flags || [];
     const bFlags = b.flags || [];
@@ -135,15 +156,13 @@ export const AppStore = (() => {
     );
   }
 
+  /** @type {AppState} */
   let state = {
     query: {
       byRoute: cloneQueryState(),
     },
     selection: {
       ids: loadSelectionIds(),
-    },
-    route: {
-      revision: 0,
     },
     detail: {
       open: false,
@@ -157,35 +176,71 @@ export const AppStore = (() => {
         byRoute: cloneQueryState(state.query.byRoute),
       },
       selection: { ids: [...state.selection.ids] },
-      route: { ...state.route },
       detail: { ...state.detail },
     };
   }
 
   function emit() {
-    const snapshot = cloneState();
-    for (const listener of [...listeners]) {
-      listener(snapshot);
+    for (const subscription of [...subscriptions]) {
+      const nextValue = subscription.selector(state);
+      if (subscription.equality(subscription.value, nextValue)) continue;
+      const previousValue = subscription.value;
+      subscription.value = nextValue;
+      subscription.listener(nextValue, previousValue);
     }
   }
 
+  /** @param {(state: AppState) => AppState|null|undefined} mutator */
   function update(mutator) {
-    const nextState = mutator(cloneState());
+    const nextState = mutator(state);
     if (!nextState) return;
     state = nextState;
     emit();
   }
 
-  function subscribe(listener) {
-    if (typeof listener !== 'function') return () => {};
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+  /**
+   * @template T
+   * @overload
+   * @param {(state: AppState) => T} selectorOrListener
+   * @param {(value: T, previous: T) => void} listener
+   * @param {(a: T, b: T) => boolean} [equality]
+   * @returns {() => boolean}
+   */
+  /**
+   * @overload
+   * @param {(state: AppState) => void} selectorOrListener
+   * @returns {() => boolean}
+   */
+  /**
+   * @param {((state: AppState) => unknown)|((state: AppState) => void)} selectorOrListener
+   * @param {((value: unknown, previous: unknown) => void)|undefined} [listener]
+   * @param {(a: unknown, b: unknown) => boolean} [equality]
+   */
+  function subscribe(selectorOrListener, listener, equality = Object.is) {
+    const usesSelector = typeof listener === 'function';
+    const resolvedListener = usesSelector
+      ? listener
+      : /** @type {(value: unknown, previous: unknown) => void} */ (selectorOrListener);
+    if (typeof resolvedListener !== 'function') return () => {};
+    const selector = usesSelector
+      ? /** @type {(state: AppState) => unknown} */ (selectorOrListener)
+      : () => cloneState();
+    /** @type {Subscription} */
+    const subscription = {
+      selector,
+      listener: resolvedListener,
+      equality: usesSelector ? equality : () => false,
+      value: selector(state),
+    };
+    subscriptions.add(subscription);
+    return () => subscriptions.delete(subscription);
   }
 
   function getState() {
     return cloneState();
   }
 
+  /** @param {string[]} ids */
   function persistSelection(ids) {
     try {
       localStorage.setItem(SELECTION_KEY, JSON.stringify(ids));
@@ -194,11 +249,13 @@ export const AppStore = (() => {
     }
   }
 
+  /** @param {string|null|undefined} route */
   function getBrowserQuery(route) {
     const normalizedRoute = normalizeQueryRoute(route);
     return cloneBrowserQuery(normalizedRoute, state.query.byRoute[normalizedRoute]);
   }
 
+  /** @param {string|null|undefined} route @param {Partial<BrowserQuery>} nextQuery */
   function setBrowserQuery(route, nextQuery) {
     const normalizedRoute = normalizeQueryRoute(route);
     const currentQuery = state.query.byRoute[normalizedRoute] || createDefaultBrowserQuery(normalizedRoute);
@@ -216,6 +273,7 @@ export const AppStore = (() => {
     return true;
   }
 
+  /** @param {string|null|undefined} route @param {Partial<BrowserQuery>} patch */
   function patchBrowserQuery(route, patch) {
     const normalizedRoute = normalizeQueryRoute(route);
     return setBrowserQuery(normalizedRoute, {
@@ -224,18 +282,22 @@ export const AppStore = (() => {
     });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} query */
   function setBrowserSearchQuery(route, query) {
     return patchBrowserQuery(route, { search: String(query || '') });
   }
 
+  /** @param {string|null|undefined} route */
   function clearBrowserSearchQuery(route) {
     return setBrowserSearchQuery(route, '');
   }
 
+  /** @param {string|null|undefined} route @param {unknown} games */
   function replaceBrowserGames(route, games) {
     return patchBrowserQuery(route, { games: normalizeStringArray(games) });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} game */
   function toggleBrowserGame(route, game) {
     const normalizedRoute = normalizeQueryRoute(route);
     const value = String(game || '').trim();
@@ -249,6 +311,7 @@ export const AppStore = (() => {
     );
   }
 
+  /** @param {string|null|undefined} route @param {unknown} flagKey */
   function toggleBrowserFlag(route, flagKey) {
     const normalizedRoute = normalizeQueryRoute(route);
     const value = String(flagKey || '').trim();
@@ -260,30 +323,37 @@ export const AppStore = (() => {
     return patchBrowserQuery(normalizedRoute, { flags: nextFlags });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} type */
   function setBrowserTypeFilter(route, type) {
     return patchBrowserQuery(route, { type: String(type || '') });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} generation */
   function setBrowserGenerationFilter(route, generation) {
     return patchBrowserQuery(route, { generation: String(generation || '') });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} transferred */
   function setBrowserTransferredFilter(route, transferred) {
     return patchBrowserQuery(route, { transferred: String(transferred || '') });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} ownedOnly */
   function setBrowserOwnedOnly(route, ownedOnly) {
     return patchBrowserQuery(route, { ownedOnly: !!ownedOnly });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} source */
   function setBrowserSourceFilter(route, source) {
     return patchBrowserQuery(route, { source: String(source || '') });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} mode */
   function setBrowserMode(route, mode) {
     return patchBrowserQuery(route, { mode: mode === 'card' ? 'card' : 'table' });
   }
 
+  /** @param {string|null|undefined} route @param {unknown} sortKey */
   function toggleBrowserSort(route, sortKey) {
     const normalizedRoute = normalizeQueryRoute(route);
     const currentQuery = state.query.byRoute[normalizedRoute] || createDefaultBrowserQuery(normalizedRoute);
@@ -294,19 +364,24 @@ export const AppStore = (() => {
     });
   }
 
+  /** @param {string|null|undefined} route */
   function resetBrowserQuery(route) {
     const normalizedRoute = normalizeQueryRoute(route);
     return setBrowserQuery(normalizedRoute, createDefaultBrowserQuery(normalizedRoute));
   }
 
+  /** @param {string|null|undefined} [route] */
   function getSearchQuery(route) {
     return getBrowserQuery(route || getActiveQueryRoute()).search;
   }
 
+  /** @param {unknown} ids */
   function normalizeSelectionIds(ids) {
-    return [...new Set((ids || []).filter((value) => typeof value === 'string' && value))];
+    if (!Array.isArray(ids)) return [];
+    return [...new Set(ids.filter((value) => typeof value === 'string' && value))];
   }
 
+  /** @param {unknown} ids @param {{persist?: boolean}} [options] */
   function replaceSelectionIds(ids, options = {}) {
     const nextIds = normalizeSelectionIds(ids);
     if (
@@ -332,20 +407,24 @@ export const AppStore = (() => {
     return state.selection.ids.length;
   }
 
+  /** @param {string|null|undefined} buildId */
   function hasSelectedBuildId(buildId) {
     return !!buildId && state.selection.ids.includes(buildId);
   }
 
+  /** @param {string|null|undefined} buildId */
   function addSelectedBuildId(buildId) {
     if (!buildId || hasSelectedBuildId(buildId)) return false;
     return replaceSelectionIds([...state.selection.ids, buildId]);
   }
 
+  /** @param {string|null|undefined} buildId */
   function removeSelectedBuildId(buildId) {
     if (!buildId || !hasSelectedBuildId(buildId)) return false;
     return replaceSelectionIds(state.selection.ids.filter((id) => id !== buildId));
   }
 
+  /** @param {string|null|undefined} buildId */
   function toggleSelectedBuildId(buildId) {
     if (!buildId) return false;
     if (hasSelectedBuildId(buildId)) {
@@ -361,18 +440,7 @@ export const AppStore = (() => {
     return replaceSelectionIds([]);
   }
 
-  function markRouteDirty() {
-    update((current) => ({
-      ...current,
-      route: { revision: current.route.revision + 1 },
-    }));
-    return state.route.revision;
-  }
-
-  function getRouteRevision() {
-    return state.route.revision;
-  }
-
+  /** @param {unknown} isOpen */
   function setDetailOpen(isOpen) {
     const normalized = !!isOpen;
     if (normalized === state.detail.open) return false;
@@ -386,6 +454,7 @@ export const AppStore = (() => {
     return true;
   }
 
+  /** @param {unknown} layout @param {{persist?: boolean}} [options] */
   function setDetailLayout(layout, options = {}) {
     const normalized = layout === 'overlay' ? 'overlay' : 'panel';
     if (normalized === state.detail.layout) return false;
@@ -449,14 +518,8 @@ export const AppStore = (() => {
     removeSelectedBuildId,
     toggleSelectedBuildId,
     clearSelectedBuildIds,
-    markRouteDirty,
-    getRouteRevision,
     setDetailOpen,
     setDetailLayout,
     getDetailState,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.AppStore = AppStore;
-}

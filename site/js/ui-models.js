@@ -1,3 +1,6 @@
+import { DataManager } from './data.js';
+import { DomainMappers } from './domain-mappers.js';
+
 /**
  * ui-models.js - Canonical UI-facing contracts for status, search text, and game metadata.
  *
@@ -6,9 +9,14 @@
  */
 
 export const UIModels = (() => {
+  /** @typedef {import('./types/contracts.js').EvSystem} EvSystem */
+  /** @type {readonly import('./types/contracts.js').StatKey[]} */
   const STAT_KEYS = DomainMappers.STAT_KEYS;
+  /** @type {Record<EvSystem, number>} */
   const EV_TOTALS = { classic: 510, champions: 66 };
+  /** @type {Record<EvSystem, number>} */
   const EV_NEAR_MAX = { classic: 508, champions: 66 };
+  /** @type {readonly import('./types/contracts.js').GameCatalogEntry[]} */
   const GAME_CATALOG = Object.freeze([
     {
       key: 'champions',
@@ -44,10 +52,12 @@ export const UIModels = (() => {
     return GAME_CATALOG.slice();
   }
 
+  /** @param {string} key */
   function getGame(key) {
     return GAME_CATALOG.find((game) => game.key === key) || null;
   }
 
+  /** @param {Array<string|number|boolean|null|undefined|string[]>} parts */
   function buildSearchText(parts) {
     return (parts || [])
       .flatMap((part) => Array.isArray(part) ? part : [part])
@@ -56,22 +66,26 @@ export const UIModels = (() => {
       .toLowerCase();
   }
 
+  /** @param {string|null|undefined} text @param {string|null|undefined} query */
   function matchesSearch(text, query) {
     const normalizedQuery = String(query || '').trim().toLowerCase();
     if (!normalizedQuery) return true;
     return String(text || '').toLowerCase().includes(normalizedQuery);
   }
 
+  /** @param {import('./types/contracts.js').BuildState|null|undefined} build */
   function countRecordedMoves(build) {
     return Array.isArray(build?.moves)
       ? build.moves.filter((move) => move && String(move).trim()).length
       : 0;
   }
 
+  /** @param {import('./types/contracts.js').BuildState|null|undefined} build */
   function collectEvTotals(build) {
+    /** @type {Record<EvSystem, number>} */
     const totals = { classic: 0, champions: 0 };
     const evs = build?.evs || {};
-    for (const system of Object.keys(EV_TOTALS)) {
+    for (const system of /** @type {EvSystem[]} */ (Object.keys(EV_TOTALS))) {
       const spread = evs[system];
       if (!spread || typeof spread !== 'object') continue;
       for (const stat of STAT_KEYS) {
@@ -84,6 +98,11 @@ export const UIModels = (() => {
     return totals;
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildState|null|undefined} build
+   * @param {{owned?: boolean, transferredToChampions?: boolean, battleReady?: boolean}} [opts]
+   * @returns {import('./types/contracts.js').BuildStatus}
+   */
   function evaluateBuildStatus(build, opts = {}) {
     const hasNature = !!build?.nature;
     const hasAbility = !!build?.ability;
@@ -93,8 +112,9 @@ export const UIModels = (() => {
     const profileState = filled === 3 ? 'complete' : (filled > 0 ? 'partial' : 'empty');
     const borderState = profileState === 'empty' ? null : profileState;
     const evTotals = collectEvTotals(build);
-    const readySystems = Object.keys(EV_TOTALS).filter((system) => evTotals[system] >= EV_NEAR_MAX[system]);
-    const fullTrainedSystems = Object.keys(EV_TOTALS).filter((system) => evTotals[system] === EV_TOTALS[system]);
+    const systems = /** @type {EvSystem[]} */ (Object.keys(EV_TOTALS));
+    const readySystems = systems.filter((system) => evTotals[system] >= EV_NEAR_MAX[system]);
+    const fullTrainedSystems = systems.filter((system) => evTotals[system] === EV_TOTALS[system]);
     const targetReady = hasNature && hasAbility && moveCount === 4 && readySystems.length > 0;
     const owned = !!opts.owned;
     const transferredToChampions = !!opts.transferredToChampions;
@@ -131,6 +151,11 @@ export const UIModels = (() => {
     };
   }
 
+  /**
+   * @param {string} gameKey
+   * @param {string} slug
+   * @param {{inChampions?: boolean}} [opts]
+   */
   function isGameCompatible(gameKey, slug, opts = {}) {
     if (!slug) return false;
     if (gameKey === 'champions' && opts.inChampions !== undefined) {
@@ -139,12 +164,14 @@ export const UIModels = (() => {
     return !!DataManager.isInGame(slug, gameKey);
   }
 
+  /** @param {string} slug @param {{inChampions?: boolean}} [opts] */
   function getCompatibleGameKeys(slug, opts = {}) {
     return GAME_CATALOG
       .filter((game) => isGameCompatible(game.key, slug, opts))
       .map((game) => game.key);
   }
 
+  /** @param {import('./types/contracts.js').InstanceModel|null|undefined} instance */
   function getLocationLabel(instance) {
     if (instance?.location?.box_name && typeof instance.location.slot === 'number') {
       return `${instance.location.box_name} · Slot ${instance.location.slot + 1}`;
@@ -155,6 +182,16 @@ export const UIModels = (() => {
     return '—';
   }
 
+  /**
+   * @param {import('./types/contracts.js').RuntimeRecord|null|undefined} source
+   * @param {{
+   *   status?: import('./types/contracts.js').BuildStatus,
+   *   statusOptions?: {owned?: boolean, transferredToChampions?: boolean, battleReady?: boolean},
+   *   slug?: string,
+   *   inChampions?: boolean,
+   *   compatibleGames?: string[]
+   * }} [opts]
+   */
   function buildEntryDecorations(source, opts = {}) {
     const status = opts.status || source?.status || evaluateBuildStatus(source, opts.statusOptions || {});
     const slug = opts.slug || source?.slug || source?.species_slug || '';
@@ -207,8 +244,13 @@ export const UIModels = (() => {
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').InstanceModel} instance
+   * @returns {import('./types/contracts.js').BrowserEntry}
+   */
   function buildInventoryEntryView(instance) {
-    const species = DataManager.getPokedexEntry(instance?.species_id) || {};
+    const species = DataManager.getPokedexEntry(instance?.species_id)
+      || /** @type {Partial<import('./types/contracts.js').PokedexEntry>} */ ({});
     const state = instance?.state || {};
     const slug = species.slug || instance?.species_slug || (typeof instance?.species_id === 'string' ? instance.species_id : '');
     const linkedBuild = instance?.target_build_id ? DataManager.getBuild(instance.target_build_id) : null;
@@ -233,6 +275,7 @@ export const UIModels = (() => {
     }, { status, slug, compatibleGames });
 
     return {
+      ...status,
       _kind: 'instance',
       _key: instance?.box != null ? `${instance.box}-${instance.slot}` : `instance-${slug}`,
       boxId: instance?.box,
@@ -283,13 +326,17 @@ export const UIModels = (() => {
         state.egg_moves,
         getLocationLabel(instance),
       ]),
-      ...status,
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildState} build
+   * @returns {import('./types/contracts.js').BrowserEntry}
+   */
   function buildLibraryBuildEntryView(build) {
     const slug = build?.slug || '';
-    const species = DataManager.getPokedexEntry(slug) || {};
+    const species = DataManager.getPokedexEntry(slug)
+      || /** @type {Partial<import('./types/contracts.js').PokedexEntry>} */ ({});
     const linkedInstances = build?.id && DataManager.getInstancesTargeting
       ? DataManager.getInstancesTargeting(build.id)
       : [];
@@ -313,6 +360,7 @@ export const UIModels = (() => {
     }, { status, slug, inChampions, compatibleGames });
 
     return {
+      ...status,
       _kind: 'build',
       _key: `lib-${build.id}`,
       num: species.id || 0,
@@ -335,7 +383,7 @@ export const UIModels = (() => {
       eventOrigin: false,
       fromGo: false,
       moves: Array.isArray(build.moves) ? build.moves : [],
-      battleReadyReason: readyInfo.reason || null,
+      battleReadyReason: ('reason' in readyInfo ? readyInfo.reason : null) || null,
       decorations,
       status,
       source: build.source || null,
@@ -348,11 +396,11 @@ export const UIModels = (() => {
         build.moves,
         build.egg_moves,
       ]),
-      ...status,
     };
   }
 
   /** Canonical display name: "Species-Form" or species/entry name. */
+  /** @param {{form?: string|null, species?: string, speciesName?: string, name?: string}} obj */
   function formatDisplayName(obj) {
     return obj.form ? `${obj.species}-${obj.form}` : (obj.speciesName || obj.name || obj.species);
   }
@@ -370,7 +418,3 @@ export const UIModels = (() => {
     formatDisplayName,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.UIModels = UIModels;
-}

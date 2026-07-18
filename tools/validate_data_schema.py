@@ -17,6 +17,13 @@ def load_json(path: Path) -> Any:
         return json.load(handle)
 
 
+def load_user_data(filename: str) -> Any:
+    user_path = USER_DATA_DIR / filename
+    if user_path.exists():
+        return load_json(user_path)
+    return load_json(DATA_DIR / filename.replace(".json", ".template.json"))
+
+
 def add_error(errors: list[str], path: str, message: str) -> None:
     errors.append(f"{path}: {message}")
 
@@ -75,7 +82,7 @@ def validate_build_object(errors: list[str], path: str, build: Any) -> None:
 
 
 def validate_inventory(errors: list[str]) -> None:
-    inventory = load_json(USER_DATA_DIR / "inventory.json")
+    inventory = load_user_data("inventory.json")
     if "ownership" in inventory:
         add_error(errors, "data/inventory.json.ownership", "manual ownership state is not part of the canonical schema")
     boxes = inventory.get("boxes")
@@ -115,7 +122,7 @@ def validate_inventory(errors: list[str]) -> None:
 
 
 def validate_builds(errors: list[str]) -> None:
-    data = load_json(USER_DATA_DIR / "builds.json")
+    data = load_user_data("builds.json")
     builds = data.get("builds")
     if not isinstance(builds, list):
         add_error(errors, "data/builds.json.builds", "builds must be an array")
@@ -141,7 +148,7 @@ def validate_builds(errors: list[str]) -> None:
 
 
 def validate_teams(errors: list[str]) -> None:
-    data = load_json(USER_DATA_DIR / "teams.json")
+    data = load_user_data("teams.json")
     teams = data.get("teams")
     if not isinstance(teams, list):
         add_error(errors, "data/teams.json.teams", "teams must be an array")

@@ -1,3 +1,7 @@
+import { AppRoutes } from './app-routes.js';
+import { AppSelectors } from './state/app-selectors.js';
+import { AppStore } from './state/app-store.js';
+
 /**
  * search-state.js - Shared header-search state for the active route.
  *
@@ -5,39 +9,45 @@
  */
 
 export const SearchState = (() => {
+  /** @param {string|null|undefined} route @returns {string} */
   function resolveRoute(route) {
     if (route) return route;
     if (typeof AppStore.getActiveQueryRoute === 'function') {
       return AppStore.getActiveQueryRoute();
     }
-    return globalThis.AppRoutes?.DEFAULT_SECTION || 'boxes';
+    return AppRoutes?.DEFAULT_SECTION || 'boxes';
   }
 
+  /**
+   * @param {(value: {query: string, route: string}) => void} listener
+   * @param {string|null|undefined} [route]
+   */
   function subscribe(listener, route) {
     if (typeof listener !== 'function') return () => {};
-    const fixedRoute = route ? resolveRoute(route) : null;
-    let previousRoute = fixedRoute || resolveRoute();
-    let previousQuery = AppStore.getSearchQuery(previousRoute);
-    return AppStore.subscribe((state) => {
-      const activeRoute = fixedRoute || resolveRoute();
-      const query = typeof AppSelectors !== 'undefined'
-        ? AppSelectors.selectSearch(state, activeRoute).query
-        : AppStore.getSearchQuery(activeRoute);
-      if (activeRoute === previousRoute && query === previousQuery) return;
-      previousRoute = activeRoute;
-      previousQuery = query;
-      listener({ query, route: activeRoute });
-    });
+    return AppStore.subscribe(
+      (state) => {
+        const activeRoute = resolveRoute(route);
+        return {
+          query: AppSelectors.selectSearch(state, activeRoute).query,
+          route: activeRoute,
+        };
+      },
+      listener,
+      (previous, next) => previous.query === next.query && previous.route === next.route
+    );
   }
 
+  /** @param {string|null|undefined} [route] */
   function getQuery(route) {
     return AppStore.getSearchQuery(resolveRoute(route));
   }
 
+  /** @param {string} nextQuery @param {string|null|undefined} [route] */
   function setQuery(nextQuery, route) {
     AppStore.setBrowserSearchQuery(resolveRoute(route), nextQuery);
   }
 
+  /** @param {string|null|undefined} [route] */
   function clear(route) {
     AppStore.clearBrowserSearchQuery(resolveRoute(route));
   }
@@ -49,7 +59,3 @@ export const SearchState = (() => {
     clear,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.SearchState = SearchState;
-}

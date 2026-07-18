@@ -1,6 +1,8 @@
 /**
  * ui/widgets/ball-picker.js - Shared ball picker widget.
  */
+import { escapeHtml } from '../dom.js';
+
 export const BallPicker = (() => {
   const BALL_LIST = Object.freeze(['Poke','Great','Ultra','Master','Safari','Fast','Level','Lure','Heavy','Love',
     'Friend','Moon','Dream','Beast','Sport','Premier','Repeat','Timer','Nest','Net',
@@ -9,6 +11,7 @@ export const BallPicker = (() => {
   // Balls not in PokeAPI — fall back to PokéSprite
   const POKESPRITE_BALLS = new Set(['Strange']);
 
+  /** @param {string} ballName */
   function ballSpriteUrl(ballName) {
     const slug = String(ballName || '').toLowerCase().replace(/\s+/g, '-');
     if (POKESPRITE_BALLS.has(ballName)) {
@@ -17,9 +20,14 @@ export const BallPicker = (() => {
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${slug}-ball.png`;
   }
 
+  /**
+   * @param {HTMLElement} container
+   * @param {string|null|undefined} selectedBall
+   * @param {((ball: string) => void)|null|undefined} onChange
+   */
   function createBallPicker(container, selectedBall, onChange) {
-    const escapeHtml = UIShared.escapeHtml;
     let current = selectedBall || 'Poke';
+    /** @type {string|null} */
     let activeBall = current;
     container.innerHTML = '';
     container.className = (container.className.replace(/\bball-picker\b/, '') + ' ball-picker').trim();
@@ -82,10 +90,12 @@ export const BallPicker = (() => {
       });
     }
 
+    /** @param {string} ball */
     function renderTrigger(ball) {
       trigger.innerHTML = `<img src="${ballSpriteUrl(ball)}" width="24" height="24" alt="" class="ball-picker__icon"><span class="ball-picker__label">${escapeHtml(ball)} Ball</span><span class="ball-picker__arrow">▾</span>`;
     }
 
+    /** @param {string|null|undefined} ball @param {{scroll?: boolean}} [options] */
     function setActive(ball, { scroll = true } = {}) {
       activeBall = ball || null;
       syncOptionState();
@@ -94,24 +104,23 @@ export const BallPicker = (() => {
       if (opt) opt.scrollIntoView({ block: 'nearest' });
     }
 
+    /** @param {string} rawQuery */
     function applyFilter(rawQuery) {
       const query = String(rawQuery || '').trim().toLowerCase();
-      let firstVisible = null;
-      let selectedVisible = null;
 
       options.forEach((opt) => {
-        const matches = !query || opt.dataset.search.includes(query);
+        const matches = !query || (opt.dataset.search || '').includes(query);
         opt.hidden = !matches;
-        if (!matches) return;
-        if (!firstVisible) firstVisible = opt;
-        if (opt.dataset.ball === current) selectedVisible = opt;
       });
 
+      const firstVisible = options.find((opt) => !opt.hidden) || null;
+      const selectedVisible = options.find((opt) => !opt.hidden && opt.dataset.ball === current) || null;
       emptyState.hidden = !!firstVisible;
       const nextActive = selectedVisible || firstVisible;
       setActive(nextActive ? nextActive.dataset.ball : null, { scroll: false });
     }
 
+    /** @param {string} ball */
     function setValue(ball) {
       current = ball;
       container.dataset.value = ball;
@@ -119,6 +128,7 @@ export const BallPicker = (() => {
       setActive(ball, { scroll: false });
     }
 
+    /** @param {{focusTrigger?: boolean}} [options] */
     function closePanel({ focusTrigger = false } = {}) {
       panel.classList.remove('ball-picker__panel--open');
       trigger.setAttribute('aria-expanded', 'false');
@@ -127,6 +137,7 @@ export const BallPicker = (() => {
       if (focusTrigger) trigger.focus();
     }
 
+    /** @param {string} [initialQuery] */
     function openPanel(initialQuery = '') {
       panel.classList.add('ball-picker__panel--open');
       trigger.setAttribute('aria-expanded', 'true');
@@ -142,6 +153,7 @@ export const BallPicker = (() => {
       }
     }
 
+    /** @param {string|null|undefined} ball */
     function commitBall(ball) {
       if (!ball) return;
       setValue(ball);
@@ -149,6 +161,7 @@ export const BallPicker = (() => {
       if (onChange) onChange(ball);
     }
 
+    /** @param {number} delta */
     function moveActive(delta) {
       const visible = getVisibleOptions();
       if (!visible.length) return;
@@ -226,19 +239,19 @@ export const BallPicker = (() => {
     });
 
     optionsContainer.addEventListener('mousemove', (e) => {
-      const opt = e.target.closest('.ball-picker__option');
-      if (!opt || opt.hidden) return;
+      const opt = e.target instanceof Element ? e.target.closest('.ball-picker__option') : null;
+      if (!(opt instanceof HTMLButtonElement) || opt.hidden) return;
       if (opt.dataset.ball !== activeBall) setActive(opt.dataset.ball, { scroll: false });
     });
 
     optionsContainer.addEventListener('click', (e) => {
-      const opt = e.target.closest('.ball-picker__option');
-      if (!opt) return;
+      const opt = e.target instanceof Element ? e.target.closest('.ball-picker__option') : null;
+      if (!(opt instanceof HTMLButtonElement)) return;
       commitBall(opt.dataset.ball);
     });
 
     document.addEventListener('click', (e) => {
-      if (!container.contains(e.target)) closePanel();
+      if (!(e.target instanceof Node) || !container.contains(e.target)) closePanel();
     });
 
     renderTrigger(current);
@@ -248,7 +261,3 @@ export const BallPicker = (() => {
 
   return { BALL_LIST, ballSpriteUrl, createBallPicker };
 })();
-
-if (typeof window !== 'undefined') {
-  window.BallPicker = BallPicker;
-}

@@ -1,11 +1,15 @@
-export const BrowserSurface = (() => {
-  const {
-    AppStore,
-    AppRoutes,
-    UIShared,
-    FilterToolbarSection,
-  } = globalThis;
+import { AppRoutes } from '../../app-routes.js';
+import { AppStore } from '../../state/app-store.js';
+import { UIShared } from '../../ui-shared.js';
+import { FilterToolbarSection } from '../sections/filter-toolbar.js';
 
+export const BrowserSurface = (() => {
+
+
+  /**
+   * @param {HTMLElement|null} anchor
+   * @param {import('../../types/contracts.js').BrowserToolbarModel|null} toolbarModel
+   */
   function mountToolbar(anchor, toolbarModel) {
     if (!anchor || !toolbarModel) return null;
     anchor.innerHTML = '';
@@ -15,6 +19,10 @@ export const BrowserSurface = (() => {
     return toolbar;
   }
 
+  /**
+   * @param {import('../../types/contracts.js').BrowserEmptyState} emptyState
+   * @param {import('../../types/contracts.js').RouteSection} route
+   */
   function createEmptyState(emptyState, route) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
@@ -25,15 +33,19 @@ export const BrowserSurface = (() => {
     `;
 
     const actionButton = empty.querySelector('[data-empty-action]');
-    if (!actionButton || !emptyState.action) return empty;
+    const action = emptyState.action;
+    if (!actionButton || !action) return empty;
 
-    actionButton.addEventListener('click', () => {
-      switch (emptyState.action.kind) {
+    actionButton.addEventListener('click', async () => {
+      switch (action.kind) {
         case 'goto-boxes':
           window.location.hash = AppRoutes.hashes.boxes;
           break;
         case 'new-build':
-          globalThis.BuildEditor.openBuildForm(null, null, { editContext: 'library' });
+          {
+            const { BuildEditor } = await import('../../build-editor.js');
+            BuildEditor.openBuildForm(null, null, { editContext: 'library' });
+          }
           break;
         case 'reset-query':
           AppStore.resetBrowserQuery(route);
@@ -51,5 +63,3 @@ export const BrowserSurface = (() => {
     createEmptyState,
   };
 })();
-
-window.BrowserSurface = BrowserSurface;

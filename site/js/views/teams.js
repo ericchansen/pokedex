@@ -1,21 +1,28 @@
+import { DataManager } from '../data.js';
+import { EntityStore } from '../data/entity-store.js';
+import { SearchState } from '../search-state.js';
+import { Selection } from '../selection.js';
+import { TeamSurfaces } from '../team-surfaces.js';
+import { UIModels } from '../ui-models.js';
+import { UIShared } from '../ui-shared.js';
+import { DetailPanel } from '../ui/surfaces/detail-panel.js';
+
 /**
  * views/teams.js — Teams listing view.
  * Renders team cards with member sprites, search, and team detail sidebar.
  */
 
-const {
-  DataManager,
-  SearchState,
-  UIModels,
-  TeamSurfaces,
-  Selection,
-  UIShared,
-} = globalThis;
+
 
 const TeamsView = (() => {
+  /** @type {(() => void)|null} */
   let unsubscribeSelection = null;
+  /** @type {(() => void)|null} */
   let unsubscribeSearch = null;
+  /** @type {Array<() => void>} */
+  let unsubscribeEntities = [];
 
+  /** @param {import('../types/contracts.js').Team} team */
   function buildTeamSearchText(team) {
     return UIModels.buildSearchText([
       team.name,
@@ -23,7 +30,7 @@ const TeamsView = (() => {
       team.archetype,
       team.team_id,
       team.mega,
-      (team.members || []).map((member) => member.species),
+      (team.members || []).map((member) => member.species).filter((species) => typeof species === 'string'),
     ]);
   }
 
@@ -55,19 +62,25 @@ const TeamsView = (() => {
     );
   }
 
+  /** @param {HTMLElement} container */
   function mount(container) {
     container.innerHTML = '<div id="view-teams"><div class="teams-container" id="teams-container"></div></div>';
     if (unsubscribeSelection) unsubscribeSelection();
     unsubscribeSelection = Selection.subscribe(() => render());
     if (unsubscribeSearch) unsubscribeSearch();
     unsubscribeSearch = SearchState.subscribe(() => render());
+    for (const unsubscribe of unsubscribeEntities) unsubscribe();
+    const slices = /** @type {Array<'teams'|'builds'|'inventory'>} */ (['teams', 'builds', 'inventory']);
+    unsubscribeEntities = slices.map((slice) => EntityStore.subscribe(slice, render));
     render();
   }
 
   function unmount() {
     if (unsubscribeSelection) { unsubscribeSelection(); unsubscribeSelection = null; }
     if (unsubscribeSearch) { unsubscribeSearch(); unsubscribeSearch = null; }
-    UIShared.closePanel();
+    for (const unsubscribe of unsubscribeEntities) unsubscribe();
+    unsubscribeEntities = [];
+    DetailPanel.close();
   }
 
   return { mount, unmount };

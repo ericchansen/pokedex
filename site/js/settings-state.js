@@ -3,6 +3,8 @@
  */
 
 export const SettingsState = (() => {
+  /** @typedef {{defaultLanguage: string, theme: string}} Settings */
+  /** @typedef {(settings: Settings) => void} SettingsListener */
   const STORAGE_KEY = 'pokemonHomeTrackerSettings';
   const VALID_THEMES = new Set(['default', 'gen3']);
   const DEFAULTS = Object.freeze({
@@ -10,14 +12,18 @@ export const SettingsState = (() => {
     theme: 'default',
   });
 
+  /** @type {Settings} */
   let state = loadState();
+  /** @type {Set<SettingsListener>} */
   const listeners = new Set();
 
+  /** @param {unknown} value */
   function normalizeLanguageCode(value) {
     const code = String(value || '').trim().toUpperCase();
     return code || DEFAULTS.defaultLanguage;
   }
 
+  /** @param {unknown} value */
   function normalizeTheme(value) {
     const t = String(value || '').trim().toLowerCase();
     if (t === 'frlg') return 'gen3'; // backward-compat migration
@@ -66,6 +72,7 @@ export const SettingsState = (() => {
     return state.defaultLanguage;
   }
 
+  /** @param {unknown} value */
   function setDefaultLanguage(value) {
     state = {
       ...state,
@@ -76,6 +83,7 @@ export const SettingsState = (() => {
     return get();
   }
 
+  /** @param {unknown} value */
   function setTheme(value) {
     const theme = normalizeTheme(value);
     state = { ...state, theme };
@@ -93,6 +101,7 @@ export const SettingsState = (() => {
     return get();
   }
 
+  /** @param {SettingsListener} listener */
   function subscribe(listener) {
     if (typeof listener !== 'function') {
       return () => {};
@@ -118,7 +127,3 @@ export const SettingsState = (() => {
     normalizeLanguageCode,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.SettingsState = SettingsState;
-}

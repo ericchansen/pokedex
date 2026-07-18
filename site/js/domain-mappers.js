@@ -1,3 +1,5 @@
+import { FormMetadata } from './form-metadata.js';
+
 /**
  * domain-mappers.js - Canonical domain-shape helpers for builds, instances, and teams.
  *
@@ -6,11 +8,14 @@
  */
 
 export const DomainMappers = (() => {
-  const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+  /** @type {readonly import('./types/contracts.js').StatKey[]} */
+  const STAT_KEYS = Object.freeze(['hp', 'atk', 'def', 'spa', 'spd', 'spe']);
+  /** @type {readonly (keyof import('./types/contracts.js').BuildState)[]} */
   const BUILD_STATE_FIELDS = Object.freeze([
     'form', 'level', 'nature', 'ability', 'item', 'tera_type', 'moves', 'evs',
   ]);
   // Non-metadata instance fields that persist in identity (not driven by FormMetadata registry)
+  /** @type {readonly (keyof import('./types/contracts.js').BuildState)[]} */
   const FORM_INSTANCE_FIELDS = Object.freeze([
     'ivs', 'ev_system', 'ball', 'nickname', 'ot', 'shiny',
     'language', 'origin_game', 'notes',
@@ -18,22 +23,28 @@ export const DomainMappers = (() => {
   ]);
   // FORM_EXTRA_FIELDS = instance fields + all registry-driven metadata keys.
   // Adding a new metadata dimension to FormMetadata.REGISTRY automatically includes it here.
+  /** @type {readonly (keyof import('./types/contracts.js').BuildState)[]} */
   const FORM_EXTRA_FIELDS = Object.freeze([
     ...FORM_INSTANCE_FIELDS,
-    ...(typeof FormMetadata !== 'undefined' ? FormMetadata.KEYS : [
+    ...(typeof FormMetadata !== 'undefined'
+      ? /** @type {import('./types/contracts.js').FormMetadataKey[]} */ (FormMetadata.KEYS)
+      : /** @type {import('./types/contracts.js').FormMetadataKey[]} */ ([
       'gender', 'gigantamax', 'alpha', 'ability', 'cream', 'sweet',
-    ]),
+      ])),
   ]);
   const BOOLEAN_FIELDS = new Set(['shiny', 'gigantamax', 'alpha', 'event_origin', 'genned', 'transferred_to_champions', 'from_go', 'ev_guesstimate']);
 
+  /** @returns {import('./types/contracts.js').NumericStatSpread} */
   function emptySpread() {
     return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   }
 
+  /** @param {import('./types/contracts.js').InputValue} value */
   function normalizeText(value) {
     return value == null ? '' : String(value);
   }
 
+  /** @param {import('./types/contracts.js').InputValue} value @returns {import('./types/contracts.js').EvSystem} */
   function normalizeEvSystem(value) {
     if (!value || value === 'classic') return 'classic';
     if (value === 'champions' || value === 'sp' || value === 'stat_points') return 'champions';
@@ -41,31 +52,40 @@ export const DomainMappers = (() => {
   }
 
   /** Strip trailing " Ball" suffix — canonical form is short name (e.g. "Poke", not "Poke Ball"). */
+  /** @param {import('./types/contracts.js').InputValue} value */
   function normalizeBallName(value) {
     if (value == null || value === '') return null;
     return String(value).replace(/\s*ball$/i, '').trim() || null;
   }
 
+  /** @param {import('./types/contracts.js').InputValue} value */
   function normalizeBoolean(value) {
     return !!value;
   }
 
+  /** @param {import('./types/contracts.js').InputValue} value */
   function normalizeNullable(value) {
     return value == null || value === '' ? null : value;
   }
 
+  /**
+   * @param {import('./types/contracts.js').InputValue} value
+   * @param {number|null} [fallback]
+   */
   function normalizeLevel(value, fallback = null) {
-    const parsed = Number.parseInt(value, 10);
+    const parsed = Number.parseInt(String(value ?? ''), 10);
     if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
     return parsed === 50 ? null : parsed;
   }
 
+  /** @param {string[]|null|undefined} moves */
   function cloneMoves(moves) {
     return Array.isArray(moves)
       ? moves.map((move) => String(move || '').trim()).filter(Boolean).slice(0, 4)
       : [];
   }
 
+  /** @param {string[]|null|undefined} moves */
   function cloneEggMoves(moves) {
     if (!Array.isArray(moves)) return [];
     const out = [];
@@ -81,7 +101,13 @@ export const DomainMappers = (() => {
     return out;
   }
 
+  /**
+   * @param {import('./types/contracts.js').StatSpread|import('./types/contracts.js').IvSpread|null|undefined} spread
+   * @param {{allowNull?: boolean}} [options]
+   * @returns {import('./types/contracts.js').StatSpread|import('./types/contracts.js').IvSpread}
+   */
   function cloneSparseSpread(spread, { allowNull = false } = {}) {
+    /** @type {import('./types/contracts.js').StatSpread|import('./types/contracts.js').IvSpread} */
     const out = {};
     for (const stat of STAT_KEYS) {
       const raw = spread?.[stat];
@@ -98,10 +124,12 @@ export const DomainMappers = (() => {
     return out;
   }
 
+  /** @param {import('./types/contracts.js').StatSpread|null|undefined} spread */
   function hasPositiveSpread(spread) {
     return STAT_KEYS.some((stat) => Number(spread?.[stat] || 0) > 0);
   }
 
+  /** @param {import('./types/contracts.js').IvSpread|null|undefined} spread */
   function hasMeaningfulIvs(spread) {
     return STAT_KEYS.some((stat) => {
       const value = spread?.[stat];
@@ -109,20 +137,25 @@ export const DomainMappers = (() => {
     });
   }
 
+  /**
+   * @param {import('./types/contracts.js').StructuredEvs|null|undefined} evsInput
+   * @param {{ivs?: import('./types/contracts.js').IvSpread|null, evSystem?: import('./types/contracts.js').EvSystem|null}} [opts]
+   * @returns {import('./types/contracts.js').StructuredEvs}
+   */
   function normalizeStructuredEvs(evsInput, opts = {}) {
-    const evSystem = normalizeEvSystem(opts.evSystem);
+    /** @type {import('./types/contracts.js').StructuredEvs} */
     const structured = {};
 
     if (evsInput && typeof evsInput === 'object') {
-      const classic = cloneSparseSpread(evsInput.classic);
+      const structuredInput = /** @type {import('./types/contracts.js').StructuredEvs} */ (evsInput);
+      const classic = cloneSparseSpread(structuredInput.classic);
       if (hasPositiveSpread(classic)) structured.classic = classic;
 
-      const champions = cloneSparseSpread(evsInput.champions);
+      const champions = cloneSparseSpread(structuredInput.champions);
       if (hasPositiveSpread(champions)) structured.champions = champions;
 
-      const classicIvs = cloneSparseSpread(evsInput.classic_ivs, { allowNull: true });
+      const classicIvs = cloneSparseSpread(structuredInput.classic_ivs, { allowNull: true });
       if (Object.keys(classicIvs).length) structured.classic_ivs = classicIvs;
-
     }
 
     const ivs = cloneSparseSpread(opts.ivs, { allowNull: true });
@@ -133,6 +166,10 @@ export const DomainMappers = (() => {
     return structured;
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildInput|null|undefined} buildLike
+   * @param {import('./types/contracts.js').EvSystem|import('./types/contracts.js').InputValue} system
+   */
   function getEvsForSystem(buildLike, system) {
     const targetSystem = normalizeEvSystem(system);
     const structured = normalizeStructuredEvs(buildLike?.evs, {
@@ -142,6 +179,10 @@ export const DomainMappers = (() => {
     return structured[targetSystem] ? { ...structured[targetSystem] } : null;
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildInput|null|undefined} buildLike
+   * @param {import('./types/contracts.js').EvSystem|import('./types/contracts.js').InputValue} system
+   */
   function getIvsForSystem(buildLike, system) {
     if (normalizeEvSystem(system) !== 'classic') return null;
     const structured = normalizeStructuredEvs(buildLike?.evs, {
@@ -153,17 +194,27 @@ export const DomainMappers = (() => {
     return Object.keys(ivs).length ? ivs : null;
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildInput|null|undefined} buildLike
+   * @returns {import('./types/contracts.js').EvSystem[]}
+   */
   function getEvSystems(buildLike) {
     const structured = normalizeStructuredEvs(buildLike?.evs, {
       evSystem: buildLike?.ev_system,
       ivs: buildLike?.ivs,
     });
+    /** @type {import('./types/contracts.js').EvSystem[]} */
     const systems = [];
     if (structured.classic) systems.push('classic');
     if (structured.champions) systems.push('champions');
     return systems;
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildInput|null|undefined} buildLike
+   * @param {import('./types/contracts.js').EvSystem} [fallback]
+   * @returns {import('./types/contracts.js').EvSystem}
+   */
   function getPreferredEvSystem(buildLike, fallback = 'classic') {
     const desired = normalizeEvSystem(buildLike?.ev_system);
     const systems = getEvSystems(buildLike);
@@ -171,6 +222,11 @@ export const DomainMappers = (() => {
     return systems[0] || normalizeEvSystem(fallback);
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildInput|null|undefined} buildLike
+   * @param {{kind?: import('./types/contracts.js').BuildKind, evSystem?: import('./types/contracts.js').EvSystem|null}} [opts]
+   * @returns {import('./types/contracts.js').BuildState}
+   */
   function createEditableBuildDraft(buildLike, opts = {}) {
     const preferred = opts.evSystem != null
       ? normalizeEvSystem(opts.evSystem)
@@ -184,9 +240,11 @@ export const DomainMappers = (() => {
       ...(normalizedEvs.champions ? { champions: { ...normalizedEvs.champions } } : {}),
       ...(normalizedEvs.classic_ivs ? { classic_ivs: { ...normalizedEvs.classic_ivs } } : {}),
     };
+    /** @type {import('./types/contracts.js').EvSystem[]} */
     const availableSystems = [];
     if (evs.classic) availableSystems.push('classic');
     if (evs.champions) availableSystems.push('champions');
+    /** @type {import('./types/contracts.js').BuildState} */
     const draft = {
       id: buildLike?.id,
       kind: opts.kind || buildLike?.kind || 'library',
@@ -212,17 +270,22 @@ export const DomainMappers = (() => {
       if (!Object.prototype.hasOwnProperty.call(buildLike || {}, field)) continue;
       if (field === 'ivs' || field === 'ev_system' || field === 'notes') continue;
       if (field === 'ball') {
-        draft[field] = normalizeBallName(buildLike[field]);
+        Object.assign(draft, { [field]: normalizeBallName(buildLike?.[field]) });
       } else if (BOOLEAN_FIELDS.has(field)) {
-        draft[field] = normalizeBoolean(buildLike[field]);
+        Object.assign(draft, { [field]: normalizeBoolean(buildLike?.[field]) });
       } else {
-        draft[field] = normalizeNullable(buildLike[field]);
+        Object.assign(draft, { [field]: normalizeNullable(buildLike?.[field]) });
       }
     }
 
     return draft;
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildState|null|undefined} existingState
+   * @param {import('./types/contracts.js').BuildState|null|undefined} buildPayload
+   * @returns {import('./types/contracts.js').BuildState}
+   */
   function mergeBuildPayloadIntoState(existingState, buildPayload) {
     const current = createEditableBuildDraft(existingState, {
       kind: 'instance',
@@ -235,16 +298,19 @@ export const DomainMappers = (() => {
     const next = { ...current };
     // copyFields: BUILD_STATE_FIELDS + identity fields + registry metadata keys.
     // Derived from the same sources as FORM_EXTRA_FIELDS — no manual sync needed.
+    /** @type {(keyof import('./types/contracts.js').BuildState)[]} */
     const copyFields = [
       'species', 'slug', ...BUILD_STATE_FIELDS,
       ...FORM_INSTANCE_FIELDS,
       'egg_moves',
-      ...(typeof FormMetadata !== 'undefined' ? FormMetadata.KEYS : []),
+      ...(typeof FormMetadata !== 'undefined'
+        ? /** @type {import('./types/contracts.js').FormMetadataKey[]} */ (FormMetadata.KEYS)
+        : []),
     ];
 
     for (const field of copyFields) {
       if (Object.prototype.hasOwnProperty.call(buildPayload || {}, field)) {
-        next[field] = overlay[field];
+        Object.assign(next, { [field]: overlay[field] });
       }
     }
 
@@ -263,7 +329,12 @@ export const DomainMappers = (() => {
     return next;
   }
 
-  function createInstanceModel(slotView, opts = {}) {
+  /**
+   * @param {import('./types/contracts.js').SlotView|null|undefined} slotView
+   * @param {{boxId: number, slotIdx: number, speciesSlug?: string|null, boxName?: string}} opts
+   * @returns {import('./types/contracts.js').InstanceModel|null}
+   */
+  function createInstanceModel(slotView, opts) {
     if (!slotView || !slotView.species_id) return null;
     return {
       box: opts.boxId,
@@ -281,6 +352,10 @@ export const DomainMappers = (() => {
     };
   }
 
+  /**
+   * @param {{state?: import('./types/contracts.js').BuildState}|null|undefined} instance
+   * @param {{species?: string, slug?: string, notes?: string}} [opts]
+   */
   function createLibraryBuildCandidateFromInstance(instance, opts = {}) {
     const state = createEditableBuildDraft(instance?.state, {
       kind: 'instance',
@@ -307,12 +382,30 @@ export const DomainMappers = (() => {
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').TeamMemberInput|null|undefined} member
+   * @param {import('./types/contracts.js').EvSystem|import('./types/contracts.js').InputValue} teamEvSystem
+   */
   function createBuildCandidateFromTeamMember(member, teamEvSystem) {
     const evSystem = normalizeEvSystem(teamEvSystem);
-    const draft = createEditableBuildDraft(member, {
+    const hasStructuredEvs = member?.evs && typeof member.evs === 'object'
+      && ('classic' in member.evs || 'champions' in member.evs || 'classic_ivs' in member.evs);
+    /** @type {import('./types/contracts.js').StructuredEvs|null|undefined} */
+    const memberEvs = hasStructuredEvs
+      ? /** @type {import('./types/contracts.js').StructuredEvs} */ (member?.evs)
+      : (member?.evs ? {
+          [evSystem]: /** @type {import('./types/contracts.js').StatSpread} */ (member.evs),
+        } : /** @type {null|undefined} */ (member?.evs));
+    const draft = createEditableBuildDraft({
+      ...member,
+      evs: memberEvs,
+    }, {
       kind: 'library',
       evSystem,
     });
+    /** @type {import('./types/contracts.js').StructuredEvs} */
+    const candidateEvs = {};
+    /** @type {import('./types/contracts.js').BuildState} */
     const candidate = {
       species: draft.species,
       slug: draft.slug,
@@ -323,17 +416,17 @@ export const DomainMappers = (() => {
       item: draft.item,
       tera_type: draft.tera_type,
       ev_system: evSystem,
-      evs: {},
+      evs: candidateEvs,
       moves: cloneMoves(draft.moves),
       notes: draft.notes || '',
     };
     const spread = getEvsForSystem(draft, evSystem);
     if (spread && hasPositiveSpread(spread)) {
-      candidate.evs[evSystem] = spread;
+      candidateEvs[evSystem] = spread;
     }
     const ivs = getIvsForSystem(draft, 'classic');
     if (evSystem === 'classic' && ivs && hasMeaningfulIvs(ivs)) {
-      candidate.evs.classic_ivs = ivs;
+      candidateEvs.classic_ivs = ivs;
       candidate.ivs = { ...ivs };
     } else {
       candidate.ivs = {};
@@ -342,9 +435,16 @@ export const DomainMappers = (() => {
     return candidate;
   }
 
+  /**
+   * @param {import('./types/contracts.js').TeamMemberInput|null|undefined} memberLike
+   * @param {import('./types/contracts.js').EvSystem|import('./types/contracts.js').InputValue} teamEvSystem
+   * @returns {import('./types/contracts.js').TeamMember}
+   */
   function createTeamStorageMember(memberLike, teamEvSystem) {
     const evSystem = normalizeEvSystem(teamEvSystem);
-    const buildId = normalizeNullable(memberLike?.build_id);
+    const buildId = typeof memberLike?.build_id === 'string' && memberLike.build_id
+      ? memberLike.build_id
+      : null;
     const draft = createBuildCandidateFromTeamMember(memberLike, evSystem);
     const hasInlineDetails = !!(
       draft.species
@@ -360,15 +460,16 @@ export const DomainMappers = (() => {
 
     if (!hasInlineDetails) {
       return buildId ? {
-        slot: Number.parseInt(memberLike?.slot, 10) || null,
+        slot: Number.parseInt(String(memberLike?.slot ?? ''), 10) || null,
         build_id: buildId,
       } : {
-        slot: Number.parseInt(memberLike?.slot, 10) || null,
+        slot: Number.parseInt(String(memberLike?.slot ?? ''), 10) || null,
       };
     }
 
+    /** @type {import('./types/contracts.js').TeamMember} */
     const member = {
-      slot: Number.parseInt(memberLike?.slot, 10) || null,
+      slot: Number.parseInt(String(memberLike?.slot ?? ''), 10) || null,
       build_id: buildId,
       species: draft.species,
       item: draft.item || '',
@@ -385,6 +486,7 @@ export const DomainMappers = (() => {
     return member;
   }
 
+  /** @param {import('./types/contracts.js').Team|null|undefined} teamLike @returns {import('./types/contracts.js').Team} */
   function createTeamStorage(teamLike) {
     const evSystem = normalizeEvSystem(teamLike?.ev_system);
     return {
@@ -396,19 +498,23 @@ export const DomainMappers = (() => {
       ev_system: evSystem,
       team_id: evSystem === 'champions' ? normalizeText(teamLike?.team_id).trim() : '',
       notes: normalizeText(teamLike?.notes).trim(),
-      cloned_from: normalizeNullable(teamLike?.cloned_from),
+      cloned_from: typeof teamLike?.cloned_from === 'string' && teamLike.cloned_from ? teamLike.cloned_from : null,
       members: (teamLike?.members || [])
         .map((member, index) => createTeamStorageMember({ ...member, slot: member?.slot ?? index + 1 }, evSystem))
         .filter((member) => member.build_id || member.species),
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').TeamMember|null|undefined} member
+   * @param {{teamEvSystem?: import('./types/contracts.js').EvSystem, buildLookup?: (id: string) => import('./types/contracts.js').LibraryBuild|undefined, slot?: number}} [opts]
+   */
   function createTeamMemberViewModel(member, opts = {}) {
     const teamEvSystem = normalizeEvSystem(opts.teamEvSystem);
     const linkedBuild = member?.build_id && opts.buildLookup
       ? opts.buildLookup(member.build_id)
       : null;
-    const base = linkedBuild || {};
+    const base = linkedBuild || /** @type {import('./types/contracts.js').BuildState} */ ({});
     const draft = createEditableBuildDraft({
       species: member?.species ?? base.species,
       slug: member?.slug ?? base.slug,
@@ -431,9 +537,9 @@ export const DomainMappers = (() => {
 
     return {
       ...member,
-      build_id: normalizeNullable(member?.build_id),
+      build_id: typeof member?.build_id === 'string' && member.build_id ? member.build_id : null,
       linked_build: linkedBuild || null,
-      slot: Number.parseInt(member?.slot, 10) || opts.slot || null,
+      slot: Number.parseInt(String(member?.slot ?? ''), 10) || opts.slot || null,
       species: draft.species,
       slug: draft.slug || '',
       form: draft.form,
@@ -451,6 +557,11 @@ export const DomainMappers = (() => {
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').Team|null|undefined} team
+   * @param {{buildLookup?: (id: string) => import('./types/contracts.js').LibraryBuild|undefined}} [opts]
+   * @returns {import('./types/contracts.js').Team}
+   */
   function createTeamViewModel(team, opts = {}) {
     const evSystem = normalizeEvSystem(team?.ev_system);
     return {
@@ -464,6 +575,11 @@ export const DomainMappers = (() => {
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildState|null|undefined} buildLike
+   * @param {import('./types/contracts.js').EvSystem|null|undefined} preferredSystem
+   * @returns {import('./types/contracts.js').ExportMember}
+   */
   function toExportMember(buildLike, preferredSystem) {
     const evSystem = preferredSystem != null
       ? normalizeEvSystem(preferredSystem)
@@ -482,6 +598,7 @@ export const DomainMappers = (() => {
   });
 
   /** Normalize a move name to a deduplication key (lowercase, alphanumeric only). */
+  /** @param {import('./types/contracts.js').InputValue} value */
   function normalizeMoveToken(value) {
     return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   }
@@ -511,7 +628,3 @@ export const DomainMappers = (() => {
     toExportMember,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.DomainMappers = DomainMappers;
-}

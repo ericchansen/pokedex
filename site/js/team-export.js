@@ -1,3 +1,5 @@
+import { DomainMappers } from './domain-mappers.js';
+
 /**
  * team-export.js - Showdown importable formatting + export trust metadata for battle teams.
  */
@@ -7,12 +9,14 @@ export const TeamExportFormatter = (() => {
   const STAT_LABELS = DomainMappers.STAT_LABELS;
   const DEFAULT_LEVEL = 50;
 
+  /** @param {string|null|undefined} nature */
   function normalizeNature(nature) {
     return String(nature || '')
       .split('(')[0]
       .trim();
   }
 
+  /** @param {string|null|undefined} ball */
   function formatBall(ball) {
     const value = String(ball || '').trim();
     if (!value) return null;
@@ -23,6 +27,7 @@ export const TeamExportFormatter = (() => {
     return /ball$/i.test(value) ? value : `${value} Ball`;
   }
 
+  /** @param {string} label @param {import('./types/contracts.js').StatSpread|null|undefined} spread @param {number} defaultValue @param {(value: number) => boolean} includeWhen */
   function formatSpreadLine(label, spread, defaultValue, includeWhen) {
     if (!spread) return null;
 
@@ -42,6 +47,7 @@ export const TeamExportFormatter = (() => {
     return parts.length ? `${label}: ${parts.join(' / ')}` : null;
   }
 
+  /** @param {import('./types/contracts.js').BuildState} member @param {import('./types/contracts.js').EvSystem|null|undefined} [preferredSystem] */
   function formatMember(member, preferredSystem) {
     const system = preferredSystem === 'champions'
       ? 'champions'
@@ -79,6 +85,7 @@ export const TeamExportFormatter = (() => {
     return lines.join('\n');
   }
 
+  /** @param {import('./types/contracts.js').Team} team */
   function formatTeam(team) {
     return (team.members || [])
       .map((member) => formatMember(member, team.ev_system || 'classic'))
@@ -86,6 +93,7 @@ export const TeamExportFormatter = (() => {
       .join('\n\n');
   }
 
+  /** @param {import('./types/contracts.js').Team} team */
   function getExportMeta(team) {
     const members = team.members || [];
     const evSystem = team.ev_system || 'classic';
@@ -106,4 +114,3 @@ export const TeamExportFormatter = (() => {
     getExportMeta,
   };
 })();
-window.TeamExportFormatter = TeamExportFormatter;

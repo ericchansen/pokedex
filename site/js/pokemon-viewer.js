@@ -1,39 +1,126 @@
+import { BuildUIHelpers } from './build-ui-helpers.js';
+import { DataManager } from './data.js';
+import { EntityStore } from './data/entity-store.js';
+import { TeamExportFormatter } from './team-export.js';
+import { UIModels } from './ui-models.js';
+import { UIShared } from './ui-shared.js';
+import { DetailSubjectVM } from './ui/detail/detail-subject-vm.js';
+import { Feedback } from './ui/feedback.js';
+import { DetailHeroSection } from './ui/sections/detail-hero-section.js';
+import { InstanceMetadataSection } from './ui/sections/instance-metadata-section.js';
+import { DetailViewerSurface } from './ui/surfaces/detail-viewer-surface.js';
+import { DetailPanel } from './ui/surfaces/detail-panel.js';
+
 /**
  * pokemon-viewer.js - Species/build detail viewer and inventory build card UI.
  */
 
 export const PokemonViewer = (() => {
+  /** @type {(() => void)|null} */
+  let unsubscribeInstance = null;
+  /** @typedef {{
+   * saveButtonLabel?: string, onSaved?: (() => void)|null, onCancel?: (() => void)|null,
+   * target?: HTMLElement|null, speciesName?: string, slug?: string
+   * }} InstanceEditorOptions */
+  /** @typedef {{
+   * species?: import('./types/contracts.js').PokedexEntry|null,
+   * slug?: string, build?: import('./types/contracts.js').BuildState|null,
+   * member?: import('./types/contracts.js').TeamMember|null,
+   * team?: import('./types/contracts.js').Team|null,
+   * boxId?: number, slotIdx?: number
+   * }} ViewerContext */
+  /** @typedef {{
+   * onEdit?: (() => void), status?: import('./types/contracts.js').BuildStatus,
+   * badgeEntry?: Partial<import('./types/contracts.js').BrowserEntry>,
+   * decoSource?: import('./types/contracts.js').BuildState,
+   * searchText?: string, subtitle?: string
+   * }} CardOptions */
+  /** @typedef {{
+   * displayName: string, resolved: import('./types/contracts.js').SpeciesResolution,
+   * subtitle?: string, statusLabel: string, statusText?: string, empty?: boolean,
+   * evSystems?: import('./types/contracts.js').EvSystem[], trainedBadges?: string, flagsHtml?: string,
+   * badgeEntry?: import('./types/contracts.js').BuildState,
+   * dotOpts?: {shiny?: boolean, transferredToChampions?: boolean, inChampions?: boolean,
+   * eventOrigin?: boolean, fromGo?: boolean, language?: string|null, genned?: boolean,
+   * gigantamax?: boolean, alpha?: boolean, slug?: string},
+   * item?: string|null, nature?: string|null, abilityLabel?: string,
+   * tera_type?: string, buildData?: import('./types/contracts.js').BuildState,
+   * decoSource: import('./types/contracts.js').BuildState & {
+   * status?: import('./types/contracts.js').BuildStatus,
+   * decorations?: import('./types/contracts.js').EntryDecorations
+   * },
+   * exportSource?: import('./types/contracts.js').BuildState, searchText?: string
+   * }} CardViewModel */
+  /** @typedef {{label: string, weight: number, build: import('./types/contracts.js').BuildState|null}} FactoryBuildOption */
+
+  /** @param {ParentNode} root @param {string} selector */
+  function requireElement(root, selector) {
+    const element = root.querySelector(selector);
+    if (!(element instanceof HTMLElement)) throw new Error(`Missing element: ${selector}`);
+    return element;
+  }
+
   const {
     escapeHtml,
     titleCase,
-    closePanel,
   } = UIShared;
   const {
     getEvSystems,
     getEvsForSystem,
-    getIvsForSystem,
     renderBaseStats,
     renderBuildShowdownBlock,
     renderBuildSummary,
   } = BuildUIHelpers;
 
-  function openInstanceEditor(boxId, slotIdx, opts = {}) {
+  /**
+   * @param {import('./types/contracts.js').BuildState|null|undefined} build
+   * @param {string|null|undefined} slug
+   * @param {{
+   * target?: HTMLElement|null, onSaved?: (() => void)|null, onCancel?: (() => void)|null,
+   * onSubmit?: ((payload: import('./types/contracts.js').BuildState) => void|Promise<void>)|null,
+   * saveButtonLabel?: string, editContext?: 'library'|'instance',
+   * instanceLocation?: {boxId: number, slotIdx: number}
+   * }} [options]
+   */
+  async function openBuildEditorForm(build, slug, options = {}) {
+    const requestRevision = options.target ? null : DetailPanel.beginRequest();
+    const { BuildEditor } = await import('./build-editor.js');
+    if (requestRevision != null && !DetailPanel.isRequestCurrent(requestRevision)) return;
+    unsubscribeInstance?.();
+    unsubscribeInstance = null;
+    return BuildEditor.openBuildForm(build, slug, {
+      ...options,
+      requestRevision,
+    });
+  }
+
+  /** @param {string} buildId */
+  async function deleteLibraryBuild(buildId) {
+    const { BuildEditor } = await import('./build-editor.js');
+    return BuildEditor.deleteBuild(buildId);
+  }
+
+  /** @param {number} boxId @param {number} slotIdx @param {InstanceEditorOptions} [opts] */
+  async function openInstanceEditor(boxId, slotIdx, opts = {}) {
     const instance = DataManager.getInstance(boxId, slotIdx);
     if (!instance) return;
 
     const subject = DetailSubjectVM.resolveSpeciesSubject(
-      instance.state?.species || instance.species_slug || instance.species_id,
+      {
+        species: instance.state?.species || instance.species_slug,
+        id: instance.species_id,
+      },
       { species: opts.speciesName || '', slug: opts.slug || '' }
     );
     const slug = instance.state?.slug || instance.species_slug || subject.slug || opts.slug || '';
     const speciesName = instance.state?.species || subject.speciesName || opts.speciesName || '';
     const stateBuild = DetailSubjectVM.createInstanceEditDraft(instance, speciesName, slug);
 
-    BuildEditor.openBuildForm(stateBuild, slug, {
+    await openBuildEditorForm(stateBuild, slug, {
       saveButtonLabel: opts.saveButtonLabel || 'Save Current Build',
       editContext: 'instance',
       instanceLocation: { boxId, slotIdx },
-      onSubmit: async (payload) => {
+      onSubmit: async (/** @type {import('./types/contracts.js').BuildState} */ payload) => {
         await DataManager.updateSlotBuild(boxId, slotIdx, payload);
       },
       onSaved: opts.onSaved,
@@ -44,13 +131,15 @@ export const PokemonViewer = (() => {
 
   // ── Shared trained badge computation ──────────────────
   const EV_MAX = { classic: 510, champions: 66 };
+  /** @param {import('./types/contracts.js').BuildState} data */
   function computeTrainedBadges(data) {
     const evSystems = getEvSystems(data);
     let html = '';
     for (const sys of evSystems) {
       const sysEvs = getEvsForSystem(data, sys);
       if (!sysEvs) continue;
-      const total = Object.values(sysEvs).reduce((s, v) => s + Number(v || 0), 0);
+      let total = 0;
+      for (const value of Object.values(sysEvs)) total += Number(value || 0);
       if (total >= (EV_MAX[sys] || 510)) {
         const label = evSystems.length > 1 ? ` ${titleCase(sys)}` : '';
         html += `<span class="trained-badge">✓ Trained${escapeHtml(label)}</span>`;
@@ -62,6 +151,7 @@ export const PokemonViewer = (() => {
   // ── Shared card renderer (ONE implementation) ─────────
   // Both createLibraryBuildCard and createInstanceCard delegate here.
   // vm = pre-normalized view model with all display-ready fields.
+  /** @param {CardViewModel} vm @param {CardOptions} [opts] */
   function buildCardElement(vm, opts = {}) {
     const card = document.createElement('div');
     card.className = `inventory-card inventory-card--${vm.statusLabel}`;
@@ -69,6 +159,7 @@ export const PokemonViewer = (() => {
     card.dataset.searchText = vm.searchText || '';
 
     if (vm.empty) {
+      const onEdit = opts.onEdit;
       card.innerHTML = `
         <div class="inventory-card-top">
           ${UIShared.spriteImgHtml(vm.resolved, vm.displayName, { cls: 'inventory-card-sprite', shiny: vm.dotOpts?.shiny })}
@@ -76,12 +167,12 @@ export const PokemonViewer = (() => {
             <div class="inventory-card-name-row"><h3>${escapeHtml(vm.displayName)}</h3></div>
             <p class="inventory-card-location">${escapeHtml(vm.subtitle)}</p>
           </div>
-          ${typeof opts.onEdit === 'function' ? '<div class="inventory-card-actions"><button class="inventory-card-edit-btn" title="Edit current Pokemon" aria-label="Edit current Pokemon">Edit</button></div>' : ''}
+          ${typeof onEdit === 'function' ? '<div class="inventory-card-actions"><button class="inventory-card-edit-btn" title="Edit current Pokemon" aria-label="Edit current Pokemon">Edit</button></div>' : ''}
         </div>`;
       UIShared.applyEntryDecorations(card, vm.decoSource);
       const editBtn = card.querySelector('.inventory-card-edit-btn');
       if (editBtn) {
-        editBtn.addEventListener('click', (event) => { event.stopPropagation(); opts.onEdit(); });
+        editBtn.addEventListener('click', (event) => { event.stopPropagation(); onEdit?.(); });
       }
       return card;
     }
@@ -102,39 +193,42 @@ export const PokemonViewer = (() => {
       </div>
       <div class="inventory-card-pills">
         <span class="status-badge status-${escapeHtml(vm.statusLabel)}">${escapeHtml(vm.statusText)}</span>
-        ${vm.evSystems.includes('champions') ? '<span class="ev-badge champions">Champions</span>' : ''}
-        ${vm.evSystems.includes('classic') && vm.evSystems.length > 1 ? '<span class="ev-badge classic">Classic</span>' : ''}
-        ${vm.trainedBadges}
-        ${vm.flagsHtml}
+        ${vm.evSystems?.includes('champions') ? '<span class="ev-badge champions">Champions</span>' : ''}
+        ${vm.evSystems?.includes('classic') && vm.evSystems.length > 1 ? '<span class="ev-badge classic">Classic</span>' : ''}
+        ${vm.trainedBadges || ''}
+        ${vm.flagsHtml || ''}
       </div>
       ${gameBadgesHtml ? `<div class="inventory-card-games">${gameBadgesHtml}</div>` : ''}
       <p class="inventory-card-meta">${vm.item ? escapeHtml(vm.item) : (vm.nature ? escapeHtml(vm.nature) : '')}${(vm.item || vm.nature) && vm.abilityLabel ? ' · ' : ''}${escapeHtml(vm.abilityLabel || 'Unknown ability')}</p>
       ${vm.tera_type ? `<p class="inventory-card-tera"><span class="type-badge type-${vm.tera_type.toLowerCase()}">${escapeHtml(vm.tera_type)}</span> Tera</p>` : ''}
-      ${renderBuildSummary(vm.buildData, { compact: true, showEvBars: true, showMoves: true })}
+      ${vm.buildData ? renderBuildSummary(vm.buildData, { compact: true, showEvBars: true, showMoves: true }) : ''}
     `;
 
     UIShared.applyEntryDecorations(card, vm.decoSource);
 
     // Copy button
-    const copyBtn = card.querySelector('.inventory-card-copy-btn');
+    const copyBtn = requireElement(card, '.inventory-card-copy-btn');
     copyBtn.addEventListener('click', async (event) => {
       event.stopPropagation();
+      if (!vm.exportSource) return;
       const text = TeamExportFormatter.formatMember(vm.exportSource);
       await UIShared.flashCopyFeedback(text, copyBtn, { successText: '✓', cssClass: 'copied' });
     });
 
     // Edit button
     const editBtn = card.querySelector('.inventory-card-edit-btn');
-    if (editBtn) {
+    const onEdit = opts.onEdit;
+    if (editBtn && onEdit) {
       editBtn.addEventListener('click', (event) => {
         event.stopPropagation();
-        opts.onEdit();
+        onEdit();
       });
     }
 
     return card;
   }
 
+  /** @param {import('./types/contracts.js').BuildState} build @param {CardOptions} [opts] */
   function createLibraryBuildCard(build, opts = {}) {
     const subject = DetailSubjectVM.resolveSpeciesSubject(build);
     const resolved = subject.resolved;
@@ -142,7 +236,9 @@ export const PokemonViewer = (() => {
     const battleReady = DataManager.anyInstanceMatchesBuild(build);
     const owned = DataManager.isBuildOwned(build);
     const status = opts.status || UIModels.evaluateBuildStatus(build, { owned, battleReady: battleReady.ready });
-    const usage = DataManager.countLibraryBuildUsage ? DataManager.countLibraryBuildUsage(build.id) : { teams: 0, instances: 0 };
+    const usage = build.id
+      ? DataManager.countLibraryBuildUsage(build.id)
+      : { teams: 0, instances: 0 };
     const linked = usage.instances;
     const teamCount = usage.teams;
 
@@ -158,7 +254,7 @@ export const PokemonViewer = (() => {
       subtitle = 'No linked instances';
     }
 
-    const badgeEntry = opts.badgeEntry || { slug: subject.slug, inChampions: subject.inChampions };
+    const badgeEntry = opts.badgeEntry || {};
     const decorations = UIModels.buildEntryDecorations({
       status,
       slug: badgeEntry.slug || subject.slug,
@@ -179,7 +275,7 @@ export const PokemonViewer = (() => {
       compatibleGames: badgeEntry.compatibleGames,
     });
     const card = buildCardElement({
-      displayName,
+      displayName: displayName || '',
       resolved,
       subtitle,
       statusLabel: status.badgeKey,
@@ -191,9 +287,9 @@ export const PokemonViewer = (() => {
       dotOpts: decorations.dotOptions,
       item: build.item,
       abilityLabel: DataManager.formatAbilityLabel(subject.slug, build.ability),
-      tera_type: build.tera_type,
+      tera_type: build.tera_type || undefined,
       buildData: build,
-      decoSource: opts.decoSource || { status, decorations },
+      decoSource: opts.decoSource || { slug: subject.slug, status, decorations },
       exportSource: build,
       searchText: opts.searchText || UIModels.buildSearchText([displayName, build.slug, build.item, build.ability, build.nature, build.moves || []]),
     }, opts);
@@ -203,14 +299,15 @@ export const PokemonViewer = (() => {
   }
 
   // ── Instance card (renders actual instance data, not library build) ──
+  /** @param {import('./types/contracts.js').BrowserEntry} entry @param {CardOptions} [opts] */
   function createInstanceCard(entry, opts = {}) {
-    const subject = DetailSubjectVM.resolveSpeciesSubject({ slug: entry.slug, species: entry.species, form: entry.form });
+    const subject = DetailSubjectVM.resolveSpeciesSubject({ slug: entry.slug, species: entry.species });
     const resolved = subject.resolved;
     const displayName = UIModels.formatDisplayName(entry);
-    const status = entry.status || {};
+    const status = entry.status || /** @type {Partial<import('./types/contracts.js').BuildStatus>} */ ({});
 
     const card = buildCardElement({
-      displayName,
+      displayName: displayName || '',
       resolved,
       subtitle: entry.location || '',
       statusLabel: status.badgeKey || 'build',
@@ -223,7 +320,7 @@ export const PokemonViewer = (() => {
       item: null,
       nature: entry.nature,
       abilityLabel: DataManager.formatAbilityLabel(subject.slug, entry.ability),
-      tera_type: entry.tera_type,
+      tera_type: entry.tera_type || undefined,
       buildData: entry,
       decoSource: entry,
       exportSource: entry,
@@ -234,11 +331,12 @@ export const PokemonViewer = (() => {
   }
 
   // Empty card for instances with no build data or species with no build
+  /** @param {import('./types/contracts.js').BrowserEntry} entry @param {CardOptions} [opts] */
   function createEmptyCard(entry, opts = {}) {
-    const resolved = DetailSubjectVM.resolveSpeciesSubject({ slug: entry.slug, species: entry.species, form: entry.form }).resolved;
+    const resolved = DetailSubjectVM.resolveSpeciesSubject({ slug: entry.slug, species: entry.species }).resolved;
     const displayName = UIModels.formatDisplayName(entry);
     return buildCardElement({
-      displayName,
+      displayName: displayName || '',
       resolved,
       subtitle: entry.location || opts.subtitle || '',
       statusLabel: 'empty',
@@ -249,12 +347,22 @@ export const PokemonViewer = (() => {
     }, opts);
   }
 
+  /** @param {FactoryBuildOption} set @returns {set is FactoryBuildOption & {build: import('./types/contracts.js').BuildState}} */
+  function hasFactoryBuild(set) {
+    return !!set.build;
+  }
+
+  /**
+   * @param {string} speciesName
+   * @param {(build: import('./types/contracts.js').BuildState) => void|Promise<void>} onPick
+   */
   async function openFactorySetPicker(speciesName, onPick) {
+    /** @type {Array<FactoryBuildOption & {build: import('./types/contracts.js').BuildState}>} */
     let sets = [];
     try {
-      sets = await DataManager.listFactorySets(speciesName);
+      sets = (await DataManager.listFactorySets(speciesName)).filter(hasFactoryBuild);
     } catch (err) {
-      UIShared.showToast(`Could not load factory sets: ${err.message}`);
+      Feedback.showToast(`Could not load factory sets: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
     const speciesResolved = DataManager.resolveSpecies(speciesName);
@@ -292,25 +400,27 @@ export const PokemonViewer = (() => {
       </div>`;
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
-    overlay.querySelector('.bulk-export-close').addEventListener('click', close);
+    overlay.querySelector('.bulk-export-close')?.addEventListener('click', close);
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) close();
     });
     for (const button of overlay.querySelectorAll('.factory-picker-apply')) {
+      if (!(button instanceof HTMLElement)) continue;
       button.addEventListener('click', async () => {
-        const index = parseInt(button.dataset.idx, 10);
+        const index = parseInt(button.dataset.idx || '', 10);
         const set = sets[index];
         if (!set) return;
         close();
         try {
           await onPick(set.build);
         } catch (err) {
-          UIShared.showToast(`Apply failed: ${err.message}`);
+          Feedback.showToast(`Apply failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       });
     }
   }
 
+  /** @param {string} speciesSlug @param {(buildId: string) => void|Promise<void>} onPick */
   async function openTargetBuildPicker(speciesSlug, onPick) {
     const candidates = (DataManager.getAllBuilds() || []).filter((build) => {
       if (!speciesSlug) return true;
@@ -333,7 +443,7 @@ export const PokemonViewer = (() => {
             ${build.ability ? `<span class="pill">${escapeHtml(DataManager.formatAbilityLabel(DataManager.resolveSpecies(build.species)?.slug || '', build.ability))}</span>` : ''}
             ${build.tera_type ? `<span class="pill">Tera ${escapeHtml(build.tera_type)}</span>` : ''}
           </div>
-          <button type="button" class="btn btn-sm btn-primary target-picker-apply" data-id="${escapeHtml(build.id)}">Use this build</button>
+          <button type="button" class="btn btn-sm btn-primary target-picker-apply" data-id="${escapeHtml(build.id || '')}">Use this build</button>
         </div>
       `).join('') + '</div>';
     }
@@ -347,25 +457,33 @@ export const PokemonViewer = (() => {
       </div>`;
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
-    overlay.querySelector('.bulk-export-close').addEventListener('click', close);
+    overlay.querySelector('.bulk-export-close')?.addEventListener('click', close);
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) close();
     });
     for (const button of overlay.querySelectorAll('.target-picker-apply')) {
+      if (!(button instanceof HTMLElement)) continue;
       button.addEventListener('click', async () => {
         const id = button.dataset.id;
+        if (!id) return;
         close();
         try {
           await onPick(id);
         } catch (err) {
-          UIShared.showToast(`Set target failed: ${err.message}`);
+          Feedback.showToast(`Set target failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       });
     }
   }
 
+  /**
+   * @param {import('./types/contracts.js').BuildState} member
+   * @param {import('./types/contracts.js').BuildState} build
+   * @param {import('./types/contracts.js').EvSystem} evSystem
+   */
   function renderBuildGap(member, build, evSystem) {
     const fields = [];
+    /** @param {string|null|undefined} a @param {string|null|undefined} b */
     const cmp = (a, b) => (a || '').toLowerCase() === (b || '').toLowerCase();
     const gapSlug = DataManager.resolveSpecies(member.species || build.species)?.slug || '';
     if (member.nature || build.nature) {
@@ -385,7 +503,8 @@ export const PokemonViewer = (() => {
 
     const memberEvs = getEvsForSystem(member, evSystem || 'classic') || {};
     const buildEvs = getEvsForSystem(build, evSystem || 'classic') || {};
-    const evKeys = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+    const evKeys = /** @type {import('./types/contracts.js').StatKey[]} */ (['hp', 'atk', 'def', 'spa', 'spd', 'spe']);
+    /** @type {Array<{stat: string, recipe: string|number, build: string|number}>} */
     const evDiffs = [];
     for (const key of evKeys) {
       const memberValue = memberEvs[key] || 0;
@@ -443,7 +562,8 @@ export const PokemonViewer = (() => {
     return html;
   }
 
-  function renderViewerBuild(build, index, total, teamEvSystem) {
+  /** @param {import('./types/contracts.js').BuildState} build @param {number} index @param {number} total */
+  function renderViewerBuild(build, index, total) {
     const displayName = UIModels.formatDisplayName(build);
     let html = `<div class="comp-section viewer-build-section viewer-build-card" data-build-id="${build.id || ''}">`;
     html += '<div class="viewer-build-card-header">';
@@ -517,12 +637,25 @@ export const PokemonViewer = (() => {
     return html;
   }
 
-  function openPokemonViewer(ctx) {
+  /** @param {ViewerContext} ctx */
+  async function openPokemonViewer(ctx) {
+    unsubscribeInstance?.();
+    unsubscribeInstance = null;
+    const requestRevision = DetailPanel.beginRequest();
+    try {
+      await DataManager.ensureEditorData();
+    } catch (error) {
+      if (!DetailPanel.isRequestCurrent(requestRevision)) return;
+      console.error('[PokemonViewer] failed to load reference data', error);
+      Feedback.showToast('Pokemon details could not be loaded.');
+      return;
+    }
+    if (!DetailPanel.isRequestCurrent(requestRevision)) return;
     const subject = DetailSubjectVM.resolveSpeciesSubject(
-      ctx.species || ctx.slug || ctx.build || ctx.member || null,
+      ctx.species || ctx.build || ctx.member || (ctx.slug ? { slug: ctx.slug } : null),
       { species: ctx.build?.species || ctx.member?.species || '', slug: ctx.species?.slug || '' }
     );
-    const { speciesEntry, slug, dexId, speciesName, inChampions } = subject;
+    const { speciesEntry, slug, dexId, speciesName } = subject;
     const teamSubmetaHtml = ctx.team && ctx.member
       ? `<p class="detail-submeta">${escapeHtml(ctx.team.archetype || '')}${ctx.team.team_id && ctx.team.ev_system === 'champions' ? ` · ID ${escapeHtml(ctx.team.team_id)}` : ''}</p>`
       : '';
@@ -538,7 +671,9 @@ export const PokemonViewer = (() => {
       }),
     });
 
+    /** @type {import('./types/contracts.js').InstanceModel|null} */
     let instance = null;
+    /** @type {import('./types/contracts.js').BuildState|null} */
     let instanceStateFlat = null;
     if (ctx.boxId !== undefined && ctx.slotIdx !== undefined && DataManager.getInstance) {
       instance = DataManager.getInstance(ctx.boxId, ctx.slotIdx);
@@ -546,18 +681,18 @@ export const PokemonViewer = (() => {
     if (instance && instance.state) {
       const state = instance.state || {};
       instanceStateFlat = {
-        nature: state.nature || null,
-        ability: state.ability || null,
-        item: state.item || null,
-        tera_type: state.tera_type || null,
+        nature: state.nature || undefined,
+        ability: state.ability || undefined,
+        item: state.item || undefined,
+        tera_type: state.tera_type || undefined,
         moves: state.moves || [],
-        evs: getEvsForSystem(state, 'classic') || {},
+        evs: { classic: getEvsForSystem(state, 'classic') || {} },
       };
 
       html += '<div class="comp-section viewer-build-section viewer-build-card current-build-card">';
       html += '<div class="viewer-build-card-header">';
       html += '<h3>Current Build</h3>';
-      html += `<span class="viewer-build-card-item">Box ${ctx.boxId + 1} · Slot ${ctx.slotIdx + 1}</span>`;
+      html += `<span class="viewer-build-card-item">Box ${(ctx.boxId ?? 0) + 1} · Slot ${(ctx.slotIdx ?? 0) + 1}</span>`;
       html += '</div>';
       html += '<p class="muted current-build-help">The actual stats on this Pokémon. Edit anytime as you train it.</p>';
       const badgeEntry = {
@@ -611,6 +746,7 @@ export const PokemonViewer = (() => {
       html += '</div>';
     }
 
+    /** @type {import('./types/contracts.js').BuildState[]} */
     let allBuilds;
     if (ctx.build?.id && !ctx.species) {
       allBuilds = [ctx.build];
@@ -621,9 +757,8 @@ export const PokemonViewer = (() => {
       const build = DataManager.getBuild(instance.target_build_id);
       allBuilds = build ? [build] : [];
     } else {
-      allBuilds = dexId ? DataManager.getCompetitiveSets(dexId) : (slug ? DataManager.getAllBuilds().filter((build) => build.slug === slug) : []);
+      allBuilds = dexId ? DataManager.getCompetitiveSets(Number(dexId)) : (slug ? DataManager.getAllBuilds().filter((build) => build.slug === slug) : []);
     }
-    const teamEvSystem = ctx.team?.ev_system || null;
 
     if (allBuilds.length) {
       const ownedCount = allBuilds.filter((build) => DataManager.isBuildOwned(build)).length;
@@ -645,14 +780,14 @@ export const PokemonViewer = (() => {
         </div>`;
 
       html += allBuilds.map((build, index) => {
-        let buildHtml = renderViewerBuild(build, index, allBuilds.length, teamEvSystem);
+        let buildHtml = renderViewerBuild(build, index, allBuilds.length);
         if (instance && instanceStateFlat && instance.target_build_id === build.id) {
           buildHtml += renderBuildGap(instanceStateFlat, build, build.ev_system || 'classic');
         }
         return buildHtml;
       }).join('');
     } else if (instance) {
-      const candidates = dexId ? DataManager.getCompetitiveSets(dexId) : (slug ? DataManager.getAllBuilds().filter((build) => build.slug === slug) : []);
+      const candidates = dexId ? DataManager.getCompetitiveSets(Number(dexId)) : (slug ? DataManager.getAllBuilds().filter((build) => build.slug === slug) : []);
       if (candidates.length) {
         html += `<p class="muted pokemon-viewer-empty-note">No target build set. <button type="button" class="btn btn-xs btn-link" id="cb-set-target-btn-2" data-box="${ctx.boxId}" data-slot="${ctx.slotIdx}" data-slug="${escapeHtml(slug || '')}">Pick one of the ${candidates.length} ${UIShared.pluralize(candidates.length, 'Library Build')} for this species</button>.</p>`;
       } else {
@@ -669,36 +804,45 @@ export const PokemonViewer = (() => {
       html += renderBaseStats(speciesEntry.baseStats);
     }
 
-    const content = DetailViewerSurface.mount(html);
+    const content = DetailViewerSurface.mount(html, {
+      onBeforeClose: () => {
+        unsubscribeInstance?.();
+        unsubscribeInstance = null;
+      },
+    });
 
     // Mount instance metadata editor (ball picker, gender toggle, flag checkboxes)
     InstanceMetadataSection.mount(content);
 
-    // Re-render viewer when metadata changes (badges, sprite may update)
-    const _metaHandler = (e) => {
-      const d = e.detail || {};
-      if (d.boxId === ctx.boxId && d.slotIdx === ctx.slotIdx) {
-        document.removeEventListener('instance-metadata-changed', _metaHandler);
-        // Build fresh ctx from updated slot data (species may have changed via form switch)
-        const freshOccupant = DataManager.getSlot(ctx.boxId, ctx.slotIdx);
+    const contextBoxId = ctx.boxId;
+    const contextSlotIdx = ctx.slotIdx;
+    if (typeof contextBoxId === 'number' && typeof contextSlotIdx === 'number'
+      && Number.isInteger(contextBoxId) && Number.isInteger(contextSlotIdx)) {
+      unsubscribeInstance = EntityStore.subscribe('inventory', (event) => {
+        const changed = event.change.slots?.some(
+          (slot) => slot.boxId === contextBoxId && slot.slotIdx === contextSlotIdx
+        );
+        if (!changed) return;
+        unsubscribeInstance?.();
+        unsubscribeInstance = null;
+        const freshOccupant = DataManager.getSlot(contextBoxId, contextSlotIdx);
         const freshSpeciesId = freshOccupant?.species_id || ctx.slug;
         const freshResolved = DataManager.resolveSpecies(freshSpeciesId);
         const linkedBuildId = typeof freshOccupant?.target_build_id === 'string' ? freshOccupant.target_build_id : null;
         openPokemonViewer({
-          slug: freshResolved.slug || freshSpeciesId,
-          boxId: ctx.boxId,
-          slotIdx: ctx.slotIdx,
+          slug: String(freshResolved.slug || freshSpeciesId || ''),
+          boxId: contextBoxId,
+          slotIdx: contextSlotIdx,
           build: linkedBuildId ? DataManager.getBuild(linkedBuildId) : null,
         });
-      }
-    };
-    document.addEventListener('instance-metadata-changed', _metaHandler);
+      });
+    }
 
     const editBtn = content.querySelector('#cb-edit-btn');
-    if (editBtn) {
+    if (editBtn instanceof HTMLElement) {
       editBtn.addEventListener('click', () => {
-        const boxId = parseInt(editBtn.dataset.box, 10);
-        const slotIdx = parseInt(editBtn.dataset.slot, 10);
+        const boxId = parseInt(editBtn.dataset.box || '', 10);
+        const slotIdx = parseInt(editBtn.dataset.slot || '', 10);
         openInstanceEditor(boxId, slotIdx, {
           onSaved: () => openPokemonViewer(ctx),
           onCancel: () => openPokemonViewer(ctx),
@@ -707,10 +851,10 @@ export const PokemonViewer = (() => {
     }
 
     const factoryBtn = content.querySelector('#cb-factory-btn');
-    if (factoryBtn) {
+    if (factoryBtn instanceof HTMLElement) {
       factoryBtn.addEventListener('click', async () => {
-        const boxId = parseInt(factoryBtn.dataset.box, 10);
-        const slotIdx = parseInt(factoryBtn.dataset.slot, 10);
+        const boxId = parseInt(factoryBtn.dataset.box || '', 10);
+        const slotIdx = parseInt(factoryBtn.dataset.slot || '', 10);
         const speciesNameForPicker = factoryBtn.dataset.species || speciesName;
         await openFactorySetPicker(speciesNameForPicker, async (build) => {
           await DataManager.updateSlotBuild(boxId, slotIdx, build);
@@ -720,11 +864,11 @@ export const PokemonViewer = (() => {
     }
 
     const promoteBtn = content.querySelector('#cb-promote-btn');
-    if (promoteBtn) {
+    if (promoteBtn instanceof HTMLElement) {
       promoteBtn.addEventListener('click', async () => {
-        const boxId = parseInt(promoteBtn.dataset.box, 10);
-        const slotIdx = parseInt(promoteBtn.dataset.slot, 10);
-        if (!await UIShared.showConfirm(
+        const boxId = parseInt(promoteBtn.dataset.box || '', 10);
+        const slotIdx = parseInt(promoteBtn.dataset.slot || '', 10);
+        if (!await Feedback.showConfirm(
           'Promote this Pokémon\'s Current Build to a new Library Build?',
           { title: 'Promote Build', detail: 'If an identical Library Build already exists, it will be reused instead of duplicated.', confirmLabel: 'Promote' }
         )) return;
@@ -732,14 +876,15 @@ export const PokemonViewer = (() => {
           const libraryBuild = await DataManager.promoteInstanceBuildToLibrary(boxId, slotIdx);
           if (libraryBuild) openPokemonViewer(ctx);
         } catch (err) {
-          UIShared.showToast(`Promote failed: ${err.message}`);
+          Feedback.showToast(`Promote failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       });
     }
 
+    /** @param {HTMLElement} button */
     const setTargetHandler = async (button) => {
-      const boxId = parseInt(button.dataset.box, 10);
-      const slotIdx = parseInt(button.dataset.slot, 10);
+      const boxId = parseInt(button.dataset.box || '', 10);
+      const slotIdx = parseInt(button.dataset.slot || '', 10);
       const speciesSlugAttr = button.dataset.slug || slug;
       await openTargetBuildPicker(speciesSlugAttr, async (buildId) => {
         await DataManager.setTargetBuild(boxId, slotIdx, buildId);
@@ -747,21 +892,21 @@ export const PokemonViewer = (() => {
       });
     };
     const setTargetBtn = content.querySelector('#cb-set-target-btn');
-    if (setTargetBtn) setTargetBtn.addEventListener('click', () => setTargetHandler(setTargetBtn));
+    if (setTargetBtn instanceof HTMLElement) setTargetBtn.addEventListener('click', () => setTargetHandler(setTargetBtn));
     const changeTargetBtn = content.querySelector('#cb-change-target-btn');
-    if (changeTargetBtn) changeTargetBtn.addEventListener('click', () => setTargetHandler(changeTargetBtn));
+    if (changeTargetBtn instanceof HTMLElement) changeTargetBtn.addEventListener('click', () => setTargetHandler(changeTargetBtn));
     const setTargetBtn2 = content.querySelector('#cb-set-target-btn-2');
-    if (setTargetBtn2) setTargetBtn2.addEventListener('click', () => setTargetHandler(setTargetBtn2));
+    if (setTargetBtn2 instanceof HTMLElement) setTargetBtn2.addEventListener('click', () => setTargetHandler(setTargetBtn2));
     const clearTargetBtn = content.querySelector('#cb-clear-target-btn');
-    if (clearTargetBtn) {
+    if (clearTargetBtn instanceof HTMLElement) {
       clearTargetBtn.addEventListener('click', async () => {
-        const boxId = parseInt(clearTargetBtn.dataset.box, 10);
-        const slotIdx = parseInt(clearTargetBtn.dataset.slot, 10);
+        const boxId = parseInt(clearTargetBtn.dataset.box || '', 10);
+        const slotIdx = parseInt(clearTargetBtn.dataset.slot || '', 10);
         try {
           await DataManager.clearTargetBuild(boxId, slotIdx);
           openPokemonViewer(ctx);
         } catch (err) {
-          UIShared.showToast(`Clear failed: ${err.message}`);
+          Feedback.showToast(`Clear failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       });
     }
@@ -769,7 +914,7 @@ export const PokemonViewer = (() => {
     const newBuildBtn = content.querySelector('#new-build-species-btn');
     if (newBuildBtn) {
       newBuildBtn.addEventListener('click', () => {
-        BuildEditor.openBuildForm(null, slug, {
+        void openBuildEditorForm(null, slug, {
           editContext: 'library',
           onSaved: () => openPokemonViewer(ctx),
           onCancel: () => openPokemonViewer(ctx),
@@ -778,11 +923,14 @@ export const PokemonViewer = (() => {
     }
 
     for (const button of content.querySelectorAll('.viewer-build-edit')) {
+      if (!(button instanceof HTMLElement)) continue;
       button.addEventListener('click', (event) => {
         event.stopPropagation();
-        const build = DataManager.getBuild(button.dataset.buildId);
+        const buildId = button.dataset.buildId;
+        if (!buildId) return;
+        const build = DataManager.getBuild(buildId);
         if (!build) return;
-        BuildEditor.openBuildForm(build, build.slug, {
+        void openBuildEditorForm(build, build.slug, {
           editContext: 'library',
           onSaved: () => openPokemonViewer(ctx),
           onCancel: () => openPokemonViewer(ctx),
@@ -791,12 +939,15 @@ export const PokemonViewer = (() => {
     }
 
     for (const button of content.querySelectorAll('.viewer-build-clone')) {
+      if (!(button instanceof HTMLElement)) continue;
       button.addEventListener('click', (event) => {
         event.stopPropagation();
-        const source = DataManager.getBuild(button.dataset.buildId);
+        const buildId = button.dataset.buildId;
+        if (!buildId) return;
+        const source = DataManager.getBuild(buildId);
         if (!source) return;
         const clone = { ...source, id: undefined, owned: false, notes: `Cloned from ${source.species}` };
-        BuildEditor.openBuildForm(clone, clone.slug, {
+        void openBuildEditorForm(clone, clone.slug, {
           editContext: 'library',
           onSaved: () => openPokemonViewer(ctx),
           onCancel: () => openPokemonViewer(ctx),
@@ -805,30 +956,35 @@ export const PokemonViewer = (() => {
     }
 
     for (const button of content.querySelectorAll('.viewer-build-delete')) {
+      if (!(button instanceof HTMLElement)) continue;
       button.addEventListener('click', (event) => {
         event.stopPropagation();
-        BuildEditor.deleteBuild(button.dataset.buildId);
+        if (button.dataset.buildId) void deleteLibraryBuild(button.dataset.buildId);
       });
     }
 
     for (const button of content.querySelectorAll('.viewer-copy-btn')) {
+      if (!(button instanceof HTMLElement)) continue;
       button.addEventListener('click', () => {
         const blockEl = button.closest('.viewer-showdown-block');
         const pre = blockEl?.querySelector('.pokepaste-preview');
         if (!pre) return;
-        UIShared.flashCopyFeedback(pre.textContent, button, { successText: 'Copied!', cssClass: 'is-copied' });
+        UIShared.flashCopyFeedback(pre.textContent || '', button, { successText: 'Copied!', cssClass: 'is-copied' });
       });
     }
 
     for (const toggle of content.querySelectorAll('.viewer-ev-toggle')) {
+      if (!(toggle instanceof HTMLElement)) continue;
       const blockId = toggle.dataset.blockId;
       const panels = content.querySelector(`.viewer-showdown-panels[data-block-id="${blockId}"]`);
       for (const button of toggle.querySelectorAll('.viewer-ev-sys-btn')) {
+        if (!(button instanceof HTMLElement)) continue;
         button.addEventListener('click', () => {
           const system = button.dataset.sys;
           toggle.querySelectorAll('.viewer-ev-sys-btn').forEach((candidate) => candidate.classList.remove('active'));
           button.classList.add('active');
-          panels.querySelectorAll('.viewer-showdown-panel').forEach((panel) => {
+          panels?.querySelectorAll('.viewer-showdown-panel').forEach((panel) => {
+            if (!(panel instanceof HTMLElement)) return;
             panel.hidden = panel.dataset.sys !== system;
           });
         });
@@ -838,7 +994,3 @@ export const PokemonViewer = (() => {
 
   return { openPokemonViewer, createLibraryBuildCard, createInstanceCard, createEmptyCard, openInstanceEditor };
 })();
-
-if (typeof window !== 'undefined') {
-  window.PokemonViewer = PokemonViewer;
-}

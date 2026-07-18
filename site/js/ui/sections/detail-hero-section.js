@@ -1,7 +1,16 @@
+import { UIShared } from '../../ui-shared.js';
+
 /**
  * ui/sections/detail-hero-section.js - Shared detail hero/header rendering.
  */
 export const DetailHeroSection = (() => {
+  /**
+   * @param {{
+   * slug: string, speciesName: string, dexId: string|number,
+   * speciesEntry?: object|null
+   * }} subject
+   * @param {{submetaHtml?: string, pillsHtml?: string}} [options]
+   */
   function renderPokemon(subject, options = {}) {
     const {
       submetaHtml = '',
@@ -17,7 +26,10 @@ export const DetailHeroSection = (() => {
       html += `<p class="detail-dex">#${String(subject.dexId).padStart(4, '0')}</p>`;
     }
 
-    const types = subject.speciesEntry?.types || [];
+    const types = subject.speciesEntry && 'types' in subject.speciesEntry
+      && Array.isArray(subject.speciesEntry.types)
+      ? /** @type {string[]} */ (subject.speciesEntry.types)
+      : [];
     if (types.length) {
       html += `<div class="type-badges">${types.map((type) => `<span class="type-badge type-${escapeHtml(type.toLowerCase())}">${escapeHtml(type)}</span>`).join('')}</div>`;
     }
@@ -28,6 +40,7 @@ export const DetailHeroSection = (() => {
     return html;
   }
 
+  /** @param {{title?: string, subtitleHtml?: string, pillsHtml?: string, artworkHtml?: string}} [options] */
   function renderSimple(options = {}) {
     const {
       title = '—',
@@ -50,7 +63,3 @@ export const DetailHeroSection = (() => {
     renderSimple,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.DetailHeroSection = DetailHeroSection;
-}

@@ -1,7 +1,11 @@
+import { AppStore } from '../../state/app-store.js';
+import { UIModels } from '../../ui-models.js';
+
 /**
  * ui/sections/filter-toolbar.js - Shared filter-toolbar section builders.
  */
 export const FilterToolbarSection = (() => {
+  /** @typedef {{escapeHtml?: (value: string) => string, allTypes?: string[]}} ToolbarDependencies */
   const GENERATIONS = [
     { value: '1', label: 'Gen 1 (Kanto)' },
     { value: '2', label: 'Gen 2 (Johto)' },
@@ -25,6 +29,7 @@ export const FilterToolbarSection = (() => {
     { key: 'ev_guesstimate', label: 'EV ?' },
   ];
 
+  /** @param {unknown} value */
   function fallbackEscapeHtml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -34,6 +39,7 @@ export const FilterToolbarSection = (() => {
       .replace(/'/g, '&#39;');
   }
 
+  /** @param {string} label @param {string} controlHtml @param {ToolbarDependencies} [deps] */
   function renderToolbarGroup(label, controlHtml, deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     return `
@@ -43,6 +49,7 @@ export const FilterToolbarSection = (() => {
       </div>`;
   }
 
+  /** @param {string[]} [selectedKeys] @param {ToolbarDependencies} [deps] */
   function renderBrowserGameControls(selectedKeys = [], deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     return UIModels.getGameCatalog().map((game) => `
@@ -53,6 +60,7 @@ export const FilterToolbarSection = (() => {
     `).join('');
   }
 
+  /** @param {string} [selectedType] @param {ToolbarDependencies} [deps] */
   function renderBrowserTypeControl(selectedType = '', deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     const allTypes = deps.allTypes || [];
@@ -64,6 +72,7 @@ export const FilterToolbarSection = (() => {
     </select>`;
   }
 
+  /** @param {string} [selectedGen] @param {ToolbarDependencies} [deps] */
   function renderBrowserGenerationControl(selectedGen = '', deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     return `<select data-browser-generation class="browser-toolbar__select" aria-label="Generation">
@@ -74,8 +83,8 @@ export const FilterToolbarSection = (() => {
     </select>`;
   }
 
-  function renderBrowserTransferredControl(value = '', deps = {}) {
-    const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
+  /** @param {string} [value] */
+  function renderBrowserTransferredControl(value = '') {
     return `<select data-browser-transferred class="browser-toolbar__select" aria-label="Transferred" title="Filter by transfer status to Champions">
       <option value=""${value === '' ? ' selected' : ''}>All</option>
       <option value="yes"${value === 'yes' ? ' selected' : ''}>Transferred</option>
@@ -83,6 +92,7 @@ export const FilterToolbarSection = (() => {
     </select>`;
   }
 
+  /** @param {boolean} checked */
   function renderBrowserOwnedOnlyControl(checked) {
     return `<label class="browser-toolbar__check">
       <input type="checkbox" data-browser-owned-only ${checked ? 'checked' : ''}>
@@ -90,8 +100,8 @@ export const FilterToolbarSection = (() => {
     </label>`;
   }
 
-  function renderBrowserSourceControl(value = '', deps = {}) {
-    const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
+  /** @param {string} [value] */
+  function renderBrowserSourceControl(value = '') {
     return `<select data-browser-source class="browser-toolbar__select" aria-label="Source" title="Filter by build source">
       <option value=""${value === '' ? ' selected' : ''}>All</option>
       <option value="mine"${value === 'mine' ? ' selected' : ''}>Mine</option>
@@ -99,6 +109,7 @@ export const FilterToolbarSection = (() => {
     </select>`;
   }
 
+  /** @param {string[]} [selectedFlags] @param {ToolbarDependencies} [deps] */
   function renderBrowserFlagsControl(selectedFlags = [], deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     return FLAG_FILTERS.map(({ key, label }) => `
@@ -109,6 +120,7 @@ export const FilterToolbarSection = (() => {
     `).join('');
   }
 
+  /** @param {import('../../types/contracts.js').BrowserQuery['mode']} mode @param {ToolbarDependencies} [deps] */
   function renderBrowserModeControl(mode, deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
     return `
@@ -118,6 +130,7 @@ export const FilterToolbarSection = (() => {
       </div>`;
   }
 
+  /** @param {Partial<import('../../types/contracts.js').BrowserQuery>} [query] */
   function countActiveFilters(query = {}) {
     return [
       query.type,
@@ -130,9 +143,13 @@ export const FilterToolbarSection = (() => {
     ].filter(Boolean).length;
   }
 
+  /**
+   * @param {Partial<import('../../types/contracts.js').BrowserToolbarModel> & {secondaryOpen?: boolean}} [config]
+   * @param {ToolbarDependencies} [deps]
+   */
   function renderBrowserToolbar(config = {}, deps = {}) {
     const escapeHtml = deps.escapeHtml || fallbackEscapeHtml;
-    const query = config.query || {};
+    const query = /** @type {Partial<import('../../types/contracts.js').BrowserQuery>} */ (config.query || {});
     const toolbar = document.createElement('section');
     toolbar.className = 'browser-toolbar';
     toolbar.dataset.route = config.route || '';
@@ -158,7 +175,7 @@ export const FilterToolbarSection = (() => {
     }
 
     if (config.showTransferred) {
-      filterGroups.push(renderToolbarGroup('Transferred', renderBrowserTransferredControl(query.transferred || '', { escapeHtml }), { escapeHtml }));
+      filterGroups.push(renderToolbarGroup('Transferred', renderBrowserTransferredControl(query.transferred || ''), { escapeHtml }));
     }
 
     if (config.showOwnedOnly) {
@@ -166,7 +183,7 @@ export const FilterToolbarSection = (() => {
     }
 
     if (config.showSource) {
-      filterGroups.push(renderToolbarGroup('Source', renderBrowserSourceControl(query.source || '', { escapeHtml }), { escapeHtml }));
+      filterGroups.push(renderToolbarGroup('Source', renderBrowserSourceControl(query.source || ''), { escapeHtml }));
     }
 
     if (primaryGroups.length) {
@@ -213,54 +230,66 @@ export const FilterToolbarSection = (() => {
     return toolbar;
   }
 
+  /** @param {HTMLElement|null} container @param {{route?: import('../../types/contracts.js').RouteSection}} [opts] */
   function bindBrowserToolbar(container, opts = {}) {
     if (!container || typeof AppStore === 'undefined') return;
-    const route = String(opts.route || container.dataset.route || AppStore.getActiveQueryRoute?.() || '').trim();
+    const route = /** @type {import('../../types/contracts.js').RouteSection} */ (
+      String(opts.route || container.dataset.route || AppStore.getActiveQueryRoute?.() || '').trim()
+    );
     if (!route) return;
 
     container.querySelectorAll('[data-browser-mode]').forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
       button.addEventListener('click', () => {
-        AppStore.setBrowserMode(route, button.dataset.browserMode);
+        const mode = /** @type {import('../../types/contracts.js').BrowserQuery['mode']} */ (button.dataset.browserMode);
+        AppStore.setBrowserMode(route, mode);
       });
     });
 
     container.querySelectorAll('[data-browser-game]').forEach((checkbox) => {
+      if (!(checkbox instanceof HTMLInputElement)) return;
       checkbox.addEventListener('change', () => {
         AppStore.toggleBrowserGame(route, checkbox.dataset.browserGame);
       });
     });
 
     container.querySelectorAll('[data-browser-type]').forEach((select) => {
+      if (!(select instanceof HTMLSelectElement)) return;
       select.addEventListener('change', () => {
         AppStore.setBrowserTypeFilter(route, select.value);
       });
     });
 
     container.querySelectorAll('[data-browser-generation]').forEach((select) => {
+      if (!(select instanceof HTMLSelectElement)) return;
       select.addEventListener('change', () => {
         AppStore.setBrowserGenerationFilter(route, select.value);
       });
     });
 
     container.querySelectorAll('[data-browser-transferred]').forEach((select) => {
+      if (!(select instanceof HTMLSelectElement)) return;
       select.addEventListener('change', () => {
         AppStore.setBrowserTransferredFilter(route, select.value);
       });
     });
 
     container.querySelectorAll('[data-browser-owned-only]').forEach((checkbox) => {
+      if (!(checkbox instanceof HTMLInputElement)) return;
       checkbox.addEventListener('change', () => {
         AppStore.setBrowserOwnedOnly(route, checkbox.checked);
       });
     });
 
     container.querySelectorAll('[data-browser-source]').forEach((select) => {
+      if (!(select instanceof HTMLSelectElement)) return;
       select.addEventListener('change', () => {
         AppStore.setBrowserSourceFilter(route, select.value);
       });
     });
 
     container.querySelectorAll('[data-browser-flag]').forEach((checkbox) => {
+      if (!(checkbox instanceof HTMLInputElement)) return;
       checkbox.addEventListener('change', () => {
         AppStore.toggleBrowserFlag(route, checkbox.dataset.browserFlag);
       });
@@ -272,7 +301,3 @@ export const FilterToolbarSection = (() => {
     bindBrowserToolbar,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.FilterToolbarSection = FilterToolbarSection;
-}

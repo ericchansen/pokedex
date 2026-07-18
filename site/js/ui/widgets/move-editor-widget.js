@@ -1,8 +1,14 @@
+import { UIShared } from '../../ui-shared.js';
+
 /**
  * ui/widgets/move-editor-widget.js - Shared move editor rendering and wiring.
  */
 export const MoveEditorWidget = (() => {
-  function renderClearableFields(values = [], options = {}) {
+  /**
+   * @param {string[]} values
+   * @param {{count?: number, idPrefix: string, labelPrefix?: string, placeholder?: string, flagsIdPrefix?: string, escapeHtml?: (value: string) => string}} options
+   */
+  function renderClearableFields(values, options) {
     const {
       count = 4,
       idPrefix,
@@ -26,7 +32,11 @@ export const MoveEditorWidget = (() => {
     `).join('');
   }
 
-  function renderSimpleFields(values = [], options = {}) {
+  /**
+   * @param {string[]} values
+   * @param {{count?: number, inputClassPrefix: string, labelPrefix?: string, placeholder?: string, escapeHtml?: (value: string) => string}} options
+   */
+  function renderSimpleFields(values, options) {
     const {
       count = 4,
       inputClassPrefix,
@@ -43,21 +53,38 @@ export const MoveEditorWidget = (() => {
     `).join('');
   }
 
+  /**
+   * @template {string|{name?: string}} T
+   * @param {HTMLInputElement[]} inputs
+   * @param {() => string} getSpeciesSlug
+   * @param {(speciesSlug: string, query: string, index: number) => T[]|Promise<T[]>} searchFn
+   * @param {{
+   * formatItem?: (item: T) => string,
+   * onSelect?: (item: T, index: number, input: HTMLInputElement) => void,
+   * onInput?: (index: number, input: HTMLInputElement) => void,
+   * onBlur?: (index: number, input: HTMLInputElement) => void
+   * }} [options]
+   */
   function wireSpeciesMoveAutocomplete(inputs, getSpeciesSlug, searchFn, options = {}) {
     const { formatItem, onSelect, onInput, onBlur } = options;
 
     inputs.forEach((input, index) => {
-      UIShared.createAutocomplete(input, (query) => searchFn(getSpeciesSlug(), query, index), {
+      /** @param {string} query */
+      const getItems = (query) => searchFn(getSpeciesSlug(), query, index);
+      /** @param {T} item */
+      const selectItem = (item) => {
+        if (onSelect) onSelect(item, index, input);
+      };
+      UIShared.createAutocomplete(input, getItems, {
         formatItem,
-        onSelect: (item) => {
-          if (onSelect) onSelect(item, index, input);
-        },
+        onSelect: selectItem,
       });
       if (onInput) input.addEventListener('input', () => onInput(index, input));
       if (onBlur) input.addEventListener('blur', () => onBlur(index, input));
     });
   }
 
+  /** @param {HTMLInputElement[]} inputs */
   function collectValues(inputs) {
     return inputs.map((input) => input?.value.trim() || '').filter(Boolean);
   }
@@ -69,7 +96,3 @@ export const MoveEditorWidget = (() => {
     collectValues,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.MoveEditorWidget = MoveEditorWidget;
-}

@@ -3,25 +3,11 @@
  *
  * Pure helper layer. Callers pass the current pokedex indexes / entries.
  */
+import { FormMetadata } from './form-metadata.js';
+import { GENDER_SPRITE_SPECIES } from './species-constants.js';
 
 export const SpeciesResolver = (() => {
-  // Species whose sprites differ by gender (cosmetic dimorphism with separate Showdown sprites).
-  // Keyed by BASE collapsed slug (Smogon entry key for base form, without regional suffixes).
-  const GENDER_SPRITE_SPECIES = new Set([
-    'abomasnow','alakazam','ambipom','beautifly','bibarel','bidoof','blaziken',
-    'butterfree','cacturne','camerupt','combee','combusken','croagunk','dodrio',
-    'doduo','donphan','dustox','finneon','frillish','gabite','garchomp','gible',
-    'girafarig','gligar','gloom','golbat','goldeen','gulpin','gyarados','heracross',
-    'hippopotas','hippowdon','houndoom','hypno','jellicent','kadabra','kricketot',
-    'kricketune','ledian','ledyba','ludicolo','lumineon','luxio','luxray','magikarp',
-    'mamoswine','medicham','meditite','meganium','milotic','murkrow','numel','nuzleaf',
-    'octillery','pachirisu','pikachu','piloswine','politoed','pyroar','quagsire',
-    'raichu','relicanth','rhydon','rhyhorn','rhyperior','roselia','roserade','scizor',
-    'scyther','seaking','shiftry','shinx','sneasel','snover','staraptor','staravia',
-    'starly','steelix','sudowoodo','swalot','tangrowth','toxicroak','unfezant',
-    'venusaur','vileplume','weavile','wobbuffet','wooper','xatu','zubat',
-  ]);
-
+  /** @param {import('./types/contracts.js').InputValue} value */
   function normalizeHyphenSlug(value) {
     return String(value || '')
       .toLowerCase()
@@ -31,19 +17,28 @@ export const SpeciesResolver = (() => {
       .replace(/-+/g, '-');
   }
 
+  /** @param {import('./types/contracts.js').InputValue} value */
   function normalizeCollapsedSlug(value) {
     return normalizeHyphenSlug(value).replace(/-/g, '');
   }
 
+  /** @param {Array<string|null|undefined|false>} values */
   function unique(values) {
-    return [...new Set((values || []).filter(Boolean))];
+    /** @type {string[]} */
+    const present = [];
+    for (const value of values || []) {
+      if (value) present.push(value);
+    }
+    return [...new Set(present)];
   }
 
+  /** @param {import('./types/contracts.js').InputValue} value */
   function prettifyName(value) {
     const parts = normalizeHyphenSlug(value).split('-').filter(Boolean);
     return parts.join(' ').replace(/\b\w/g, (match) => match.toUpperCase());
   }
 
+  /** @param {string[]} out @param {import('./types/contracts.js').InputValue} value */
   function pushSlugVariants(out, value) {
     const hyphen = normalizeHyphenSlug(value);
     const collapsed = normalizeCollapsedSlug(value);
@@ -51,6 +46,11 @@ export const SpeciesResolver = (() => {
     if (collapsed && collapsed !== hyphen) out.push(collapsed);
   }
 
+  /**
+   * @param {string[]} out
+   * @param {import('./types/contracts.js').PokedexEntry|null|undefined} entry
+   * @param {import('./types/contracts.js').PokedexEntry|null|undefined} baseEntry
+   */
   function pushFormSpriteVariants(out, entry, baseEntry) {
     if (!entry?.baseSpecies || !entry?.forme) return;
     const baseSlug = baseEntry?.slug || normalizeCollapsedSlug(entry.baseSpecies);
@@ -63,6 +63,10 @@ export const SpeciesResolver = (() => {
     out.push(`${baseSlug}${collapsedForme}`);
   }
 
+  /**
+   * @param {string} key
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   */
   function probeEntry(key, ctx) {
     if (!key) return null;
     if (ctx.entryBySlug?.has(key)) return ctx.entryBySlug.get(key);
@@ -73,7 +77,12 @@ export const SpeciesResolver = (() => {
     return null;
   }
 
+  /**
+   * @param {import('./types/contracts.js').InputValue} raw
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   */
   function resolveStringEntry(raw, ctx) {
+    /** @type {string[]} */
     const exactKeys = [];
     pushSlugVariants(exactKeys, raw);
     for (const key of unique([String(raw || '').toLowerCase(), ...exactKeys])) {
@@ -85,6 +94,7 @@ export const SpeciesResolver = (() => {
     const parts = hyphen.split('-').filter(Boolean);
     for (let i = parts.length - 1; i >= 1; i -= 1) {
       const fallback = parts.slice(0, i).join('-');
+      /** @type {string[]} */
       const fallbackKeys = [];
       pushSlugVariants(fallbackKeys, fallback);
       for (const key of unique([fallback, ...fallbackKeys])) {
@@ -96,6 +106,11 @@ export const SpeciesResolver = (() => {
     return { entry: null, matchedDirect: false };
   }
 
+  /**
+   * @param {import('./types/contracts.js').SpeciesInput|null|undefined} input
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   * @returns {{entry: import('./types/contracts.js').PokedexEntry|null, matchedDirect: boolean}}
+   */
   function resolveMatch(input, ctx) {
     if (input == null) return { entry: null, matchedDirect: false };
     if (typeof input === 'number') {
@@ -123,9 +138,11 @@ export const SpeciesResolver = (() => {
     return resolveStringEntry(raw, ctx);
   }
 
+  /** @param {import('./types/contracts.js').PokedexEntry[]} entries */
   function buildAliasMap(entries) {
     const aliasToSlug = new Map();
 
+    /** @param {string} alias @param {string} slug */
     function register(alias, slug) {
       for (const key of unique([alias, normalizeHyphenSlug(alias), normalizeCollapsedSlug(alias)])) {
         if (!key || aliasToSlug.has(key)) continue;
@@ -144,6 +161,7 @@ export const SpeciesResolver = (() => {
     return aliasToSlug;
   }
 
+  /** @param {import('./types/contracts.js').PokedexEntry[]} entries */
   function buildSearchIndex(entries) {
     return (entries || [])
       .filter((entry) => !!entry?.slug)
@@ -160,10 +178,19 @@ export const SpeciesResolver = (() => {
       }));
   }
 
+  /**
+   * @param {import('./types/contracts.js').SpeciesInput|null|undefined} input
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   */
   function resolveEntry(input, ctx) {
     return resolveMatch(input, ctx).entry;
   }
 
+  /**
+   * @param {import('./types/contracts.js').SpeciesInput|null|undefined} input
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   * @returns {import('./types/contracts.js').SpeciesResolution}
+   */
   function resolve(input, ctx) {
     const match = resolveMatch(input, ctx);
     const entry = match.entry;
@@ -187,6 +214,7 @@ export const SpeciesResolver = (() => {
       }
     }
 
+    /** @type {string[]} */
     const spriteCandidates = [];
     pushFormSpriteVariants(spriteCandidates, entry, baseEntry);
     pushSlugVariants(spriteCandidates, rawText);
@@ -212,23 +240,27 @@ export const SpeciesResolver = (() => {
     };
   }
 
+  /**
+   * @param {import('./types/contracts.js').SpeciesInput} presetSlug
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   */
   function normalizePresetSlug(presetSlug, ctx) {
     return resolve(presetSlug, ctx).slug || normalizeHyphenSlug(presetSlug);
   }
 
   // ── Match value normalizers ───────────────────────────────────────
   // Derived from FormMetadata registry. Unknown keys use DEFAULT_NORMALIZE.
+  /** @param {import('./types/contracts.js').InputValue} v */
   const DEFAULT_NORMALIZE = (v) => String(v).toLowerCase().replace(/\s+/g, '-').trim();
-  const NORMALIZERS = (typeof FormMetadata !== 'undefined')
-    ? FormMetadata.getNormalizers()
-    : {};
+  /** @type {Record<string, (value: import('./types/contracts.js').InputValue) => string|boolean>} */
+  const NORMALIZERS = FormMetadata.getNormalizers();
 
   /**
    * Compare an instance state value against a preset requirement value.
-   * @param {*} actual — instance state[key]
-   * @param {*} expected — preset requires[key] or defaults[key]
-   * @param {string} key — state field name (used for per-key normalizer)
-   * @param {object} opts — { strict: boolean }
+   * @param {import('./types/contracts.js').InputValue} actual - instance state[key]
+   * @param {import('./types/contracts.js').InputValue} expected - preset requires[key] or defaults[key]
+   * @param {string} key - state field name (used for per-key normalizer)
+   * @param {{strict: boolean}} opts
    *   strict=true: missing actual → no match (used for `requires`)
    *   strict=false: missing actual → match (used for `defaults`)
    * @returns {boolean}
@@ -252,10 +284,10 @@ export const SpeciesResolver = (() => {
    * `requires` (and FORM_EXTRA_FIELDS in domain-mappers.js so it survives state
    * roundtrip). No code change to matchesPreset is needed.
    *
-   * @param {string|object} speciesInput — species_id, display name, or build.species
-   * @param {string|object} presetInput — raw PID string OR parsed PresetTarget
-   * @param {object} ctx — resolver context
-   * @param {object} [instanceState] — slot's state { gender, gigantamax, ability, cream, … }
+   * @param {import('./types/contracts.js').SpeciesInput} speciesInput - species_id, display name, or build.species
+   * @param {string|import('./types/contracts.js').PresetTarget} presetInput - raw PID string or parsed target
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx - resolver context
+   * @param {import('./types/contracts.js').BuildState} [instanceState] - slot state
    * @returns {boolean}
    */
   function matchesPreset(speciesInput, presetInput, ctx, instanceState) {
@@ -265,7 +297,9 @@ export const SpeciesResolver = (() => {
     // Legacy string PIDs and legacy { speciesKey, gender, gmax, abilitySlug }
     // objects are also accepted for backwards compatibility.
     let presetSpeciesKey;
+    /** @type {Partial<Record<import('./types/contracts.js').FormMetadataKey, import('./types/contracts.js').InputValue>>} */
     let requires = {};
+    /** @type {Partial<Record<import('./types/contracts.js').FormMetadataKey, import('./types/contracts.js').InputValue>>} */
     let defaults = {};
     if (typeof presetInput === 'object') {
       presetSpeciesKey = presetInput.speciesKey || '';
@@ -286,30 +320,41 @@ export const SpeciesResolver = (() => {
     if (!slugMatch) return false;
 
     // 2. Strict requirements (missing actual = no match)
-    for (const [key, expected] of Object.entries(requires)) {
+    for (const key of /** @type {import('./types/contracts.js').FormMetadataKey[]} */ (Object.keys(requires))) {
+      const expected = requires[key];
       if (!matchValue(instanceState?.[key], expected, key, { strict: true })) return false;
     }
 
     // 3. Lenient defaults (missing actual = OK; explicit non-equal = no match)
-    for (const [key, expected] of Object.entries(defaults)) {
+    for (const key of /** @type {import('./types/contracts.js').FormMetadataKey[]} */ (Object.keys(defaults))) {
+      const expected = defaults[key];
       if (!matchValue(instanceState?.[key], expected, key, { strict: false })) return false;
     }
 
     return true;
   }
 
+  /**
+   * @param {import('./types/contracts.js').SpeciesInput|null|undefined} input
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   */
   function getSpriteCandidates(input, ctx) {
     return resolve(input, ctx).spriteCandidates;
   }
 
+  /**
+   * @param {string} query
+   * @param {import('./types/contracts.js').SpeciesResolverContext} ctx
+   */
   function search(query, ctx) {
     const raw = String(query || '').trim();
     if (!raw) return [];
     const rawLower = raw.toLowerCase();
     const normalized = normalizeHyphenSlug(raw);
     const collapsed = normalizeCollapsedSlug(raw);
+    /** @type {Array<{entry: import('./types/contracts.js').PokedexEntry, score: number}>} */
     const scored = [];
-    const searchIndex = Array.isArray(ctx.searchIndex) ? ctx.searchIndex : buildSearchIndex(ctx.entries);
+    const searchIndex = Array.isArray(ctx.searchIndex) ? ctx.searchIndex : buildSearchIndex(ctx.entries || []);
 
     for (const { entry, aliases } of searchIndex) {
       let score = 0;
@@ -345,7 +390,3 @@ export const SpeciesResolver = (() => {
     search,
   };
 })();
-
-if (typeof window !== 'undefined') {
-  window.SpeciesResolver = SpeciesResolver;
-}
