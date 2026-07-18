@@ -1,62 +1,74 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-16T03:13:54.6006484Z",
+  "generatedAt": "2026-07-18T00:15:00Z",
   "title": "Design System: Pokémon HOME Tracker",
   "extensions": {
     "colorMeta": {
       "night-canvas": {
         "role": "neutral",
         "displayName": "PC Night",
-        "canonical": "#0f1923",
-        "tonalRamp": ["oklch(15% 0.025 249.1)", "oklch(27% 0.025 249.1)", "oklch(39% 0.025 249.1)", "oklch(51% 0.025 249.1)", "oklch(63% 0.025 249.1)", "oklch(75% 0.025 249.1)", "oklch(87% 0.025 249.1)", "oklch(95% 0.025 249.1)"]
+        "canonical": "#09141e",
+        "tonalRamp": ["oklch(15% 0.026 247.0)", "oklch(27% 0.026 247.0)", "oklch(39% 0.026 247.0)", "oklch(51% 0.026 247.0)", "oklch(63% 0.026 247.0)", "oklch(75% 0.026 247.0)", "oklch(87% 0.026 247.0)", "oklch(95% 0.026 247.0)"]
       },
       "deep-shell": {
         "role": "neutral",
         "displayName": "Deep Cabinet",
-        "canonical": "#162231",
-        "tonalRamp": ["oklch(15% 0.033 254.4)", "oklch(27% 0.033 254.4)", "oklch(39% 0.033 254.4)", "oklch(51% 0.033 254.4)", "oklch(63% 0.033 254.4)", "oklch(75% 0.033 254.4)", "oklch(87% 0.033 254.4)", "oklch(95% 0.033 254.4)"]
+        "canonical": "#101f2d",
+        "tonalRamp": ["oklch(15% 0.034 247.9)", "oklch(27% 0.034 247.9)", "oklch(39% 0.034 247.9)", "oklch(51% 0.034 247.9)", "oklch(63% 0.034 247.9)", "oklch(75% 0.034 247.9)", "oklch(87% 0.034 247.9)", "oklch(95% 0.034 247.9)"]
       },
       "box-surface": {
         "role": "neutral",
         "displayName": "Box Interior",
-        "canonical": "#1e2d3d",
-        "tonalRamp": ["oklch(15% 0.036 250.7)", "oklch(27% 0.036 250.7)", "oklch(39% 0.036 250.7)", "oklch(51% 0.036 250.7)", "oklch(63% 0.036 250.7)", "oklch(75% 0.036 250.7)", "oklch(87% 0.036 250.7)", "oklch(95% 0.036 250.7)"]
+        "canonical": "#142838",
+        "tonalRamp": ["oklch(15% 0.040 244.2)", "oklch(27% 0.040 244.2)", "oklch(39% 0.040 244.2)", "oklch(51% 0.040 244.2)", "oklch(63% 0.040 244.2)", "oklch(75% 0.040 244.2)", "oklch(87% 0.040 244.2)", "oklch(95% 0.040 244.2)"]
       },
       "slate-header": {
         "role": "neutral",
         "displayName": "Header Slate",
-        "canonical": "#2a3f55",
-        "tonalRamp": ["oklch(15% 0.047 250.3)", "oklch(27% 0.047 250.3)", "oklch(39% 0.047 250.3)", "oklch(51% 0.047 250.3)", "oklch(63% 0.047 250.3)", "oklch(75% 0.047 250.3)", "oklch(87% 0.047 250.3)", "oklch(95% 0.047 250.3)"]
+        "canonical": "#1b3a50",
+        "tonalRamp": ["oklch(15% 0.054 241.7)", "oklch(27% 0.054 241.7)", "oklch(39% 0.054 241.7)", "oklch(51% 0.054 241.7)", "oklch(63% 0.054 241.7)", "oklch(75% 0.054 241.7)", "oklch(87% 0.054 241.7)", "oklch(95% 0.054 241.7)"]
       },
       "slate-hover": {
         "role": "neutral",
         "displayName": "Hover Slate",
-        "canonical": "#2a4060",
-        "tonalRamp": ["oklch(15% 0.062 257.7)", "oklch(27% 0.062 257.7)", "oklch(39% 0.062 257.7)", "oklch(51% 0.062 257.7)", "oklch(63% 0.062 257.7)", "oklch(75% 0.062 257.7)", "oklch(87% 0.062 257.7)", "oklch(95% 0.062 257.7)"]
+        "canonical": "#21465f",
+        "tonalRamp": ["oklch(15% 0.060 240.5)", "oklch(27% 0.060 240.5)", "oklch(39% 0.060 240.5)", "oklch(51% 0.060 240.5)", "oklch(63% 0.060 240.5)", "oklch(75% 0.060 240.5)", "oklch(87% 0.060 240.5)", "oklch(95% 0.060 240.5)"]
       },
       "detail-surface": {
         "role": "neutral",
         "displayName": "Detail Bay",
-        "canonical": "#1a2838",
-        "tonalRamp": ["oklch(15% 0.036 252.4)", "oklch(27% 0.036 252.4)", "oklch(39% 0.036 252.4)", "oklch(51% 0.036 252.4)", "oklch(63% 0.036 252.4)", "oklch(75% 0.036 252.4)", "oklch(87% 0.036 252.4)", "oklch(95% 0.036 252.4)"]
+        "canonical": "#0d1d2a",
+        "tonalRamp": ["oklch(15% 0.034 244.6)", "oklch(27% 0.034 244.6)", "oklch(39% 0.034 244.6)", "oklch(51% 0.034 244.6)", "oklch(63% 0.034 244.6)", "oklch(75% 0.034 244.6)", "oklch(87% 0.034 244.6)", "oklch(95% 0.034 244.6)"]
+      },
+      "slot-well": {
+        "role": "neutral",
+        "displayName": "Slot Well",
+        "canonical": "#0b1924",
+        "tonalRamp": ["oklch(15% 0.029 243.6)", "oklch(27% 0.029 243.6)", "oklch(39% 0.029 243.6)", "oklch(51% 0.029 243.6)", "oklch(63% 0.029 243.6)", "oklch(75% 0.029 243.6)", "oklch(87% 0.029 243.6)", "oklch(95% 0.029 243.6)"]
+      },
+      "cabinet-edge": {
+        "role": "neutral",
+        "displayName": "Cabinet Edge",
+        "canonical": "#3a617c",
+        "tonalRamp": ["oklch(15% 0.062 240.1)", "oklch(27% 0.062 240.1)", "oklch(39% 0.062 240.1)", "oklch(51% 0.062 240.1)", "oklch(63% 0.062 240.1)", "oklch(75% 0.062 240.1)", "oklch(87% 0.062 240.1)", "oklch(95% 0.062 240.1)"]
       },
       "ink-primary": {
         "role": "neutral",
         "displayName": "Primary LCD Text",
-        "canonical": "#e8edf2",
-        "tonalRamp": ["oklch(15% 0.009 247.9)", "oklch(27% 0.009 247.9)", "oklch(39% 0.009 247.9)", "oklch(51% 0.009 247.9)", "oklch(63% 0.009 247.9)", "oklch(75% 0.009 247.9)", "oklch(87% 0.009 247.9)", "oklch(95% 0.009 247.9)"]
+        "canonical": "#edf5fb",
+        "tonalRamp": ["oklch(15% 0.012 239.9)", "oklch(27% 0.012 239.9)", "oklch(39% 0.012 239.9)", "oklch(51% 0.012 239.9)", "oklch(63% 0.012 239.9)", "oklch(75% 0.012 239.9)", "oklch(87% 0.012 239.9)", "oklch(95% 0.012 239.9)"]
       },
       "ink-secondary": {
         "role": "neutral",
         "displayName": "Secondary LCD Text",
-        "canonical": "#8899aa",
-        "tonalRamp": ["oklch(15% 0.032 248.3)", "oklch(27% 0.032 248.3)", "oklch(39% 0.032 248.3)", "oklch(51% 0.032 248.3)", "oklch(63% 0.032 248.3)", "oklch(75% 0.032 248.3)", "oklch(87% 0.032 248.3)", "oklch(95% 0.032 248.3)"]
+        "canonical": "#a8bdcd",
+        "tonalRamp": ["oklch(15% 0.032 240.8)", "oklch(27% 0.032 240.8)", "oklch(39% 0.032 240.8)", "oklch(51% 0.032 240.8)", "oklch(63% 0.032 240.8)", "oklch(75% 0.032 240.8)", "oklch(87% 0.032 240.8)", "oklch(95% 0.032 240.8)"]
       },
       "ink-muted": {
         "role": "neutral",
         "displayName": "Muted LCD Text",
-        "canonical": "#9aa9b8",
-        "tonalRamp": ["oklch(15% 0.032 248.4)", "oklch(27% 0.032 248.4)", "oklch(39% 0.032 248.4)", "oklch(51% 0.032 248.4)", "oklch(63% 0.032 248.4)", "oklch(75% 0.032 248.4)", "oklch(87% 0.032 248.4)", "oklch(95% 0.032 248.4)"]
+        "canonical": "#91a7b8",
+        "tonalRamp": ["oklch(15% 0.035 241.3)", "oklch(27% 0.035 241.3)", "oklch(39% 0.035 241.3)", "oklch(51% 0.035 241.3)", "oklch(63% 0.035 241.3)", "oklch(75% 0.035 241.3)", "oklch(87% 0.035 241.3)", "oklch(95% 0.035 241.3)"]
       },
       "control-ink": {
         "role": "neutral",
@@ -73,20 +85,20 @@
       "pc-blue": {
         "role": "primary",
         "displayName": "Link Cable Blue",
-        "canonical": "#4a9eff",
-        "tonalRamp": ["oklch(15% 0.165 254.0)", "oklch(27% 0.165 254.0)", "oklch(39% 0.165 254.0)", "oklch(51% 0.165 254.0)", "oklch(63% 0.165 254.0)", "oklch(75% 0.165 254.0)", "oklch(87% 0.165 254.0)", "oklch(95% 0.165 254.0)"]
+        "canonical": "#54a9ff",
+        "tonalRamp": ["oklch(15% 0.151 250.9)", "oklch(27% 0.151 250.9)", "oklch(39% 0.151 250.9)", "oklch(51% 0.151 250.9)", "oklch(63% 0.151 250.9)", "oklch(75% 0.151 250.9)", "oklch(87% 0.151 250.9)", "oklch(95% 0.151 250.9)"]
       },
       "pc-blue-hover": {
         "role": "primary",
         "displayName": "Link Cable Highlight",
-        "canonical": "#72b3ff",
-        "tonalRamp": ["oklch(15% 0.084 247.8)", "oklch(27% 0.084 247.8)", "oklch(39% 0.084 247.8)", "oklch(51% 0.084 247.8)", "oklch(63% 0.084 247.8)", "oklch(75% 0.084 247.8)", "oklch(87% 0.084 247.8)", "oklch(95% 0.084 247.8)"]
+        "canonical": "#82c0ff",
+        "tonalRamp": ["oklch(15% 0.111 249.8)", "oklch(27% 0.111 249.8)", "oklch(39% 0.111 249.8)", "oklch(51% 0.111 249.8)", "oklch(63% 0.111 249.8)", "oklch(75% 0.111 249.8)", "oklch(87% 0.111 249.8)", "oklch(95% 0.111 249.8)"]
       },
       "completion-gold": {
         "role": "secondary",
         "displayName": "Completion Gold",
-        "canonical": "#f0c040",
-        "tonalRamp": ["oklch(15% 0.149 87.4)", "oklch(27% 0.149 87.4)", "oklch(39% 0.149 87.4)", "oklch(51% 0.149 87.4)", "oklch(63% 0.149 87.4)", "oklch(75% 0.149 87.4)", "oklch(87% 0.149 87.4)", "oklch(95% 0.149 87.4)"]
+        "canonical": "#f4ca5b",
+        "tonalRamp": ["oklch(15% 0.136 88.4)", "oklch(27% 0.136 88.4)", "oklch(39% 0.136 88.4)", "oklch(51% 0.136 88.4)", "oklch(63% 0.136 88.4)", "oklch(75% 0.136 88.4)", "oklch(87% 0.136 88.4)", "oklch(95% 0.136 88.4)"]
       },
       "ready-green": {
         "role": "secondary",
@@ -304,7 +316,7 @@
       "refersTo": "box-container",
       "description": "Signature six-column Pokémon storage container.",
       "html": "<section class=\"ds-box\"><header class=\"ds-box-header\">Box 01</header><div class=\"ds-box-grid\"><button class=\"ds-slot\">001</button><button class=\"ds-slot\">004</button><button class=\"ds-slot\">007</button><button class=\"ds-slot\">025</button><button class=\"ds-slot\">133</button><button class=\"ds-slot\">150</button></div></section>",
-      "css": ".ds-box { width: 290px; overflow: visible; border: 1px solid var(--border, #2a3f55); border-radius: 12px; background: var(--bg-box, #1e2d3d); color: var(--text-primary, #e8edf2); } .ds-box-header { padding: 4px 8px; border-bottom: 1px solid var(--border, #2a3f55); border-radius: 12px 12px 0 0; background: var(--bg-box-header, #2a3f55); color: var(--accent-gold, #f0c040); font: 600 0.75rem/1.3 system-ui, sans-serif; letter-spacing: 0.5px; text-align: center; } .ds-box-grid { display: grid; grid-template-columns: repeat(6, 44px); gap: 2px; justify-content: center; padding: 4px 8px 8px; } .ds-slot { width: 44px; height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary, #8899aa); cursor: pointer; font: 600 10px/1 system-ui, sans-serif; } .ds-slot:hover { background: var(--bg-hover, #2a4060); } .ds-slot:focus-visible { outline: 2px solid var(--accent-blue, #4a9eff); outline-offset: -2px; }"
+      "css": ".ds-box { width: 290px; overflow: visible; border: 1px solid var(--cabinet-edge, #3a617c); border-radius: 5px; background: var(--box-surface, #142838); color: var(--ink-primary, #edf5fb); } .ds-box-header { padding: 5px 8px 4px; border-bottom: 1px solid var(--cabinet-edge, #3a617c); background: var(--slate-header, #1b3a50); color: var(--completion-gold, #f4ca5b); font: 600 0.75rem/1.3 system-ui, sans-serif; text-align: center; } .ds-box-grid { display: grid; grid-template-columns: repeat(6, 44px); gap: 3px; justify-content: center; padding: 7px 8px 8px; } .ds-slot { width: 44px; height: 44px; border: 1px solid var(--slot-border, #223f53); border-radius: 4px; background: var(--slot-well, #0b1924); color: var(--ink-secondary, #a8bdcd); cursor: pointer; font: 600 10px/1 system-ui, sans-serif; } .ds-slot:hover { background: var(--slate-hover, #21465f); } .ds-slot:focus-visible { outline: 2px solid var(--pc-blue, #54a9ff); outline-offset: -2px; }"
     },
     {
       "name": "Filter Toolbar",

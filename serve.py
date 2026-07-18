@@ -6,6 +6,9 @@ Usage:
     uv run serve.py              # http://localhost:8000
     uv run serve.py --port 3000  # http://localhost:3000
 
+Linked Git worktrees share the canonical checkout's userdata automatically.
+Set USERDATA_DIR to use an isolated directory instead.
+
 API:
     GET/POST       /api/builds
     GET/PUT/DELETE  /api/builds/{id}
@@ -24,6 +27,7 @@ import os
 import shutil
 import sys
 import threading
+from collections.abc import Mapping
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -31,12 +35,72 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).parent
 SITE_DIR = ROOT / "site"
 DATA_DIR = ROOT / "data"
-USER_DATA_DIR = ROOT / "userdata"
-BACKUP_DIR = USER_DATA_DIR / "backups"
 MAX_BACKUPS = 50  # rolling backups per file
 
 # User data files that live in userdata/ (not git-tracked)
 _USER_DATA_FILES = ("builds.json", "inventory.json", "teams.json")
+
+
+def _resolve_git_dir(repo_root: Path) -> Path | None:
+    """Resolve a checkout's Git directory without invoking Git."""
+    marker = repo_root / ".git"
+    if marker.is_dir():
+        return marker.resolve()
+    if not marker.is_file():
+        return None
+
+    try:
+        directive = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    prefix = "gitdir:"
+    if not directive.lower().startswith(prefix):
+        return None
+
+    git_dir = Path(directive[len(prefix):].strip()).expanduser()
+    if not git_dir.is_absolute():
+        git_dir = repo_root / git_dir
+    return git_dir.resolve()
+
+
+def _resolve_common_git_dir(git_dir: Path) -> Path:
+    """Resolve the common Git directory used by a linked worktree."""
+    marker = git_dir / "commondir"
+    if not marker.is_file():
+        return git_dir
+    try:
+        configured = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return git_dir
+    if not configured:
+        return git_dir
+    common_dir = Path(configured).expanduser()
+    if not common_dir.is_absolute():
+        common_dir = git_dir / common_dir
+    return common_dir.resolve()
+
+
+def resolve_user_data_dir(
+    repo_root: Path,
+    environ: Mapping[str, str] | None = None,
+) -> Path:
+    """Resolve local userdata, sharing the canonical checkout across worktrees."""
+    environment = os.environ if environ is None else environ
+    configured = environment.get("USERDATA_DIR", "").strip()
+    if configured:
+        return Path(os.path.expandvars(configured)).expanduser().resolve()
+
+    git_dir = _resolve_git_dir(repo_root)
+    if git_dir is not None:
+        common_git_dir = _resolve_common_git_dir(git_dir)
+        if common_git_dir.name == ".git":
+            return (common_git_dir.parent / "userdata").resolve()
+
+    return (repo_root / "userdata").resolve()
+
+
+USER_DATA_DIR = resolve_user_data_dir(ROOT)
+BACKUP_DIR = USER_DATA_DIR / "backups"
 
 # Shared domain modules live in api/domain/ — single source of truth for both
 # the local dev server and the Azure Functions cloud backend.
@@ -494,8 +558,8 @@ def main():
         sys.exit(1)
 
     # ── Migrate user data to userdata/ (outside git) ──────
-    USER_DATA_DIR.mkdir(exist_ok=True)
-    BACKUP_DIR.mkdir(exist_ok=True)
+    USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     migrated = []
     for fname in _USER_DATA_FILES:
         dest = USER_DATA_DIR / fname

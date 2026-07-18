@@ -11,7 +11,8 @@ export const ProgressIndicator = (() => {
     const fillEl = document.getElementById('progress-fill');
     if (!textEl || !fillEl) return;
     textEl.textContent = progress.text;
-    fillEl.style.width = `${progress.percent}%`;
+    textEl.classList.toggle('on-progress-fill', progress.percent >= 55);
+    fillEl.style.transform = `scaleX(${progress.percent / 100})`;
   }
 
   function updateProgress() {
