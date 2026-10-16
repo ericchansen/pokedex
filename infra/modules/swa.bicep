@@ -1,4 +1,4 @@
-// Static Web App module — Free plan with system-assigned managed identity
+// Static Web App module — Free plan; existing storage configuration is transferred separately.
 
 @description('SWA resource name')
 param swaName string
@@ -23,11 +23,8 @@ resource swa 'Microsoft.Web/staticSites@2023-12-01' = {
   location: location
   tags: tags
   sku: {
-    name: 'Standard'
-    tier: 'Standard'
-  }
-  identity: {
-    type: 'SystemAssigned'
+    name: 'Free'
+    tier: 'Free'
   }
   properties: {
     repositoryUrl: 'https://github.com/${repoOwner}/${repoName}'
@@ -43,4 +40,3 @@ resource swa 'Microsoft.Web/staticSites@2023-12-01' = {
 
 output defaultHostname string = swa.properties.defaultHostname
 output resourceId string = swa.id
-output principalId string = swa.identity.principalId
