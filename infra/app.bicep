@@ -26,12 +26,6 @@ param repoName string
 @description('GitHub branch to deploy from')
 param repoBranch string = 'main'
 
-@description('Data resource group name (where storage lives)')
-param dataResourceGroupName string
-
-@description('Storage account name (in data RG)')
-param storageAccountName string
-
 @description('Tags applied to all resources')
 param tags object = {
   project: 'pokemon-tracker'
@@ -61,19 +55,7 @@ module swa 'modules/swa.bicep' = {
   }
 }
 
-// ── Role Assignment (cross-RG) ──────────────────────────────────
-
-module roleAssignment 'modules/storage-role.bicep' = {
-  name: 'role-blob-contributor'
-  scope: resourceGroup(dataResourceGroupName)
-  params: {
-    storageAccountName: storageAccountName
-    principalId: swa.outputs.principalId
-  }
-}
-
 // ── Outputs ─────────────────────────────────────────────────────
 
 output swaDefaultHostname string = swa.outputs.defaultHostname
 output swaResourceId string = swa.outputs.resourceId
-output swaPrincipalId string = swa.outputs.principalId
